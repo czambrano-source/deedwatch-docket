@@ -14,13 +14,13 @@ interface Props {
   open: boolean;
   onClose: () => void;
   inmueble: Inmueble;
+  tipoPredio: string;
 }
 
-export function RegistrarPagoModal({ open, onClose, inmueble }: Props) {
+export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio }: Props) {
   const [fechaPago, setFechaPago] = useState("");
   const [valorPago, setValorPago] = useState("");
   const [valorAvaluo, setValorAvaluo] = useState("");
-  const [notas, setNotas] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
@@ -55,10 +55,10 @@ export function RegistrarPagoModal({ open, onClose, inmueble }: Props) {
         fecha_pago: fechaPago,
         valor_pago: parseFloat(valorPago),
         valor_avaluo: valorAvaluo ? parseFloat(valorAvaluo) : null,
-        notas: notas || null,
         url_soporte: urlSoporte,
         estado: "Pagado",
         anio_vigencia: new Date().getFullYear(),
+        tipo_predio: tipoPredio,
       } as any);
 
       if (error) throw error;
@@ -95,11 +95,6 @@ export function RegistrarPagoModal({ open, onClose, inmueble }: Props) {
           <div className="space-y-2">
             <Label htmlFor="avaluo">Avalúo</Label>
             <Input id="avaluo" type="number" placeholder="0" value={valorAvaluo} onChange={(e) => setValorAvaluo(e.target.value)} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notas">Notas</Label>
-            <Textarea id="notas" placeholder="Observaciones..." value={notas} onChange={(e) => setNotas(e.target.value)} rows={2} />
           </div>
 
           <div className="space-y-2">
