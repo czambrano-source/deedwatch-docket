@@ -20,7 +20,8 @@ export function InmueblesList({ inmuebles, pagos, selectedId, onSelect }: Inmueb
     return (
       (i.Name?.toLowerCase().includes(q)) ||
       (i.Id?.toLowerCase().includes(q)) ||
-      (i.Ciudad__c?.toLowerCase().includes(q)) ||
+      (i.Ciudad_Inmueble__c?.toLowerCase().includes(q)) ||
+      (i.Nombre_de_edificio_o_conjunto__c?.toLowerCase().includes(q)) ||
       (i.chip_apartamento__c?.toLowerCase().includes(q))
     );
   });
@@ -59,9 +60,9 @@ export function InmueblesList({ inmuebles, pagos, selectedId, onSelect }: Inmueb
                   <Building2 className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">{inmueble.Name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{inmueble.Id}</p>
-                  <p className="text-xs text-muted-foreground">{inmueble.Ciudad__c}</p>
+                   <p className="font-semibold text-sm text-foreground truncate">{inmueble.Name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{inmueble.Nombre_de_edificio_o_conjunto__c ?? inmueble.Id}</p>
+                  <p className="text-xs text-muted-foreground">{inmueble.Ciudad_Inmueble__c}</p>
                 </div>
                 <div className="flex-shrink-0 mt-1">
                   {isPagado ? (

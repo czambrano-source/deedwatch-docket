@@ -1,14 +1,21 @@
 export interface Inmueble {
   Id: string;
   Name: string;
-  Ciudad__c?: string;
-  Ciudad_Inmueble__c?: string;
-  chip_apartamento__c?: string;
-  Numero_matricula_inmobiliaria__c?: string;
-  Fiduciaria__c?: string;
-  Proceso_entrega_inmueble__c?: string;
-  Direcci_n__c?: string;
+  Nombre_de_edificio_o_conjunto__c?: string;
   Direccion__c?: string;
+  Ciudad_Inmueble__c?: string;
+  Departamento__c?: string;
+  Torre__c?: string;
+  Numero_de_apartamento__c?: string;
+  Numero_matricula_inmobiliaria__c?: string;
+  chip_apartamento__c?: string;
+  Fiduciaria__c?: string;
+  Fecha_firma_escritura__c?: string;
+  numero_del_parqueadero__c?: string;
+  No_Matricula_Inmo_Parqueadero__c?: string;
+  Deposito__c?: string;
+  No_Matricula_Inmo_Deposito__c?: string;
+  Proceso_entrega_inmueble__c?: string;
   Cliente__c?: string;
   [key: string]: any;
 }

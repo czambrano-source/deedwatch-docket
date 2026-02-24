@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar } from "lucide-react";
+import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar, Layers, Car, Package } from "lucide-react";
 import { useInmuebles, usePagos } from "@/hooks/useInmuebles";
 import { KpiCard } from "@/components/predial/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ const Index = () => {
 
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
-    return i.Name?.toLowerCase().includes(q) || i.Id?.toLowerCase().includes(q) || i.Ciudad__c?.toLowerCase().includes(q) || i.chip_apartamento__c?.toLowerCase().includes(q);
+    return i.Name?.toLowerCase().includes(q) || i.Id?.toLowerCase().includes(q) || i.Ciudad_Inmueble__c?.toLowerCase().includes(q) || i.Nombre_de_edificio_o_conjunto__c?.toLowerCase().includes(q) || i.chip_apartamento__c?.toLowerCase().includes(q);
   });
 
   const selected = inmuebles.find((i) => i.Id === selectedId) ?? null;
@@ -107,8 +107,8 @@ const Index = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-sm text-foreground truncate">{inmueble.Name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{inmueble.Id}</p>
-                            <p className="text-xs text-muted-foreground">{inmueble.Ciudad__c}</p>
+                            <p className="text-xs text-muted-foreground truncate">{inmueble.Nombre_de_edificio_o_conjunto__c ?? inmueble.Id}</p>
+                            <p className="text-xs text-muted-foreground">{inmueble.Ciudad_Inmueble__c}</p>
                           </div>
                           <div className="flex-shrink-0 mt-1">
                             {paid ? (
@@ -154,12 +154,35 @@ const Index = () => {
                     <div className="bg-card rounded-xl border p-5 space-y-4">
                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Información del Inmueble</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <DItem label="CHIP" value={selected.chip_apartamento__c} icon={Hash} />
-                        <DItem label="Matrícula Inmobiliaria" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
+                        <DItem label="Código de Inmueble" value={selected.Name} icon={Hash} />
+                        <DItem label="Edificio / Conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+                        <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
+                        <DItem label="Ciudad" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
+                        <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
+                        <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
+                        <DItem label="Apartamento" value={selected.Numero_de_apartamento__c} icon={Building2} />
+                        <DItem label="Matrícula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
+                        <DItem label="CHIP Apto" value={selected.chip_apartamento__c || "Sin asignar"} icon={Hash} />
                         <DItem label="Fiduciaria" value={selected.Fiduciaria__c} icon={Building2} />
-                        <DItem label="Dirección" value={selected.Direcci_n__c} icon={MapPin} />
-                        <DItem label="Ciudad" value={selected.Ciudad__c} icon={MapPin} />
+                        <DItem label="Escritura" value={selected.Fecha_firma_escritura__c} icon={Calendar} />
                         <DItem label="Estado Operativo" value={selected.Proceso_entrega_inmueble__c} icon={CheckCircle2} />
+                      </div>
+                    </div>
+
+                    {/* Anexos */}
+                    <div className="bg-card rounded-xl border p-5 space-y-4">
+                      <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Package className="w-4 h-4 text-primary" /> Anexos</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Car className="w-3 h-3" /> Parqueadero</p>
+                          <p className="text-sm font-medium text-foreground">{selected.numero_del_parqueadero__c || "—"}</p>
+                          <p className="text-xs text-muted-foreground">Matrícula: {selected.No_Matricula_Inmo_Parqueadero__c || "—"}</p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Depósito</p>
+                          <p className="text-sm font-medium text-foreground">{selected.Deposito__c || "—"}</p>
+                          <p className="text-xs text-muted-foreground">Matrícula: {selected.No_Matricula_Inmo_Deposito__c || "—"}</p>
+                        </div>
                       </div>
                     </div>
 
