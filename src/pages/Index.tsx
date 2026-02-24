@@ -9,6 +9,13 @@ import { Progress } from "@/components/ui/progress";
 import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
 import type { Inmueble } from "@/types/inmueble";
 
+// Mapeo temporal de IDs de fiduciaria a nombres legibles
+const FIDUCIARIA_MAP: Record<string, string> = {
+  "a03Rb00000HG7TcIAL": "Accion Sociedad Fiduciaria SA",
+  "a03Rb00000HGJGQIA5": "Alianza Fiduciaria SA",
+};
+const getFiduciariaName = (id?: string) => (id ? FIDUCIARIA_MAP[id] ?? id : "—");
+
 const Index = () => {
   const { data: inmuebles = [], isLoading: loadingInmuebles } = useInmuebles();
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
@@ -161,7 +168,7 @@ const Index = () => {
                         <DItem label="Apartamento" value={selected.Numero_de_apartamento__c} icon={Building2} />
                         <DItem label="Matrícula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
                         <DItem label="CHIP Apto" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
-                        <DItem label="Fiduciaria" value={selected.Fiduciaria__c} icon={Building2} />
+                        <DItem label="Fiduciaria" value={getFiduciariaName(selected.Fiduciaria__c)} icon={Building2} />
                         <DItem label="Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c} icon={Calendar} />
                         <DItem label="Estado Operativo" value={selected.Proceso_entrega_inmueble__c} icon={CheckCircle2} />
                       </div>
