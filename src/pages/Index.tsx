@@ -258,6 +258,12 @@ const Index = () => {
                             <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
                             <DItem label="No. Matricula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
                             <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+                            {(() => {
+                              const pagoInm = pagos.find((p) => p.salesforce_id === selected.Id && (p as any).tipo_predio === "inmueble" && p.estado === "Pagado");
+                              return pagoInm?.valor_avaluo ? (
+                                <DItem label="Avalúo Catastral" value={formatCurrency(pagoInm.valor_avaluo)} icon={DollarSign} />
+                              ) : null;
+                            })()}
                           </div>
                         </div>
                         <ActionButtons tipoPredio="inmueble" sfId={selected.Id} />

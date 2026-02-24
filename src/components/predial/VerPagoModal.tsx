@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ExternalLink, Calendar, DollarSign } from "lucide-react";
+import { Loader2, ExternalLink, Calendar, DollarSign, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface Pago {
   id: string;
@@ -26,6 +29,9 @@ const formatCurrency = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
 
 export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreInmueble }: Props) {
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
   const { data: pagos = [], isLoading } = useQuery<Pago[]>({
     queryKey: ["gestion_predial", salesforceId, tipoPredio],
     queryFn: async () => {
@@ -40,6 +46,21 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
     },
     enabled: open,
   });
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Estás seguro de eliminar este pago?")) return;
+    setDeleting(id);
+    try {
+      const { error } = await supabase.from("gestion_predial").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Pago eliminado");
+      queryClient.invalidateQueries({ queryKey: ["gestion_predial"] });
+    } catch (err: any) {
+      toast.error(err.message || "Error al eliminar");
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const tipoLabel = tipoPredio === "inmueble" ? "Inmueble" : tipoPredio === "parqueadero" ? "Parqueadero" : "Depósito";
 
@@ -64,7 +85,18 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
                     <Calendar className="w-3 h-3" />
                     {new Date(p.fecha_pago).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
                   </span>
-                  <Badge className="bg-duppla-green text-primary-foreground text-xs">{p.estado}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-duppla-green text-primary-foreground text-xs">{p.estado}</Badge>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDelete(p.id)}
+                      disabled={deleting === p.id}
+                    >
+                      {deleting === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Pago</span>

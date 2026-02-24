@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ interface Nota {
 export function NotasModal({ open, onClose, salesforceId, tipoPredio, nombreInmueble }: Props) {
   const [nuevaNota, setNuevaNota] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: notas = [], isLoading } = useQuery<Nota[]>({
@@ -61,6 +62,21 @@ export function NotasModal({ open, onClose, salesforceId, tipoPredio, nombreInmu
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Eliminar esta nota?")) return;
+    setDeleting(id);
+    try {
+      const { error } = await supabase.from("notas_predial").delete().eq("id", id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["notas_predial", salesforceId, tipoPredio] });
+      toast.success("Nota eliminada");
+    } catch (err: any) {
+      toast.error(err.message || "Error al eliminar");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const tipoLabel = tipoPredio === "inmueble" ? "Inmueble" : tipoPredio === "parqueadero" ? "Parqueadero" : "Depósito";
 
   return (
@@ -93,7 +109,18 @@ export function NotasModal({ open, onClose, salesforceId, tipoPredio, nombreInmu
             ) : (
               notas.map((n) => (
                 <div key={n.id} className="border rounded-lg p-3 space-y-1">
-                  <p className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDelete(n.id)}
+                      disabled={deleting === n.id}
+                    >
+                      {deleting === n.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    </Button>
+                  </div>
                   <p className="text-sm text-foreground">{n.nota}</p>
                 </div>
               ))
