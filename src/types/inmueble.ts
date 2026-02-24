@@ -2,11 +2,13 @@ export interface Inmueble {
   Id: string;
   Name: string;
   Ciudad__c?: string;
+  Ciudad_Inmueble__c?: string;
   chip_apartamento__c?: string;
   Numero_matricula_inmobiliaria__c?: string;
   Fiduciaria__c?: string;
   Proceso_entrega_inmueble__c?: string;
   Direcci_n__c?: string;
+  Direccion__c?: string;
   Cliente__c?: string;
   [key: string]: any;
 }
