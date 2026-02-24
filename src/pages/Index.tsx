@@ -146,9 +146,8 @@ const Index = () => {
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center"><Building2 className="w-6 h-6 text-muted-foreground" /></div>
                         <div>
-                          <h2 className="text-xl font-bold text-foreground">{selected.Name}</h2>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1"><Hash className="w-3 h-3" /> {selected.Id}</p>
-                          {selected.Cliente__c && <p className="text-sm text-muted-foreground mt-0.5">{selected.Cliente__c}</p>}
+                          <h2 className="text-xl font-bold text-foreground">Código de Inmueble: {selected.Name}</h2>
+                          <p className="text-sm text-muted-foreground">Opportunity: {selected.Opportunity__r?.Name ?? "—"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
