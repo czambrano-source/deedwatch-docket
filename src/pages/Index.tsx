@@ -84,9 +84,9 @@ const Index = () => {
 
           {/* Inmuebles Master-Detail */}
           <div className="border-t">
-            <div className="flex" style={{ height: "calc(100vh - 3.5rem)" }}>
+            <div className="flex" style={{ height: "calc(100vh - 20rem)" }}>
               {/* List */}
-              <div className="w-[380px] flex-shrink-0 border-r bg-card flex flex-col">
+              <div className="w-[380px] flex-shrink-0 border-r bg-card flex flex-col rounded-tl-xl">
                 <div className="p-4 border-b space-y-2">
                   <h2 className="font-semibold text-foreground text-sm">Inmuebles ({total})</h2>
                   <div className="relative">
@@ -107,8 +107,7 @@ const Index = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-sm text-foreground truncate">{inmueble.Name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{inmueble.Nombre_de_edificio_o_conjunto__c ?? inmueble.Id}</p>
-                            <p className="text-xs text-muted-foreground">{inmueble.Ciudad_Inmueble__c}</p>
+                            <p className="text-xs text-muted-foreground truncate">{inmueble.Opportunity__c ?? "—"}</p>
                           </div>
                           <div className="flex-shrink-0 mt-1">
                             {paid ? (
