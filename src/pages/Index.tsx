@@ -91,7 +91,7 @@ const Index = () => {
 
   // Action buttons column
   const ActionButtons = ({ tipoPredio, sfId }: { tipoPredio: TipoPredio; sfId: string }) => (
-    <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+    <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
       <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
       <Button size="sm" onClick={() => openModal("pago", tipoPredio)} className="w-full bg-primary hover:bg-primary/90 text-xs">
         <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
@@ -284,7 +284,7 @@ const Index = () => {
                           <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" ? selected.chip_parqueadero__c : undefined} icon={Hash} />
                         </div>
                         {hasParqueadero(selected) ? (
-                          <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
                             <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
                             {!hasPago(selected.Id, "parqueadero") && (
                               <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
@@ -306,7 +306,7 @@ const Index = () => {
                             </Button>
                           </div>
                         ) : (
-                          <div className="w-[140px] flex-shrink-0 border-l pl-4 flex items-center justify-center">
+                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
                             <p className="text-xs text-muted-foreground text-center">Sin parqueadero asignado</p>
                           </div>
                         )}
@@ -326,7 +326,7 @@ const Index = () => {
                           <DItem label="Chip Depósito" value={selected.chip_deposito__c && selected.chip_deposito__c !== "-" ? selected.chip_deposito__c : undefined} icon={Hash} />
                         </div>
                         {hasDeposito(selected) ? (
-                          <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
                             <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
                             {!hasPago(selected.Id, "deposito") && (
                               <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
@@ -348,7 +348,7 @@ const Index = () => {
                             </Button>
                           </div>
                         ) : (
-                          <div className="w-[140px] flex-shrink-0 border-l pl-4 flex items-center justify-center">
+                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
                             <p className="text-xs text-muted-foreground text-center">Sin depósito asignado</p>
                           </div>
                         )}
