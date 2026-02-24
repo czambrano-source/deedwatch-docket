@@ -156,22 +156,31 @@ const Index = () => {
                       </div>
                     </div>
 
+                    {/* Inmueble */}
                     <div className="bg-card rounded-xl border p-5 space-y-4">
                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Información del Inmueble</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-4">
-                          <DItem label="Fiduciaria" value={getFiduciariaName(selected.Fiduciaria__c)} icon={Building2} />
-                          <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
-                          <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
-                          <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
-                          <DItem label="Nombre de edificio o conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+                      <div className="flex gap-6">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-4">
+                            <DItem label="Fiduciaria" value={getFiduciariaName(selected.Fiduciaria__c)} icon={Building2} />
+                            <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
+                            <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
+                            <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
+                            <DItem label="Nombre de edificio o conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+                          </div>
+                          <div className="space-y-4">
+                            <DItem label="Tipo de inmueble" value={selected.Tipo_de_inmueble__c} icon={Building2} />
+                            <DItem label="Número de apartamento" value={selected.Numero_de_apartamento__c} icon={Building2} />
+                            <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
+                            <DItem label="No. Matricula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
+                            <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+                          </div>
                         </div>
-                        <div className="space-y-4">
-                          <DItem label="Tipo de inmueble" value={selected.Tipo_de_inmueble__c} icon={Building2} />
-                          <DItem label="Número de apartamento" value={selected.Numero_de_apartamento__c} icon={Building2} />
-                          <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
-                          <DItem label="No. Matricula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
-                          <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+                        <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+                          <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                          <Button size="sm" onClick={() => setShowModal(true)} className="w-full bg-primary hover:bg-primary/90 text-xs"><DollarSign className="w-3 h-3 mr-1" /> Registrar Pago</Button>
+                          <Button size="sm" variant="outline" className="w-full text-xs"><ExternalLink className="w-3 h-3 mr-1" /> Ver Pago</Button>
+                          <Button size="sm" variant="secondary" className="w-full text-xs"><FileText className="w-3 h-3 mr-1" /> Notas</Button>
                         </div>
                       </div>
                     </div>
@@ -179,42 +188,38 @@ const Index = () => {
                     {/* Parqueadero */}
                     <div className="bg-card rounded-xl border p-5 space-y-4">
                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Car className="w-4 h-4 text-primary" /> Información Parqueadero</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
-                        <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
-                        <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
-                        <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" ? selected.chip_parqueadero__c : undefined} icon={Hash} />
+                      <div className="flex gap-6">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
+                          <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
+                          <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
+                          <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" ? selected.chip_parqueadero__c : undefined} icon={Hash} />
+                        </div>
+                        <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+                          <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                          <Button size="sm" onClick={() => setShowModal(true)} className="w-full bg-primary hover:bg-primary/90 text-xs"><DollarSign className="w-3 h-3 mr-1" /> Registrar Pago</Button>
+                          <Button size="sm" variant="outline" className="w-full text-xs"><ExternalLink className="w-3 h-3 mr-1" /> Ver Pago</Button>
+                          <Button size="sm" variant="secondary" className="w-full text-xs"><FileText className="w-3 h-3 mr-1" /> Notas</Button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Depósito */}
                     <div className="bg-card rounded-xl border p-5 space-y-4">
                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Package className="w-4 h-4 text-primary" /> Información Depósito</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
-                        <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
-                        <DItem label="Chip Depósito" value={selected.chip_deposito__c && selected.chip_deposito__c !== "-" ? selected.chip_deposito__c : undefined} icon={Hash} />
+                      <div className="flex gap-6">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
+                          <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
+                          <DItem label="Chip Depósito" value={selected.chip_deposito__c && selected.chip_deposito__c !== "-" ? selected.chip_deposito__c : undefined} icon={Hash} />
+                        </div>
+                        <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+                          <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                          <Button size="sm" onClick={() => setShowModal(true)} className="w-full bg-primary hover:bg-primary/90 text-xs"><DollarSign className="w-3 h-3 mr-1" /> Registrar Pago</Button>
+                          <Button size="sm" variant="outline" className="w-full text-xs"><ExternalLink className="w-3 h-3 mr-1" /> Ver Pago</Button>
+                          <Button size="sm" variant="secondary" className="w-full text-xs"><FileText className="w-3 h-3 mr-1" /> Notas</Button>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="bg-card rounded-xl border p-5 space-y-4">
-                      <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><DollarSign className="w-4 h-4 text-primary" /> Gestión de Predial</h3>
-                      {isPagado && selectedPago ? (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <DItem label="Fecha de Pago" value={selectedPago.fecha_pago} icon={Calendar} />
-                            <DItem label="Valor Pagado" value={selectedPago.valor_pago ? formatCurrency(selectedPago.valor_pago) : undefined} icon={DollarSign} />
-                            <DItem label="Avalúo" value={selectedPago.valor_avaluo ? formatCurrency(selectedPago.valor_avaluo) : undefined} icon={DollarSign} />
-                          </div>
-                          {selectedPago.notas && <div className="bg-muted rounded-lg p-3"><p className="text-xs text-muted-foreground mb-1">Notas</p><p className="text-sm text-foreground">{selectedPago.notas}</p></div>}
-                          {selectedPago.url_soporte && <Button variant="outline" size="sm" asChild><a href={selectedPago.url_soporte} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-1" /> Ver Soporte PDF</a></Button>}
-                        </div>
-                      ) : (
-                        <div className="text-center py-6 space-y-3">
-                          <p className="text-muted-foreground text-sm">No se ha registrado pago para este inmueble.</p>
-                          <Button onClick={() => setShowModal(true)} className="bg-primary hover:bg-primary/90"><DollarSign className="w-4 h-4 mr-1" /> Registrar Pago</Button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
