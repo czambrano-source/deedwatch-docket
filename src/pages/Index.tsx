@@ -83,8 +83,8 @@ const Index = () => {
           </div>
 
           {/* Inmuebles Master-Detail */}
-          <div className="border-t">
-            <div className="flex" style={{ height: "calc(100vh - 20rem)" }}>
+          <div className="border-t px-6 pb-6 pt-4">
+            <div className="flex rounded-xl border overflow-hidden" style={{ height: "calc(100vh - 20rem)" }}>
               {/* List */}
               <div className="w-[380px] flex-shrink-0 border-r bg-card flex flex-col rounded-tl-xl">
                 <div className="p-4 border-b space-y-2">
