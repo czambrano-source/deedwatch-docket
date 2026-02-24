@@ -94,9 +94,20 @@ const Index = () => {
     </div>
   );
 
-  // Check if inmueble has parqueadero
-  const hasParqueadero = (i: Inmueble) => i.Parqueadero__c != null && i.Parqueadero__c > 0;
-  const hasDeposito = (i: Inmueble) => !!i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0";
+  // Check if inmueble has parqueadero — any related field with data counts
+  const hasParqueadero = (i: Inmueble) => {
+    if (i.Parqueadero__c != null && i.Parqueadero__c > 0) return true;
+    if (i.numero_del_parqueadero__c) return true;
+    if (i.No_Matricula_Inmo_Parqueadero__c) return true;
+    if (i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP") return true;
+    return false;
+  };
+  const hasDeposito = (i: Inmueble) => {
+    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0") return true;
+    if (i.No_Matricula_Inmo_Deposito__c) return true;
+    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP") return true;
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
