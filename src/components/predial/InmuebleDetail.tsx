@@ -67,12 +67,12 @@ export function InmuebleDetail({ inmueble, pago, onRegistrarPago }: InmuebleDeta
           <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <DetailItem label="CHIP" value={inmueble.chip_apartamento__c} icon={Hash} />
+          <DetailItem label="CHIP" value={inmueble.chip_apartamento__c || "Sin asignar"} icon={Hash} />
           <DetailItem label="Matrícula Inmobiliaria" value={inmueble.Numero_matricula_inmobiliaria__c} icon={FileText} />
           <DetailItem label="Fiduciaria" value={inmueble.Fiduciaria__c} icon={Building2} />
-          <DetailItem label="Dirección" value={inmueble.Direcci_n__c} icon={MapPin} />
-          <DetailItem label="Ciudad" value={inmueble.Ciudad__c} icon={MapPin} />
-          <DetailItem label="Estado Operativo" value={inmueble.Proceso_entrega_inmueble__c} icon={CheckCircle2} />
+          <DetailItem label="Dirección" value={inmueble.Direccion__c ?? inmueble.Direcci_n__c} icon={MapPin} />
+          <DetailItem label="Ciudad" value={inmueble.Ciudad_Inmueble__c ?? inmueble.Ciudad__c} icon={MapPin} />
+          <DetailItem label="Estado Operativo" value={inmueble.Proceso_entrega_inmueble__c ?? "N/A"} icon={CheckCircle2} />
         </div>
       </div>
 
