@@ -162,15 +162,16 @@ const Index = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <DItem label="Código de Inmueble" value={selected.Name} icon={Hash} />
                         <DItem label="Opportunity" value={selected.Opportunity__r?.Name} icon={FileText} />
+                        <DItem label="Edificio / Conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
                         <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
                         <DItem label="Ciudad" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
+                        <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
                         <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
                         <DItem label="Apartamento" value={selected.Numero_de_apartamento__c} icon={Building2} />
                         <DItem label="Matrícula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
                         <DItem label="CHIP Apto" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
                         <DItem label="Fiduciaria" value={getFiduciariaName(selected.Fiduciaria__c)} icon={Building2} />
                         <DItem label="Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c} icon={Calendar} />
-                        <DItem label="Estado Operativo" value={selected.Proceso_entrega_inmueble__c} icon={CheckCircle2} />
                       </div>
                     </div>
 
@@ -180,13 +181,15 @@ const Index = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                           <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Car className="w-3 h-3" /> Parqueadero</p>
-                          <p className="text-sm font-medium text-foreground">{selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : "—"}</p>
+                          <p className="text-sm font-medium text-foreground">{selected.numero_del_parqueadero__c || (selected.Parqueadero__c != null && selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No")}</p>
+                          <p className="text-xs text-muted-foreground">Matrícula: {selected.No_Matricula_Inmo_Parqueadero__c || "—"}</p>
                           <p className="text-xs text-muted-foreground">CHIP: {selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" ? selected.chip_parqueadero__c : "—"}</p>
                         </div>
                         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                           <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Package className="w-3 h-3" /> Depósito</p>
-                          <p className="text-sm font-medium text-foreground">—</p>
-                          <p className="text-xs text-muted-foreground">No disponible en datos</p>
+                          <p className="text-sm font-medium text-foreground">{selected.Deposito__c || "—"}</p>
+                          <p className="text-xs text-muted-foreground">Matrícula: {selected.No_Matricula_Inmo_Deposito__c || "—"}</p>
+                          <p className="text-xs text-muted-foreground">CHIP: {selected.chip_deposito__c && selected.chip_deposito__c !== "-" ? selected.chip_deposito__c : "—"}</p>
                         </div>
                       </div>
                     </div>
