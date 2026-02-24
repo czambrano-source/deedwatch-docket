@@ -58,7 +58,15 @@ const Index = () => {
   const closeModal = () => setActiveModal(null);
 
   // Status badge per block
-  const StatusBadge = ({ sfId, tipo }: { sfId: string; tipo: TipoPredio }) => {
+  const StatusBadge = ({ sfId, tipo, inmueble }: { sfId: string; tipo: TipoPredio; inmueble: Inmueble }) => {
+    // If parqueadero/deposito doesn't exist, show "No aplica"
+    if (tipo === "parqueadero" && !hasParqueadero(inmueble)) {
+      return <Badge variant="outline" className="text-xs text-muted-foreground">No aplica</Badge>;
+    }
+    if (tipo === "deposito" && !hasDeposito(inmueble)) {
+      return <Badge variant="outline" className="text-xs text-muted-foreground">No aplica</Badge>;
+    }
+
     const paid = hasPago(sfId, tipo);
     const incluidoParq = tipo === "parqueadero" && pagoIncluidoParq[sfId];
     const incluidoDep = tipo === "deposito" && pagoIncluidoDep[sfId];
@@ -204,7 +212,7 @@ const Index = () => {
                     <div className="bg-card rounded-xl border p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Información del Inmueble</h3>
-                        <StatusBadge sfId={selected.Id} tipo="inmueble" />
+                        <StatusBadge sfId={selected.Id} tipo="inmueble" inmueble={selected} />
                       </div>
                       <div className="flex gap-6">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -231,7 +239,7 @@ const Index = () => {
                     <div className="bg-card rounded-xl border p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Car className="w-4 h-4 text-primary" /> Información Parqueadero</h3>
-                        <StatusBadge sfId={selected.Id} tipo="parqueadero" />
+                        <StatusBadge sfId={selected.Id} tipo="parqueadero" inmueble={selected} />
                       </div>
                       <div className="flex gap-6">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -240,27 +248,33 @@ const Index = () => {
                           <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
                           <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" ? selected.chip_parqueadero__c : undefined} icon={Hash} />
                         </div>
-                        <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
-                          <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                          {hasParqueadero(selected) && !hasPago(selected.Id, "parqueadero") && (
-                            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
-                              <Checkbox
-                                checked={!!pagoIncluidoParq[selected.Id]}
-                                onCheckedChange={(v) => setPagoIncluidoParq((prev) => ({ ...prev, [selected.Id]: !!v }))}
-                              />
-                              Pago incluido en inmueble
-                            </label>
-                          )}
-                          <Button size="sm" onClick={() => openModal("pago", "parqueadero")} className="w-full bg-primary hover:bg-primary/90 text-xs">
-                            <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => openModal("verPago", "parqueadero")} className="w-full text-xs">
-                            <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
-                          </Button>
-                          <Button size="sm" variant="secondary" onClick={() => openModal("notas", "parqueadero")} className="w-full text-xs">
-                            <FileText className="w-3 h-3 mr-1" /> Notas
-                          </Button>
-                        </div>
+                        {hasParqueadero(selected) ? (
+                          <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+                            <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                            {!hasPago(selected.Id, "parqueadero") && (
+                              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
+                                <Checkbox
+                                  checked={!!pagoIncluidoParq[selected.Id]}
+                                  onCheckedChange={(v) => setPagoIncluidoParq((prev) => ({ ...prev, [selected.Id]: !!v }))}
+                                />
+                                Pago incluido en inmueble
+                              </label>
+                            )}
+                            <Button size="sm" onClick={() => openModal("pago", "parqueadero")} className="w-full bg-primary hover:bg-primary/90 text-xs">
+                              <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => openModal("verPago", "parqueadero")} className="w-full text-xs">
+                              <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+                            </Button>
+                            <Button size="sm" variant="secondary" onClick={() => openModal("notas", "parqueadero")} className="w-full text-xs">
+                              <FileText className="w-3 h-3 mr-1" /> Notas
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="w-[140px] flex-shrink-0 border-l pl-4 flex items-center justify-center">
+                            <p className="text-xs text-muted-foreground text-center">Sin parqueadero asignado</p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -268,7 +282,7 @@ const Index = () => {
                     <div className="bg-card rounded-xl border p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Package className="w-4 h-4 text-primary" /> Información Depósito</h3>
-                        <StatusBadge sfId={selected.Id} tipo="deposito" />
+                        <StatusBadge sfId={selected.Id} tipo="deposito" inmueble={selected} />
                       </div>
                       <div className="flex gap-6">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -276,27 +290,33 @@ const Index = () => {
                           <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
                           <DItem label="Chip Depósito" value={selected.chip_deposito__c && selected.chip_deposito__c !== "-" ? selected.chip_deposito__c : undefined} icon={Hash} />
                         </div>
-                        <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
-                          <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                          {hasDeposito(selected) && !hasPago(selected.Id, "deposito") && (
-                            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
-                              <Checkbox
-                                checked={!!pagoIncluidoDep[selected.Id]}
-                                onCheckedChange={(v) => setPagoIncluidoDep((prev) => ({ ...prev, [selected.Id]: !!v }))}
-                              />
-                              Pago incluido en inmueble
-                            </label>
-                          )}
-                          <Button size="sm" onClick={() => openModal("pago", "deposito")} className="w-full bg-primary hover:bg-primary/90 text-xs">
-                            <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => openModal("verPago", "deposito")} className="w-full text-xs">
-                            <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
-                          </Button>
-                          <Button size="sm" variant="secondary" onClick={() => openModal("notas", "deposito")} className="w-full text-xs">
-                            <FileText className="w-3 h-3 mr-1" /> Notas
-                          </Button>
-                        </div>
+                        {hasDeposito(selected) ? (
+                          <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+                            <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                            {!hasPago(selected.Id, "deposito") && (
+                              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
+                                <Checkbox
+                                  checked={!!pagoIncluidoDep[selected.Id]}
+                                  onCheckedChange={(v) => setPagoIncluidoDep((prev) => ({ ...prev, [selected.Id]: !!v }))}
+                                />
+                                Pago incluido en inmueble
+                              </label>
+                            )}
+                            <Button size="sm" onClick={() => openModal("pago", "deposito")} className="w-full bg-primary hover:bg-primary/90 text-xs">
+                              <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => openModal("verPago", "deposito")} className="w-full text-xs">
+                              <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+                            </Button>
+                            <Button size="sm" variant="secondary" onClick={() => openModal("notas", "deposito")} className="w-full text-xs">
+                              <FileText className="w-3 h-3 mr-1" /> Notas
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="w-[140px] flex-shrink-0 border-l pl-4 flex items-center justify-center">
+                            <p className="text-xs text-muted-foreground text-center">Sin depósito asignado</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
