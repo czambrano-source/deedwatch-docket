@@ -61,8 +61,7 @@ export function InmueblesList({ inmuebles, pagos, selectedId, onSelect }: Inmueb
                 </div>
                 <div className="flex-1 min-w-0">
                    <p className="font-semibold text-sm text-foreground truncate">{inmueble.Name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{inmueble.Nombre_de_edificio_o_conjunto__c ?? inmueble.Id}</p>
-                  <p className="text-xs text-muted-foreground">{inmueble.Ciudad_Inmueble__c}</p>
+                  <p className="text-xs text-muted-foreground truncate">{inmueble.Opportunity__c ?? "—"}</p>
                 </div>
                 <div className="flex-shrink-0 mt-1">
                   {isPagado ? (
