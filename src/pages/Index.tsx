@@ -57,6 +57,17 @@ const Index = () => {
   const openModal = (type: ModalType, tipoPredio: TipoPredio) => setActiveModal({ type, tipoPredio });
   const closeModal = () => setActiveModal(null);
 
+  // Combined status: "completo" if all applicable blocks are paid/included, "pendiente" otherwise
+  const getOverallStatus = (i: Inmueble) => {
+    const inmPaid = hasPago(i.Id, "inmueble");
+    if (!inmPaid) return "pendiente";
+    const needsParq = hasParqueadero(i);
+    const needsDep = hasDeposito(i);
+    if (needsParq && !hasPago(i.Id, "parqueadero") && !pagoIncluidoParq[i.Id]) return "pendiente";
+    if (needsDep && !hasPago(i.Id, "deposito") && !pagoIncluidoDep[i.Id]) return "pendiente";
+    return "completo";
+  };
+
   // Status badge per block
   const StatusBadge = ({ sfId, tipo, inmueble }: { sfId: string; tipo: TipoPredio; inmueble: Inmueble }) => {
     // If parqueadero/deposito doesn't exist, show "No aplica"
@@ -73,9 +84,9 @@ const Index = () => {
     const isIncluido = incluidoParq || incluidoDep;
 
     if (paid || isIncluido) {
-      return <Badge className="bg-duppla-green text-primary-foreground text-xs"><CheckCircle2 className="w-3 h-3 mr-1" /> {isIncluido ? "Incluido en Inmueble" : "Pagado"}</Badge>;
+      return <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-green bg-duppla-green-light px-2.5 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> {isIncluido ? "Incluido en Inmueble" : "Pagado"}</span>;
     }
-    return <Badge variant="destructive" className="text-xs"><Clock className="w-3 h-3 mr-1" /> Pendiente</Badge>;
+    return <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>;
   };
 
   // Action buttons column
@@ -169,7 +180,7 @@ const Index = () => {
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   {filtered.map((inmueble) => {
-                    const paid = hasPago(inmueble.Id, "inmueble");
+                    const status = getOverallStatus(inmueble);
                     const isSel = selectedId === inmueble.Id;
                     return (
                       <button key={inmueble.Id} onClick={() => setSelectedId(inmueble.Id)} className={`w-full text-left p-4 border-b transition-colors hover:bg-muted/50 ${isSel ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"}`}>
@@ -182,10 +193,10 @@ const Index = () => {
                             <p className="text-xs text-muted-foreground truncate">{inmueble.Opportunity__r?.Name ?? "—"}</p>
                           </div>
                           <div className="flex-shrink-0 mt-1">
-                            {paid ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-green bg-duppla-green-light px-2 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> Pagado</span>
+                            {status === "completo" ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-green bg-duppla-green-light px-2 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> Completo</span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-gray bg-muted px-2 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                             )}
                           </div>
                         </div>
@@ -216,7 +227,14 @@ const Index = () => {
                           <p className="text-sm text-muted-foreground">{selected.Opportunity__r?.Name ?? "—"}</p>
                         </div>
                       </div>
-                      {selected.Proceso_entrega_inmueble__c && <Badge variant="outline" className="border-primary text-primary">{selected.Proceso_entrega_inmueble__c}</Badge>}
+                      <div className="flex items-center gap-2">
+                        {selected.Proceso_entrega_inmueble__c && <Badge variant="outline" className="border-primary text-primary">{selected.Proceso_entrega_inmueble__c}</Badge>}
+                        {getOverallStatus(selected) === "completo" ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-green bg-duppla-green-light px-3 py-1 rounded-full"><CheckCircle2 className="w-3 h-3" /> Completo</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-3 py-1 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Inmueble Block */}
