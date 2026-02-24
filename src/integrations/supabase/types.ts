@@ -2252,7 +2252,9 @@ export type Database = {
           id: string
           nombre_inmueble: string | null
           notas: string | null
+          pago_incluido_inmueble: boolean
           salesforce_id: string
+          tipo_predio: string
           url_soporte: string | null
           valor_avaluo: number | null
           valor_pago: number | null
@@ -2265,7 +2267,9 @@ export type Database = {
           id?: string
           nombre_inmueble?: string | null
           notas?: string | null
+          pago_incluido_inmueble?: boolean
           salesforce_id: string
+          tipo_predio?: string
           url_soporte?: string | null
           valor_avaluo?: number | null
           valor_pago?: number | null
@@ -2278,7 +2282,9 @@ export type Database = {
           id?: string
           nombre_inmueble?: string | null
           notas?: string | null
+          pago_incluido_inmueble?: boolean
           salesforce_id?: string
+          tipo_predio?: string
           url_soporte?: string | null
           valor_avaluo?: number | null
           valor_pago?: number | null
@@ -3748,6 +3754,30 @@ export type Database = {
           proceso_documental_pct?: number | null
           proceso_documental_prom_dias?: number | null
           resultado?: string | null
+        }
+        Relationships: []
+      }
+      notas_predial: {
+        Row: {
+          created_at: string
+          id: string
+          nota: string
+          salesforce_id: string
+          tipo_predio: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nota: string
+          salesforce_id: string
+          tipo_predio?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nota?: string
+          salesforce_id?: string
+          tipo_predio?: string
         }
         Relationships: []
       }

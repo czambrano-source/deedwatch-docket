@@ -36,6 +36,7 @@ export function InmueblesTab({ inmuebles, pagos }: InmueblesTabProps) {
           open={showModal}
           onClose={() => setShowModal(false)}
           inmueble={selected}
+          tipoPredio="inmueble"
         />
       )}
     </div>

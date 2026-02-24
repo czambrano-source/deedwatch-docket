@@ -6,30 +6,45 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
-import type { Inmueble } from "@/types/inmueble";
+import { NotasModal } from "@/components/predial/NotasModal";
+import { VerPagoModal } from "@/components/predial/VerPagoModal";
+import type { Inmueble, GestionPredial } from "@/types/inmueble";
 
-// Mapeo temporal de IDs de fiduciaria a nombres legibles
 const FIDUCIARIA_MAP: Record<string, string> = {
   "a03Rb00000HG7TcIAL": "Accion Sociedad Fiduciaria SA",
   "a03Rb00000HGJGQIA5": "Alianza Fiduciaria SA",
 };
 const getFiduciariaName = (id?: string) => (id ? FIDUCIARIA_MAP[id] ?? id : "—");
 
+type ModalType = "pago" | "verPago" | "notas";
+type TipoPredio = "inmueble" | "parqueadero" | "deposito";
+
 const Index = () => {
   const { data: inmuebles = [], isLoading: loadingInmuebles } = useInmuebles();
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Modal state
+  const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
+
+  // Pago incluido state (local toggle per session, in real app could be persisted)
+  const [pagoIncluidoParq, setPagoIncluidoParq] = useState<Record<string, boolean>>({});
+  const [pagoIncluidoDep, setPagoIncluidoDep] = useState<Record<string, boolean>>({});
+
   const isLoading = loadingInmuebles || loadingPagos;
-  const pagosMap = new Map(pagos.map((p) => [p.salesforce_id, p]));
   const total = inmuebles.length;
+
+  // Helper: check if a specific tipo_predio has a payment
+  const hasPago = (sfId: string, tipo: TipoPredio) =>
+    pagos.some((p) => p.salesforce_id === sfId && (p as any).tipo_predio === tipo && p.estado === "Pagado");
+
   const pagadosCount = pagos.filter((p) => p.estado === "Pagado").length;
-  const pendientes = total - pagadosCount;
+  const pendientes = total - new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id)).size;
   const montoRecaudado = pagos.filter((p) => p.estado === "Pagado").reduce((s, p) => s + (p.valor_pago ?? 0), 0);
-  const pctPagados = total > 0 ? Math.round((pagadosCount / total) * 100) : 0;
+  const pctPagados = total > 0 ? Math.round((new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id)).size / total) * 100) : 0;
   const formatCurrency = (v: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
 
   const filtered = inmuebles.filter((i) => {
@@ -38,8 +53,42 @@ const Index = () => {
   });
 
   const selected = inmuebles.find((i) => i.Id === selectedId) ?? null;
-  const selectedPago = selectedId ? pagosMap.get(selectedId) : undefined;
-  const isPagado = selectedPago?.estado === "Pagado";
+
+  const openModal = (type: ModalType, tipoPredio: TipoPredio) => setActiveModal({ type, tipoPredio });
+  const closeModal = () => setActiveModal(null);
+
+  // Status badge per block
+  const StatusBadge = ({ sfId, tipo }: { sfId: string; tipo: TipoPredio }) => {
+    const paid = hasPago(sfId, tipo);
+    const incluidoParq = tipo === "parqueadero" && pagoIncluidoParq[sfId];
+    const incluidoDep = tipo === "deposito" && pagoIncluidoDep[sfId];
+    const isIncluido = incluidoParq || incluidoDep;
+
+    if (paid || isIncluido) {
+      return <Badge className="bg-duppla-green text-primary-foreground text-xs"><CheckCircle2 className="w-3 h-3 mr-1" /> {isIncluido ? "Incluido en Inmueble" : "Pagado"}</Badge>;
+    }
+    return <Badge variant="destructive" className="text-xs"><Clock className="w-3 h-3 mr-1" /> Pendiente</Badge>;
+  };
+
+  // Action buttons column
+  const ActionButtons = ({ tipoPredio, sfId }: { tipoPredio: TipoPredio; sfId: string }) => (
+    <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
+      <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+      <Button size="sm" onClick={() => openModal("pago", tipoPredio)} className="w-full bg-primary hover:bg-primary/90 text-xs">
+        <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => openModal("verPago", tipoPredio)} className="w-full text-xs">
+        <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+      </Button>
+      <Button size="sm" variant="secondary" onClick={() => openModal("notas", tipoPredio)} className="w-full text-xs">
+        <FileText className="w-3 h-3 mr-1" /> Notas
+      </Button>
+    </div>
+  );
+
+  // Check if inmueble has parqueadero
+  const hasParqueadero = (i: Inmueble) => i.Parqueadero__c != null && i.Parqueadero__c > 0;
+  const hasDeposito = (i: Inmueble) => !!i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -64,7 +113,7 @@ const Index = () => {
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {/* Resumen Section */}
+          {/* Resumen */}
           <div className="p-6 max-w-7xl mx-auto space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -72,24 +121,22 @@ const Index = () => {
               </h1>
               <p className="text-muted-foreground text-sm mt-1">Vista general y gestión de impuestos prediales</p>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard title="Total Inmuebles" value={total} subtitle="En Duppla" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" />
               <KpiCard title="Prediales Pagados" value={pagadosCount} subtitle="Registrados" icon={CheckCircle2} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
               <KpiCard title="Pendientes" value={pendientes} subtitle="Sin registro" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" />
               <KpiCard title="Monto Total Pagado" value={formatCurrency(montoRecaudado)} subtitle="Total pagado" icon={TrendingUp} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
             </div>
-
             <div className="bg-card rounded-xl border p-5 space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground font-medium">{pctPagados}% completado</span>
-                <span className="text-muted-foreground">{pagadosCount} de {total}</span>
+                <span className="text-muted-foreground">{new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id)).size} de {total}</span>
               </div>
               <Progress value={pctPagados} className="h-3" />
             </div>
           </div>
 
-          {/* Inmuebles Master-Detail */}
+          {/* Master-Detail */}
           <div className="border-t px-6 pb-6 pt-4">
             <div className="flex rounded-xl border overflow-hidden" style={{ height: "calc(100vh - 20rem)" }}>
               {/* List */}
@@ -103,8 +150,7 @@ const Index = () => {
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   {filtered.map((inmueble) => {
-                    const p = pagosMap.get(inmueble.Id);
-                    const paid = p?.estado === "Pagado";
+                    const paid = hasPago(inmueble.Id, "inmueble");
                     const isSel = selectedId === inmueble.Id;
                     return (
                       <button key={inmueble.Id} onClick={() => setSelectedId(inmueble.Id)} className={`w-full text-left p-4 border-b transition-colors hover:bg-muted/50 ${isSel ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"}`}>
@@ -142,6 +188,7 @@ const Index = () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    {/* Header */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center"><Building2 className="w-6 h-6 text-muted-foreground" /></div>
@@ -150,15 +197,15 @@ const Index = () => {
                           <p className="text-sm text-muted-foreground">{selected.Opportunity__r?.Name ?? "—"}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {selected.Proceso_entrega_inmueble__c && <Badge variant="outline" className="border-primary text-primary">{selected.Proceso_entrega_inmueble__c}</Badge>}
-                        {isPagado ? <Badge className="bg-duppla-green text-primary-foreground"><CheckCircle2 className="w-3 h-3 mr-1" /> Pagado</Badge> : <Badge variant="secondary">Pendiente</Badge>}
-                      </div>
+                      {selected.Proceso_entrega_inmueble__c && <Badge variant="outline" className="border-primary text-primary">{selected.Proceso_entrega_inmueble__c}</Badge>}
                     </div>
 
-                    {/* Inmueble */}
+                    {/* Inmueble Block */}
                     <div className="bg-card rounded-xl border p-5 space-y-4">
-                      <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Información del Inmueble</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Información del Inmueble</h3>
+                        <StatusBadge sfId={selected.Id} tipo="inmueble" />
+                      </div>
                       <div className="flex gap-6">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-4">
@@ -176,18 +223,16 @@ const Index = () => {
                             <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
                           </div>
                         </div>
-                        <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
-                          <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                          <Button size="sm" onClick={() => setShowModal(true)} className="w-full bg-primary hover:bg-primary/90 text-xs"><DollarSign className="w-3 h-3 mr-1" /> Registrar Pago</Button>
-                          <Button size="sm" variant="outline" className="w-full text-xs"><ExternalLink className="w-3 h-3 mr-1" /> Ver Pago</Button>
-                          <Button size="sm" variant="secondary" className="w-full text-xs"><FileText className="w-3 h-3 mr-1" /> Notas</Button>
-                        </div>
+                        <ActionButtons tipoPredio="inmueble" sfId={selected.Id} />
                       </div>
                     </div>
 
-                    {/* Parqueadero */}
+                    {/* Parqueadero Block */}
                     <div className="bg-card rounded-xl border p-5 space-y-4">
-                      <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Car className="w-4 h-4 text-primary" /> Información Parqueadero</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Car className="w-4 h-4 text-primary" /> Información Parqueadero</h3>
+                        <StatusBadge sfId={selected.Id} tipo="parqueadero" />
+                      </div>
                       <div className="flex gap-6">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
@@ -197,16 +242,34 @@ const Index = () => {
                         </div>
                         <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
                           <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                          <Button size="sm" onClick={() => setShowModal(true)} className="w-full bg-primary hover:bg-primary/90 text-xs"><DollarSign className="w-3 h-3 mr-1" /> Registrar Pago</Button>
-                          <Button size="sm" variant="outline" className="w-full text-xs"><ExternalLink className="w-3 h-3 mr-1" /> Ver Pago</Button>
-                          <Button size="sm" variant="secondary" className="w-full text-xs"><FileText className="w-3 h-3 mr-1" /> Notas</Button>
+                          {hasParqueadero(selected) && !hasPago(selected.Id, "parqueadero") && (
+                            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
+                              <Checkbox
+                                checked={!!pagoIncluidoParq[selected.Id]}
+                                onCheckedChange={(v) => setPagoIncluidoParq((prev) => ({ ...prev, [selected.Id]: !!v }))}
+                              />
+                              Pago incluido en inmueble
+                            </label>
+                          )}
+                          <Button size="sm" onClick={() => openModal("pago", "parqueadero")} className="w-full bg-primary hover:bg-primary/90 text-xs">
+                            <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openModal("verPago", "parqueadero")} className="w-full text-xs">
+                            <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => openModal("notas", "parqueadero")} className="w-full text-xs">
+                            <FileText className="w-3 h-3 mr-1" /> Notas
+                          </Button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Depósito */}
+                    {/* Depósito Block */}
                     <div className="bg-card rounded-xl border p-5 space-y-4">
-                      <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Package className="w-4 h-4 text-primary" /> Información Depósito</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Package className="w-4 h-4 text-primary" /> Información Depósito</h3>
+                        <StatusBadge sfId={selected.Id} tipo="deposito" />
+                      </div>
                       <div className="flex gap-6">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
@@ -215,9 +278,24 @@ const Index = () => {
                         </div>
                         <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-center">
                           <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                          <Button size="sm" onClick={() => setShowModal(true)} className="w-full bg-primary hover:bg-primary/90 text-xs"><DollarSign className="w-3 h-3 mr-1" /> Registrar Pago</Button>
-                          <Button size="sm" variant="outline" className="w-full text-xs"><ExternalLink className="w-3 h-3 mr-1" /> Ver Pago</Button>
-                          <Button size="sm" variant="secondary" className="w-full text-xs"><FileText className="w-3 h-3 mr-1" /> Notas</Button>
+                          {hasDeposito(selected) && !hasPago(selected.Id, "deposito") && (
+                            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
+                              <Checkbox
+                                checked={!!pagoIncluidoDep[selected.Id]}
+                                onCheckedChange={(v) => setPagoIncluidoDep((prev) => ({ ...prev, [selected.Id]: !!v }))}
+                              />
+                              Pago incluido en inmueble
+                            </label>
+                          )}
+                          <Button size="sm" onClick={() => openModal("pago", "deposito")} className="w-full bg-primary hover:bg-primary/90 text-xs">
+                            <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openModal("verPago", "deposito")} className="w-full text-xs">
+                            <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => openModal("notas", "deposito")} className="w-full text-xs">
+                            <FileText className="w-3 h-3 mr-1" /> Notas
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -229,7 +307,16 @@ const Index = () => {
         </div>
       )}
 
-      {selected && <RegistrarPagoModal open={showModal} onClose={() => setShowModal(false)} inmueble={selected} />}
+      {/* Modals */}
+      {selected && activeModal?.type === "pago" && (
+        <RegistrarPagoModal open onClose={closeModal} inmueble={selected} tipoPredio={activeModal.tipoPredio} />
+      )}
+      {selected && activeModal?.type === "verPago" && (
+        <VerPagoModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
+      )}
+      {selected && activeModal?.type === "notas" && (
+        <NotasModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
+      )}
     </div>
   );
 };
