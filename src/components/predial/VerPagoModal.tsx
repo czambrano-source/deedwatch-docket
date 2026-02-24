@@ -66,7 +66,7 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Pagos - {tipoLabel}</DialogTitle>
           <p className="text-sm text-muted-foreground">{nombreInmueble}</p>
