@@ -245,10 +245,10 @@ const Index = () => {
                     </Select>
                     <Select value={ciudadFilter} onValueChange={setCiudadFilter}>
                       <SelectTrigger className="h-8 text-xs flex-1">
-                        <SelectValue placeholder="Ciudad" />
+                        <SelectValue placeholder="Municipio" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todas las ciudades</SelectItem>
+                        <SelectItem value="all">Todos los municipios</SelectItem>
                         {ciudades.map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
@@ -325,8 +325,8 @@ const Index = () => {
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-4">
                             <DItem label="Fiduciaria" value={getFiduciariaName(selected.Fiduciaria__c)} icon={Building2} />
+                            <DItem label="Municipio" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
                             <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
-                            <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
                             <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
                             <DItem label="Nombre de edificio o conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
                             <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
