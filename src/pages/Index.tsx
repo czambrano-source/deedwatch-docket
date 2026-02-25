@@ -204,49 +204,45 @@ const Index = () => {
               <KpiCard title="Pendientes" value={pendientes} subtitle="Sin registro" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" onClick={() => setStatusFilter(statusFilter === "pendiente" ? "all" : "pendiente")} active={statusFilter === "pendiente"} />
               <KpiCard title="Monto Total Pagado" value={formatCurrency(montoRecaudado)} subtitle="Total pagado" icon={TrendingUp} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
             </div>
-            <div className="bg-card rounded-xl border p-5 space-y-3">
-              <div className="flex items-center justify-between text-sm">
+            <div className="bg-card rounded-lg border px-4 py-2.5 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground font-medium">{pctPagados}% completado</span>
                 <span className="text-muted-foreground">{new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id)).size} de {total}</span>
               </div>
-              <Progress value={pctPagados} className="h-3" />
+              <Progress value={pctPagados} className="h-2" />
             </div>
-            {(() => {
-              const count = getInconsistencias(inmuebles).length;
-              if (count === 0) return null;
-              return (
-                <button
-                  onClick={() => setShowInconsistencias(true)}
-                  className="w-full flex items-center gap-3 bg-duppla-orange/10 border border-duppla-orange/30 rounded-xl px-5 py-3 text-left transition-colors hover:bg-duppla-orange/20"
-                >
-                  <AlertTriangle className="w-5 h-5 text-duppla-orange flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      {count} inconsistencia{count !== 1 ? "s" : ""} en datos de Parqueaderos / Depósitos
+            <div className="flex gap-2">
+              {(() => {
+                const count = getInconsistencias(inmuebles).length;
+                if (count === 0) return null;
+                return (
+                  <button
+                    onClick={() => setShowInconsistencias(true)}
+                    className="flex-1 flex items-center gap-2 bg-duppla-orange/10 border border-duppla-orange/30 rounded-lg px-3 py-2 text-left transition-colors hover:bg-duppla-orange/20"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-duppla-orange flex-shrink-0" />
+                    <p className="text-xs font-medium text-foreground">
+                      {count} inconsistencia{count !== 1 ? "s" : ""} en Parqueaderos / Depósitos
                     </p>
-                    <p className="text-xs text-muted-foreground">Haz clic para ver el reporte detallado</p>
-                  </div>
-                </button>
-              );
-            })()}
-            {(() => {
-              const sinFechaCount = getSinFechaEscritura(inmuebles).length;
-              if (sinFechaCount === 0) return null;
-              return (
-                <button
-                  onClick={() => setShowSinFechaEscritura(true)}
-                  className="w-full flex items-center gap-3 bg-duppla-blue/10 border border-duppla-blue/30 rounded-xl px-5 py-3 text-left transition-colors hover:bg-duppla-blue/20"
-                >
-                  <CalendarIcon className="w-5 h-5 text-duppla-blue flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      {sinFechaCount} inmueble{sinFechaCount !== 1 ? "s" : ""} sin fecha de firma de escritura
+                  </button>
+                );
+              })()}
+              {(() => {
+                const sinFechaCount = getSinFechaEscritura(inmuebles).length;
+                if (sinFechaCount === 0) return null;
+                return (
+                  <button
+                    onClick={() => setShowSinFechaEscritura(true)}
+                    className="flex-1 flex items-center gap-2 bg-duppla-blue/10 border border-duppla-blue/30 rounded-lg px-3 py-2 text-left transition-colors hover:bg-duppla-blue/20"
+                  >
+                    <CalendarIcon className="w-4 h-4 text-duppla-blue flex-shrink-0" />
+                    <p className="text-xs font-medium text-foreground">
+                      {sinFechaCount} inmueble{sinFechaCount !== 1 ? "s" : ""} sin fecha de escritura
                     </p>
-                    <p className="text-xs text-muted-foreground">Haz clic para ver el listado detallado</p>
-                  </div>
-                </button>
-              );
-            })()}
+                  </button>
+                );
+              })()}
+            </div>
           </div>
 
           {/* Master-Detail */}
