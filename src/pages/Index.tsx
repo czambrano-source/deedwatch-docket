@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar, Layers, Car, Package } from "lucide-react";
+import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar, Layers, Car, Package, AlertTriangle } from "lucide-react";
 import { useInmuebles, usePagos } from "@/hooks/useInmuebles";
 import { KpiCard } from "@/components/predial/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
 import { NotasModal } from "@/components/predial/NotasModal";
 import { VerPagoModal } from "@/components/predial/VerPagoModal";
+import { InconsistenciasModal, getInconsistencias } from "@/components/predial/InconsistenciasModal";
 import type { Inmueble, GestionPredial } from "@/types/inmueble";
 
 const FIDUCIARIA_MAP: Record<string, string> = {
@@ -30,6 +31,7 @@ const Index = () => {
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
+  const [showInconsistencias, setShowInconsistencias] = useState(false);
 
   // Pago incluido state (local toggle per session, in real app could be persisted)
   const [pagoIncluidoParq, setPagoIncluidoParq] = useState<Record<string, boolean>>({});
@@ -171,6 +173,24 @@ const Index = () => {
               </div>
               <Progress value={pctPagados} className="h-3" />
             </div>
+            {(() => {
+              const count = getInconsistencias(inmuebles).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  onClick={() => setShowInconsistencias(true)}
+                  className="w-full flex items-center gap-3 bg-duppla-orange/10 border border-duppla-orange/30 rounded-xl px-5 py-3 text-left transition-colors hover:bg-duppla-orange/20"
+                >
+                  <AlertTriangle className="w-5 h-5 text-duppla-orange flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      {count} inconsistencia{count !== 1 ? "s" : ""} en datos de Parqueaderos / Depósitos
+                    </p>
+                    <p className="text-xs text-muted-foreground">Haz clic para ver el reporte detallado</p>
+                  </div>
+                </button>
+              );
+            })()}
           </div>
 
           {/* Master-Detail */}
@@ -379,6 +399,7 @@ const Index = () => {
       {selected && activeModal?.type === "notas" && (
         <NotasModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
       )}
+      <InconsistenciasModal open={showInconsistencias} onClose={() => setShowInconsistencias(false)} inmuebles={inmuebles} />
     </div>
   );
 };

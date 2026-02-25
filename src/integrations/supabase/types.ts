@@ -3757,6 +3757,30 @@ export type Database = {
         }
         Relationships: []
       }
+      milestones: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          milestone_date: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          milestone_date: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          milestone_date?: string
+          title?: string
+        }
+        Relationships: []
+      }
       notas_predial: {
         Row: {
           created_at: string
@@ -5886,15 +5910,6 @@ export type Database = {
         }[]
       }
       cleanup_users_and_profiles: { Args: never; Returns: undefined }
-      conteo_conversaciones_por_fecha: {
-        Args: { fecha_fin: string; fecha_inicio: string }
-        Returns: {
-          contacto_interno: string
-          fecha: string
-          nombre_contacto: string
-          total_conversaciones: number
-        }[]
-      }
       conteo_conversaciones_rango: {
         Args: { fecha_fin: string; fecha_inicio: string }
         Returns: number
@@ -6431,17 +6446,25 @@ export type Database = {
         }[]
       }
       normalize_phone: { Args: { p_num: string }; Returns: string }
-      resumen_funnel_conversaciones: {
-        Args: { fecha_fin: string; fecha_inicio: string }
+      por_dia_inbox_funnel_conversaciones: {
+        Args: {
+          end_date_supabase_conversaciones_exclusive: string
+          start_date_supabase_conversaciones: string
+        }
         Returns: {
           asignado_comercial: number
           fecha: string
+          inbox_id: string
+          inbox_nombre: string
           leads_evaluados: number
           no_acepta_bajar_valor: number
-          nombre_contacto_duppla: string
           rechazados: number
           respondieron_primera_pregunta: number
           se_nego_dar_cedula: number
+          tasa_asignado_comercial: number
+          tasa_lead_evaluado: number
+          tasa_rechazado: number
+          tasa_respondio_primera_pregunta: number
           total_conversaciones: number
         }[]
       }
