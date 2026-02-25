@@ -33,6 +33,7 @@ const Index = () => {
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
   const [anioDesde, setAnioDesde] = useState<string>("all");
   const [anioHasta, setAnioHasta] = useState<string>("all");
+  const [incluirSinFecha, setIncluirSinFecha] = useState(true);
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -88,7 +89,7 @@ const Index = () => {
     if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
     if (anioDesde !== "all" || anioHasta !== "all") {
       const fechaStr = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
-      if (!fechaStr) return false;
+      if (!fechaStr) return incluirSinFecha;
       const year = new Date(fechaStr).getFullYear();
       if (anioDesde !== "all" && year < Number(anioDesde)) return false;
       if (anioHasta !== "all" && year > Number(anioHasta)) return false;
@@ -294,6 +295,12 @@ const Index = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  {(anioDesde !== "all" || anioHasta !== "all") && (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                      <Checkbox checked={incluirSinFecha} onCheckedChange={(v) => setIncluirSinFecha(!!v)} className="h-3.5 w-3.5" />
+                      Incluir sin fecha de escritura
+                    </label>
+                  )}
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   {filtered.map((inmueble) => {
