@@ -7,11 +7,16 @@ interface KpiCardProps {
   icon: LucideIcon;
   iconBg: string;
   iconColor: string;
+  onClick?: () => void;
+  active?: boolean;
 }
 
-export function KpiCard({ title, value, subtitle, icon: Icon, iconBg, iconColor }: KpiCardProps) {
+export function KpiCard({ title, value, subtitle, icon: Icon, iconBg, iconColor, onClick, active }: KpiCardProps) {
   return (
-    <div className="bg-card rounded-xl border p-5 flex items-center justify-between">
+    <div
+      onClick={onClick}
+      className={`bg-card rounded-xl border p-5 flex items-center justify-between transition-all ${onClick ? "cursor-pointer hover:shadow-md" : ""} ${active ? "ring-2 ring-primary border-primary" : ""}`}
+    >
       <div>
         <p className="text-sm text-muted-foreground">{title}</p>
         <p className="text-3xl font-bold mt-1 text-foreground">{value}</p>
