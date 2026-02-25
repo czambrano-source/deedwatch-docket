@@ -26,6 +26,7 @@ const Index = () => {
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -47,9 +48,15 @@ const Index = () => {
   const pctPagados = total > 0 ? Math.round((new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id)).size / total) * 100) : 0;
   const formatCurrency = (v: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
 
+  const paidSfIds = new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id));
+
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
-    return i.Name?.toLowerCase().includes(q) || i.Id?.toLowerCase().includes(q) || i.Ciudad_Inmueble__c?.toLowerCase().includes(q) || i.Opportunity__r?.Name?.toLowerCase().includes(q) || i.chip_apartamento__c?.toLowerCase().includes(q);
+    const matchesSearch = i.Name?.toLowerCase().includes(q) || i.Id?.toLowerCase().includes(q) || i.Ciudad_Inmueble__c?.toLowerCase().includes(q) || i.Opportunity__r?.Name?.toLowerCase().includes(q) || i.chip_apartamento__c?.toLowerCase().includes(q);
+    if (!matchesSearch) return false;
+    if (statusFilter === "pagado") return paidSfIds.has(i.Id);
+    if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
+    return true;
   });
 
   const selected = inmuebles.find((i) => i.Id === selectedId) ?? null;
@@ -152,9 +159,9 @@ const Index = () => {
               <p className="text-muted-foreground text-sm mt-1">Vista general y gestión de impuestos prediales</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard title="Total Inmuebles" value={total} subtitle="En Duppla" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" />
-              <KpiCard title="Prediales Pagados" value={pagadosCount} subtitle="Registrados" icon={CheckCircle2} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
-              <KpiCard title="Pendientes" value={pendientes} subtitle="Sin registro" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" />
+              <KpiCard title="Total Inmuebles" value={total} subtitle="En Duppla" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => setStatusFilter(statusFilter === "all" ? "all" : "all")} active={statusFilter === "all"} />
+              <KpiCard title="Prediales Pagados" value={pagadosCount} subtitle="Registrados" icon={CheckCircle2} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" onClick={() => setStatusFilter(statusFilter === "pagado" ? "all" : "pagado")} active={statusFilter === "pagado"} />
+              <KpiCard title="Pendientes" value={pendientes} subtitle="Sin registro" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" onClick={() => setStatusFilter(statusFilter === "pendiente" ? "all" : "pendiente")} active={statusFilter === "pendiente"} />
               <KpiCard title="Monto Total Pagado" value={formatCurrency(montoRecaudado)} subtitle="Total pagado" icon={TrendingUp} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
             </div>
             <div className="bg-card rounded-xl border p-5 space-y-3">
