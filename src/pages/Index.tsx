@@ -30,7 +30,7 @@ const Index = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
   const [fiduciariaFilter, setFiduciariaFilter] = useState<string>("all");
-  const [municipioFilter, setMunicipioFilter] = useState<string>("all");
+  const [departamentoFilter, setDepartamentoFilter] = useState<string>("all");
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -62,13 +62,13 @@ const Index = () => {
     return Array.from(set).sort();
   }, [inmuebles]);
 
-  const municipios = useMemo(() => {
+  const departamentos = useMemo(() => {
     const set = new Set<string>();
-    inmuebles.forEach((i) => { if (i.Ciudad_Inmueble__c) set.add(i.Ciudad_Inmueble__c); });
+    inmuebles.forEach((i) => { if (i.Departamento__c) set.add(i.Departamento__c); });
     return Array.from(set).sort();
   }, [inmuebles]);
 
-  const hasActiveFilters = fiduciariaFilter !== "all" || municipioFilter !== "all";
+  const hasActiveFilters = fiduciariaFilter !== "all" || departamentoFilter !== "all";
 
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
@@ -77,7 +77,7 @@ const Index = () => {
     if (statusFilter === "pagado") return paidSfIds.has(i.Id);
     if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
     if (fiduciariaFilter !== "all" && i.Fiduciaria__c !== fiduciariaFilter) return false;
-    if (municipioFilter !== "all" && i.Ciudad_Inmueble__c !== municipioFilter) return false;
+    if (departamentoFilter !== "all" && i.Departamento__c !== departamentoFilter) return false;
     return true;
   });
 
@@ -222,7 +222,7 @@ const Index = () => {
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-foreground text-sm">Inmuebles ({filtered.length})</h2>
                     {hasActiveFilters && (
-                      <button onClick={() => { setFiduciariaFilter("all"); setMunicipioFilter("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <button onClick={() => { setFiduciariaFilter("all"); setDepartamentoFilter("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
                         <X className="w-3 h-3" /> Limpiar filtros
                       </button>
                     )}
@@ -243,14 +243,14 @@ const Index = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Select value={municipioFilter} onValueChange={setMunicipioFilter}>
+                    <Select value={departamentoFilter} onValueChange={setDepartamentoFilter}>
                       <SelectTrigger className="h-8 text-xs flex-1">
-                        <SelectValue placeholder="Municipio" />
+                        <SelectValue placeholder="Departamento" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todos los municipios</SelectItem>
-                        {municipios.map((m) => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        <SelectItem value="all">Todos los departamentos</SelectItem>
+                        {departamentos.map((d) => (
+                          <SelectItem key={d} value={d}>{d}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
