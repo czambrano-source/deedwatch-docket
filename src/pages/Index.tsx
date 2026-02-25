@@ -14,15 +14,8 @@ import { VerPagoModal } from "@/components/predial/VerPagoModal";
 import { InconsistenciasModal, getInconsistencias } from "@/components/predial/InconsistenciasModal";
 import type { Inmueble, GestionPredial } from "@/types/inmueble";
 
-const FIDUCIARIA_MAP: Record<string, string> = {
-  "a03Rb00000HG7TcIAL": "Accion Sociedad Fiduciaria SA",
-  "a03Rb00000HGJGQIA5": "Alianza Fiduciaria SA",
-};
-const getFiduciariaName = (id?: string) => {
-  if (!id) return "—";
-  if (FIDUCIARIA_MAP[id]) return FIDUCIARIA_MAP[id];
-  // For unmapped IDs, show a short readable suffix
-  return `Fiduciaria (…${id.slice(-4)})`;
+const getFiduciariaName = (inmueble: Inmueble) => {
+  return (inmueble as any).Fiduciaria__r?.Name ?? inmueble.Fiduciaria__c ?? "—";
 };
 
 type ModalType = "pago" | "verPago" | "notas";
@@ -63,7 +56,7 @@ const Index = () => {
   // Unique values for filter dropdowns
   const fiduciarias = useMemo(() => {
     const set = new Set<string>();
-    inmuebles.forEach((i) => { if (i.Fiduciaria__c) set.add(i.Fiduciaria__c); });
+    inmuebles.forEach((i) => { const name = getFiduciariaName(i); if (name !== "—") set.add(name); });
     return Array.from(set).sort();
   }, [inmuebles]);
 
@@ -81,7 +74,7 @@ const Index = () => {
     if (!matchesSearch) return false;
     if (statusFilter === "pagado") return paidSfIds.has(i.Id);
     if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
-    if (fiduciariaFilter !== "all" && i.Fiduciaria__c !== fiduciariaFilter) return false;
+    if (fiduciariaFilter !== "all" && getFiduciariaName(i) !== fiduciariaFilter) return false;
     if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
     return true;
   });
@@ -244,7 +237,7 @@ const Index = () => {
                       <SelectContent>
                         <SelectItem value="all">Todas las fiduciarias</SelectItem>
                         {fiduciarias.map((f) => (
-                          <SelectItem key={f} value={f}>{getFiduciariaName(f)}</SelectItem>
+                          <SelectItem key={f} value={f}>{f}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -329,7 +322,7 @@ const Index = () => {
                       <div className="flex gap-6">
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-4">
-                            <DItem label="Fiduciaria" value={getFiduciariaName(selected.Fiduciaria__c)} icon={Building2} />
+                            <DItem label="Fiduciaria" value={getFiduciariaName(selected)} icon={Building2} />
                             <DItem label="Municipio" value={selected.Municipio_del__c} icon={MapPin} />
                             <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
                             <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
