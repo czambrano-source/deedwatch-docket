@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar, Layers, Car, Package, AlertTriangle, Filter, X } from "lucide-react";
+import { format } from "date-fns";
+import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, Filter, X } from "lucide-react";
 import { useInmuebles, usePagos } from "@/hooks/useInmuebles";
 import { KpiCard } from "@/components/predial/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
 import { NotasModal } from "@/components/predial/NotasModal";
 import { VerPagoModal } from "@/components/predial/VerPagoModal";
@@ -29,7 +33,8 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
   const [fiduciariaFilter, setFiduciariaFilter] = useState<string>("all");
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
-  const [anioEscrituraFilter, setAnioEscrituraFilter] = useState<string>("all");
+  const [escrituraDesde, setEscrituraDesde] = useState<Date | undefined>(undefined);
+  const [escrituraHasta, setEscrituraHasta] = useState<Date | undefined>(undefined);
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -67,22 +72,7 @@ const Index = () => {
     return Array.from(set).sort();
   }, [inmuebles]);
 
-  const aniosEscritura = useMemo(() => {
-    const set = new Set<number>();
-    inmuebles.forEach((i) => {
-      const fecha = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
-      if (fecha) {
-        const year = new Date(fecha).getFullYear();
-        if (!isNaN(year)) set.add(year);
-      }
-    });
-    const minYear = set.size > 0 ? Math.min(...set) : 2020;
-    const years: number[] = [];
-    for (let y = minYear; y <= 2035; y++) years.push(y);
-    return years;
-  }, [inmuebles]);
-
-  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || anioEscrituraFilter !== "all";
+  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || !!escrituraDesde || !!escrituraHasta;
 
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
@@ -92,10 +82,12 @@ const Index = () => {
     if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
     if (fiduciariaFilter !== "all" && getFiduciariaName(i) !== fiduciariaFilter) return false;
     if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
-    if (anioEscrituraFilter !== "all") {
-      const fecha = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
-      const year = fecha ? new Date(fecha).getFullYear() : null;
-      if (year == null || year > Number(anioEscrituraFilter)) return false;
+    if (escrituraDesde || escrituraHasta) {
+      const fechaStr = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
+      if (!fechaStr) return false;
+      const fecha = new Date(fechaStr);
+      if (escrituraDesde && fecha < escrituraDesde) return false;
+      if (escrituraHasta && fecha > escrituraHasta) return false;
     }
     return true;
   });
@@ -241,7 +233,7 @@ const Index = () => {
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-foreground text-sm">Inmuebles ({filtered.length})</h2>
                     {hasActiveFilters && (
-                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setAnioEscrituraFilter("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setEscrituraDesde(undefined); setEscrituraHasta(undefined); }} className="text-xs text-primary hover:underline flex items-center gap-1">
                         <X className="w-3 h-3" /> Limpiar filtros
                       </button>
                     )}
@@ -273,17 +265,30 @@ const Index = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Select value={anioEscrituraFilter} onValueChange={setAnioEscrituraFilter}>
-                      <SelectTrigger className="h-8 text-xs flex-1">
-                        <SelectValue placeholder="Año escritura" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los años</SelectItem>
-                        {aniosEscritura.map((y) => (
-                          <SelectItem key={y} value={String(y)}>Hasta {y}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("h-8 text-xs flex-1 justify-start font-normal", !escrituraDesde && "text-muted-foreground")}>
+                          <CalendarIcon className="w-3 h-3 mr-1" />
+                          {escrituraDesde ? format(escrituraDesde, "dd/MM/yyyy") : "Desde"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={escrituraDesde} onSelect={setEscrituraDesde} initialFocus className={cn("p-3 pointer-events-auto")} />
+                      </PopoverContent>
+                    </Popover>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("h-8 text-xs flex-1 justify-start font-normal", !escrituraHasta && "text-muted-foreground")}>
+                          <CalendarIcon className="w-3 h-3 mr-1" />
+                          {escrituraHasta ? format(escrituraHasta, "dd/MM/yyyy") : "Hasta"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={escrituraHasta} onSelect={setEscrituraHasta} initialFocus className={cn("p-3 pointer-events-auto")} />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto">
@@ -360,7 +365,7 @@ const Index = () => {
                             <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
                             <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
                             <DItem label="Nombre de edificio o conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
-                            <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
+                            <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
                           </div>
                           <div className="space-y-4">
                             <DItem label="Tipo de inmueble" value={selected.Tipo_de_inmueble__c} icon={Building2} />
