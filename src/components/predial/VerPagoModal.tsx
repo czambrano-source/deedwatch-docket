@@ -23,24 +23,27 @@ interface Props {
   salesforceId: string;
   tipoPredio: string;
   nombreInmueble: string;
+  vigencia?: number;
 }
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
 
-export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreInmueble }: Props) {
+export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreInmueble, vigencia }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: pagos = [], isLoading } = useQuery<Pago[]>({
-    queryKey: ["gestion_predial", salesforceId, tipoPredio],
+    queryKey: ["gestion_predial", salesforceId, tipoPredio, vigencia],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("gestion_predial")
         .select("*")
         .eq("salesforce_id", salesforceId)
         .eq("tipo_predio", tipoPredio)
         .order("fecha_pago", { ascending: false });
+      if (vigencia) query = query.eq("anio_vigencia", vigencia);
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Pago[];
     },
@@ -68,7 +71,7 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Pagos - {tipoLabel}</DialogTitle>
+          <DialogTitle>Pagos - {tipoLabel}{vigencia ? ` — ${vigencia}` : ""}</DialogTitle>
           <p className="text-sm text-muted-foreground">{nombreInmueble}</p>
         </DialogHeader>
 

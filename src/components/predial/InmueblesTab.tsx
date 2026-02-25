@@ -37,6 +37,7 @@ export function InmueblesTab({ inmuebles, pagos }: InmueblesTabProps) {
           onClose={() => setShowModal(false)}
           inmueble={selected}
           tipoPredio="inmueble"
+          vigencia={new Date().getFullYear()}
         />
       )}
     </div>

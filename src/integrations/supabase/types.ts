@@ -3763,6 +3763,7 @@ export type Database = {
           description: string | null
           id: string
           milestone_date: string
+          milestone_type: string
           title: string
         }
         Insert: {
@@ -3770,6 +3771,7 @@ export type Database = {
           description?: string | null
           id?: string
           milestone_date: string
+          milestone_type?: string
           title: string
         }
         Update: {
@@ -3777,6 +3779,7 @@ export type Database = {
           description?: string | null
           id?: string
           milestone_date?: string
+          milestone_type?: string
           title?: string
         }
         Relationships: []
