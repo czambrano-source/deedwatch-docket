@@ -1,7 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertTriangle, Car, Package, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Car, Package, CheckCircle2, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Inmueble } from "@/types/inmueble";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Inconsistencia {
   inmueble: Inmueble;
@@ -14,7 +17,6 @@ function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
   const result: Inconsistencia[] = [];
 
   for (const i of inmuebles) {
-    // --- Parqueadero ---
     const parqFields: { label: string; present: boolean }[] = [
       { label: "Cantidad", present: i.Parqueadero__c != null && i.Parqueadero__c > 0 },
       { label: "Número", present: !!i.numero_del_parqueadero__c },
@@ -23,7 +25,6 @@ function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
     ];
     const parqPresent = parqFields.filter((f) => f.present);
     const parqMissing = parqFields.filter((f) => !f.present);
-    // Only flag if some data exists but not all
     if (parqPresent.length > 0 && parqMissing.length > 0) {
       result.push({
         inmueble: i,
@@ -33,7 +34,6 @@ function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
       });
     }
 
-    // --- Depósito ---
     const depHasMain = !!i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0";
     const depFields: { label: string; present: boolean }[] = [
       { label: "Depósito", present: depHasMain },
@@ -55,6 +55,34 @@ function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
   return result;
 }
 
+const generatePDF = (inconsistencias: Inconsistencia[]) => {
+  const doc = new jsPDF();
+  const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+
+  doc.setFontSize(16);
+  doc.text("Reporte de Inconsistencias", 14, 20);
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Parqueaderos y Depósitos — Generado: ${now}`, 14, 28);
+  doc.text(`Total inconsistencias: ${inconsistencias.length}`, 14, 34);
+
+  autoTable(doc, {
+    startY: 40,
+    head: [["Inmueble", "Tipo", "Campos con datos", "Campos faltantes"]],
+    body: inconsistencias.map((inc) => [
+      inc.inmueble.Name,
+      inc.tipo === "parqueadero" ? "Parqueadero" : "Depósito",
+      inc.camposPresentes.join(", "),
+      inc.camposFaltantes.join(", "),
+    ]),
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [41, 98, 255] },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+  });
+
+  doc.save(`inconsistencias_${new Date().toISOString().slice(0, 10)}.pdf`);
+};
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -68,10 +96,17 @@ export function InconsistenciasModal({ open, onClose, inmuebles }: Props) {
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className="w-5 h-5 text-duppla-orange" />
-            Reporte de Inconsistencias — Parqueaderos y Depósitos
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="w-5 h-5 text-duppla-orange" />
+              Reporte de Inconsistencias — Parqueaderos y Depósitos
+            </DialogTitle>
+            {inconsistencias.length > 0 && (
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => generatePDF(inconsistencias)}>
+                <Download className="w-3.5 h-3.5" /> Generar Reporte PDF
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-1 pr-1">
