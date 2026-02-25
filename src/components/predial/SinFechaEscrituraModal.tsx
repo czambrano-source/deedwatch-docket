@@ -1,6 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CalendarOff, Building2 } from "lucide-react";
+import { CalendarOff, Building2, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { Inmueble } from "@/types/inmueble";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Props {
   open: boolean;
@@ -14,6 +17,34 @@ export function getSinFechaEscritura(inmuebles: Inmueble[]): Inmueble[] {
   );
 }
 
+const generatePDF = (sinFecha: Inmueble[]) => {
+  const doc = new jsPDF();
+  const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+
+  doc.setFontSize(16);
+  doc.text("Inmuebles sin Fecha de Escritura", 14, 20);
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Generado: ${now}`, 14, 28);
+  doc.text(`Total: ${sinFecha.length} inmueble(s)`, 14, 34);
+
+  autoTable(doc, {
+    startY: 40,
+    head: [["Inmueble", "Oportunidad", "Ciudad", "Dirección"]],
+    body: sinFecha.map((i) => [
+      i.Name,
+      i.Opportunity__r?.Name ?? "—",
+      i.Ciudad_Inmueble__c ?? "—",
+      i.Direccion__c ?? "—",
+    ]),
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [41, 98, 255] },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+  });
+
+  doc.save(`sin_fecha_escritura_${new Date().toISOString().slice(0, 10)}.pdf`);
+};
+
 export function SinFechaEscrituraModal({ open, onClose, inmuebles }: Props) {
   const sinFecha = getSinFechaEscritura(inmuebles);
 
@@ -21,10 +52,17 @@ export function SinFechaEscrituraModal({ open, onClose, inmuebles }: Props) {
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <CalendarOff className="w-5 h-5 text-duppla-orange" />
-            Inmuebles sin Fecha de Firma de Escritura
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <CalendarOff className="w-5 h-5 text-duppla-orange" />
+              Inmuebles sin Fecha de Firma de Escritura
+            </DialogTitle>
+            {sinFecha.length > 0 && (
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={() => generatePDF(sinFecha)}>
+                <Download className="w-3.5 h-3.5" /> Generar Reporte PDF
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-1 pr-1">
