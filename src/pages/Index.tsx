@@ -73,6 +73,18 @@ const Index = () => {
     return Array.from(set).sort();
   }, [inmuebles]);
 
+  const minFechaEscritura = useMemo(() => {
+    let min: Date | undefined;
+    inmuebles.forEach((i) => {
+      const f = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
+      if (f) {
+        const d = new Date(f);
+        if (!isNaN(d.getTime()) && (!min || d < min)) min = d;
+      }
+    });
+    return min;
+  }, [inmuebles]);
+
   const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || !!escrituraDesde || !!escrituraHasta;
 
   const filtered = inmuebles.filter((i) => {
@@ -276,7 +288,7 @@ const Index = () => {
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={escrituraDesde} onSelect={setEscrituraDesde} initialFocus className={cn("p-3 pointer-events-auto")} />
+                        <Calendar mode="single" selected={escrituraDesde} onSelect={setEscrituraDesde} disabled={(date) => !!minFechaEscritura && date < minFechaEscritura} defaultMonth={minFechaEscritura} initialFocus className={cn("p-3 pointer-events-auto")} />
                       </PopoverContent>
                     </Popover>
                     <Popover>
