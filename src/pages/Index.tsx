@@ -13,6 +13,7 @@ import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
 import { NotasModal } from "@/components/predial/NotasModal";
 import { VerPagoModal } from "@/components/predial/VerPagoModal";
 import { InconsistenciasModal, getInconsistencias } from "@/components/predial/InconsistenciasModal";
+import { SinFechaEscrituraModal, getSinFechaEscritura } from "@/components/predial/SinFechaEscrituraModal";
 import type { Inmueble, GestionPredial } from "@/types/inmueble";
 
 const getFiduciariaName = (inmueble: Inmueble) => {
@@ -38,6 +39,7 @@ const Index = () => {
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
   const [showInconsistencias, setShowInconsistencias] = useState(false);
+  const [showSinFechaEscritura, setShowSinFechaEscritura] = useState(false);
 
   // Pago incluido state (local toggle per session, in real app could be persisted)
   const [pagoIncluidoParq, setPagoIncluidoParq] = useState<Record<string, boolean>>({});
@@ -223,6 +225,24 @@ const Index = () => {
                       {count} inconsistencia{count !== 1 ? "s" : ""} en datos de Parqueaderos / Depósitos
                     </p>
                     <p className="text-xs text-muted-foreground">Haz clic para ver el reporte detallado</p>
+                  </div>
+                </button>
+              );
+            })()}
+            {(() => {
+              const sinFechaCount = getSinFechaEscritura(inmuebles).length;
+              if (sinFechaCount === 0) return null;
+              return (
+                <button
+                  onClick={() => setShowSinFechaEscritura(true)}
+                  className="w-full flex items-center gap-3 bg-duppla-blue/10 border border-duppla-blue/30 rounded-xl px-5 py-3 text-left transition-colors hover:bg-duppla-blue/20"
+                >
+                  <CalendarIcon className="w-5 h-5 text-duppla-blue flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      {sinFechaCount} inmueble{sinFechaCount !== 1 ? "s" : ""} sin fecha de firma de escritura
+                    </p>
+                    <p className="text-xs text-muted-foreground">Haz clic para ver el listado detallado</p>
                   </div>
                 </button>
               );
@@ -497,6 +517,7 @@ const Index = () => {
         <NotasModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
       )}
       <InconsistenciasModal open={showInconsistencias} onClose={() => setShowInconsistencias(false)} inmuebles={inmuebles} />
+      <SinFechaEscrituraModal open={showSinFechaEscritura} onClose={() => setShowSinFechaEscritura(false)} inmuebles={inmuebles} />
     </div>
   );
 };
