@@ -339,9 +339,7 @@ const Index = () => {
                             <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
                             {(() => {
                               const pagoInm = pagos.find((p) => p.salesforce_id === selected.Id && (p as any).tipo_predio === "inmueble" && p.estado === "Pagado");
-                              return pagoInm?.valor_avaluo ? (
-                                <DItem label="Avalúo Catastral" value={formatCurrency(pagoInm.valor_avaluo)} icon={DollarSign} />
-                              ) : null;
+                              return <DItem label="Avalúo Catastral" value={pagoInm?.valor_avaluo ? formatCurrency(pagoInm.valor_avaluo) : undefined} icon={DollarSign} />;
                             })()}
                           </div>
                         </div>
