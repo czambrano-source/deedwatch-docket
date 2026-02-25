@@ -29,6 +29,7 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
   const [fiduciariaFilter, setFiduciariaFilter] = useState<string>("all");
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
+  const [anioEscrituraFilter, setAnioEscrituraFilter] = useState<string>("all");
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -66,7 +67,22 @@ const Index = () => {
     return Array.from(set).sort();
   }, [inmuebles]);
 
-  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all";
+  const aniosEscritura = useMemo(() => {
+    const set = new Set<number>();
+    inmuebles.forEach((i) => {
+      const fecha = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
+      if (fecha) {
+        const year = new Date(fecha).getFullYear();
+        if (!isNaN(year)) set.add(year);
+      }
+    });
+    const minYear = set.size > 0 ? Math.min(...set) : 2020;
+    const years: number[] = [];
+    for (let y = minYear; y <= 2035; y++) years.push(y);
+    return years;
+  }, [inmuebles]);
+
+  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || anioEscrituraFilter !== "all";
 
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
@@ -76,6 +92,11 @@ const Index = () => {
     if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
     if (fiduciariaFilter !== "all" && getFiduciariaName(i) !== fiduciariaFilter) return false;
     if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
+    if (anioEscrituraFilter !== "all") {
+      const fecha = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
+      const year = fecha ? new Date(fecha).getFullYear() : null;
+      if (year == null || year > Number(anioEscrituraFilter)) return false;
+    }
     return true;
   });
 
@@ -220,7 +241,7 @@ const Index = () => {
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-foreground text-sm">Inmuebles ({filtered.length})</h2>
                     {hasActiveFilters && (
-                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setAnioEscrituraFilter("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
                         <X className="w-3 h-3" /> Limpiar filtros
                       </button>
                     )}
@@ -249,6 +270,17 @@ const Index = () => {
                         <SelectItem value="all">Todos los municipios</SelectItem>
                         {ciudades.map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={anioEscrituraFilter} onValueChange={setAnioEscrituraFilter}>
+                      <SelectTrigger className="h-8 text-xs flex-1">
+                        <SelectValue placeholder="Año escritura" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los años</SelectItem>
+                        {aniosEscritura.map((y) => (
+                          <SelectItem key={y} value={String(y)}>Hasta {y}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
