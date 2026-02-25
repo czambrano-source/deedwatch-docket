@@ -527,7 +527,7 @@ const Index = () => {
         <RegistrarPagoModal open onClose={closeModal} inmueble={selected} tipoPredio={activeModal.tipoPredio} vigencia={vigencia} />
       )}
       {selected && activeModal?.type === "verPago" && (
-        <VerPagoModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} vigencia={vigencia} />
+        <VerPagoModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
       )}
       {selected && activeModal?.type === "notas" && (
         <NotasModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
