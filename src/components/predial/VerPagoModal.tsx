@@ -14,6 +14,7 @@ interface Pago {
   valor_avaluo?: number;
   url_soporte?: string;
   estado?: string;
+  anio_vigencia?: number;
   created_at?: string;
 }
 
@@ -23,27 +24,24 @@ interface Props {
   salesforceId: string;
   tipoPredio: string;
   nombreInmueble: string;
-  vigencia?: number;
 }
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
 
-export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreInmueble, vigencia }: Props) {
+export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreInmueble }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: pagos = [], isLoading } = useQuery<Pago[]>({
-    queryKey: ["gestion_predial", salesforceId, tipoPredio, vigencia],
+    queryKey: ["gestion_predial", salesforceId, tipoPredio],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("gestion_predial")
         .select("*")
         .eq("salesforce_id", salesforceId)
         .eq("tipo_predio", tipoPredio)
         .order("fecha_pago", { ascending: false });
-      if (vigencia) query = query.eq("anio_vigencia", vigencia);
-      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Pago[];
     },
@@ -71,7 +69,7 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Pagos - {tipoLabel}{vigencia ? ` — ${vigencia}` : ""}</DialogTitle>
+          <DialogTitle>Historial de Pagos - {tipoLabel}</DialogTitle>
           <p className="text-sm text-muted-foreground">{nombreInmueble}</p>
         </DialogHeader>
 
@@ -84,10 +82,15 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
             pagos.map((p) => (
               <div key={p.id} className="border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(p.fecha_pago).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(p.fecha_pago).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
+                    </span>
+                    {p.anio_vigencia && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">Vigencia {p.anio_vigencia}</Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <Badge className="bg-duppla-green text-primary-foreground text-xs">{p.estado}</Badge>
                     <Button
