@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { format } from "date-fns";
 import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, Filter, X } from "lucide-react";
 import { useInmuebles, usePagos } from "@/hooks/useInmuebles";
 import { KpiCard } from "@/components/predial/KpiCard";
@@ -9,8 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
 import { NotasModal } from "@/components/predial/NotasModal";
@@ -34,8 +31,8 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
   const [fiduciariaFilter, setFiduciariaFilter] = useState<string>("all");
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
-  const [escrituraDesde, setEscrituraDesde] = useState<Date | undefined>(undefined);
-  const [escrituraHasta, setEscrituraHasta] = useState<Date | undefined>(undefined);
+  const [anioDesde, setAnioDesde] = useState<string>("all");
+  const [anioHasta, setAnioHasta] = useState<string>("all");
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -73,19 +70,13 @@ const Index = () => {
     return Array.from(set).sort();
   }, [inmuebles]);
 
-  const minFechaEscritura = useMemo(() => {
-    let min: Date | undefined;
-    inmuebles.forEach((i) => {
-      const f = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
-      if (f) {
-        const d = new Date(f);
-        if (!isNaN(d.getTime()) && (!min || d < min)) min = d;
-      }
-    });
-    return min;
-  }, [inmuebles]);
+  const aniosDisponibles = useMemo(() => {
+    const years: number[] = [];
+    for (let y = 2020; y <= 2035; y++) years.push(y);
+    return years;
+  }, []);
 
-  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || !!escrituraDesde || !!escrituraHasta;
+  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || anioDesde !== "all" || anioHasta !== "all";
 
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
@@ -95,12 +86,12 @@ const Index = () => {
     if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
     if (fiduciariaFilter !== "all" && getFiduciariaName(i) !== fiduciariaFilter) return false;
     if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
-    if (escrituraDesde || escrituraHasta) {
+    if (anioDesde !== "all" || anioHasta !== "all") {
       const fechaStr = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
       if (!fechaStr) return false;
-      const fecha = new Date(fechaStr);
-      if (escrituraDesde && fecha < escrituraDesde) return false;
-      if (escrituraHasta && fecha > escrituraHasta) return false;
+      const year = new Date(fechaStr).getFullYear();
+      if (anioDesde !== "all" && year < Number(anioDesde)) return false;
+      if (anioHasta !== "all" && year > Number(anioHasta)) return false;
     }
     return true;
   });
@@ -246,7 +237,7 @@ const Index = () => {
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-foreground text-sm">Inmuebles ({filtered.length})</h2>
                     {hasActiveFilters && (
-                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setEscrituraDesde(undefined); setEscrituraHasta(undefined); }} className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setAnioDesde("all"); setAnioHasta("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
                         <X className="w-3 h-3" /> Limpiar filtros
                       </button>
                     )}
@@ -280,28 +271,28 @@ const Index = () => {
                     </Select>
                   </div>
                   <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("h-8 text-xs flex-1 justify-start font-normal", !escrituraDesde && "text-muted-foreground")}>
-                          <CalendarIcon className="w-3 h-3 mr-1" />
-                          {escrituraDesde ? format(escrituraDesde, "dd/MM/yyyy") : "Desde"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={escrituraDesde} onSelect={setEscrituraDesde} disabled={(date) => !!minFechaEscritura && date < minFechaEscritura} defaultMonth={minFechaEscritura} initialFocus className={cn("p-3 pointer-events-auto")} />
-                      </PopoverContent>
-                    </Popover>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("h-8 text-xs flex-1 justify-start font-normal", !escrituraHasta && "text-muted-foreground")}>
-                          <CalendarIcon className="w-3 h-3 mr-1" />
-                          {escrituraHasta ? format(escrituraHasta, "dd/MM/yyyy") : "Hasta"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={escrituraHasta} onSelect={setEscrituraHasta} initialFocus className={cn("p-3 pointer-events-auto")} />
-                      </PopoverContent>
-                    </Popover>
+                    <Select value={anioDesde} onValueChange={setAnioDesde}>
+                      <SelectTrigger className="h-8 text-xs flex-1">
+                        <SelectValue placeholder="Desde año" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Desde</SelectItem>
+                        {aniosDisponibles.map((y) => (
+                          <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={anioHasta} onValueChange={setAnioHasta}>
+                      <SelectTrigger className="h-8 text-xs flex-1">
+                        <SelectValue placeholder="Hasta año" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Hasta</SelectItem>
+                        {aniosDisponibles.map((y) => (
+                          <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto">
