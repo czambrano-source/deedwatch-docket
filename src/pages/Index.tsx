@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar, Layers, Car, Package, AlertTriangle } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar, Layers, Car, Package, AlertTriangle, Filter, X } from "lucide-react";
 import { useInmuebles, usePagos } from "@/hooks/useInmuebles";
 import { KpiCard } from "@/components/predial/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
 import { NotasModal } from "@/components/predial/NotasModal";
 import { VerPagoModal } from "@/components/predial/VerPagoModal";
@@ -28,6 +29,8 @@ const Index = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
+  const [fiduciariaFilter, setFiduciariaFilter] = useState<string>("all");
+  const [municipioFilter, setMunicipioFilter] = useState<string>("all");
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -52,12 +55,29 @@ const Index = () => {
 
   const paidSfIds = new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id));
 
+  // Unique values for filter dropdowns
+  const fiduciarias = useMemo(() => {
+    const set = new Set<string>();
+    inmuebles.forEach((i) => { if (i.Fiduciaria__c) set.add(i.Fiduciaria__c); });
+    return Array.from(set).sort();
+  }, [inmuebles]);
+
+  const municipios = useMemo(() => {
+    const set = new Set<string>();
+    inmuebles.forEach((i) => { if (i.Ciudad_Inmueble__c) set.add(i.Ciudad_Inmueble__c); });
+    return Array.from(set).sort();
+  }, [inmuebles]);
+
+  const hasActiveFilters = fiduciariaFilter !== "all" || municipioFilter !== "all";
+
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
     const matchesSearch = i.Name?.toLowerCase().includes(q) || i.Id?.toLowerCase().includes(q) || i.Ciudad_Inmueble__c?.toLowerCase().includes(q) || i.Opportunity__r?.Name?.toLowerCase().includes(q) || i.chip_apartamento__c?.toLowerCase().includes(q);
     if (!matchesSearch) return false;
     if (statusFilter === "pagado") return paidSfIds.has(i.Id);
     if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
+    if (fiduciariaFilter !== "all" && i.Fiduciaria__c !== fiduciariaFilter) return false;
+    if (municipioFilter !== "all" && i.Ciudad_Inmueble__c !== municipioFilter) return false;
     return true;
   });
 
@@ -199,10 +219,41 @@ const Index = () => {
               {/* List */}
               <div className="w-[380px] flex-shrink-0 border-r bg-card flex flex-col rounded-tl-xl">
                 <div className="p-4 border-b space-y-2">
-                  <h2 className="font-semibold text-foreground text-sm">Inmuebles ({total})</h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold text-foreground text-sm">Inmuebles ({filtered.length})</h2>
+                    {hasActiveFilters && (
+                      <button onClick={() => { setFiduciariaFilter("all"); setMunicipioFilter("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
+                        <X className="w-3 h-3" /> Limpiar filtros
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input placeholder="Buscar por código, cliente, edificio..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Select value={fiduciariaFilter} onValueChange={setFiduciariaFilter}>
+                      <SelectTrigger className="h-8 text-xs flex-1">
+                        <SelectValue placeholder="Fiduciaria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las fiduciarias</SelectItem>
+                        {fiduciarias.map((f) => (
+                          <SelectItem key={f} value={f}>{getFiduciariaName(f)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={municipioFilter} onValueChange={setMunicipioFilter}>
+                      <SelectTrigger className="h-8 text-xs flex-1">
+                        <SelectValue placeholder="Municipio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los municipios</SelectItem>
+                        {municipios.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto">
@@ -285,6 +336,7 @@ const Index = () => {
                             <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
                             <DItem label="No. Matricula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
                             <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+                            <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
                             {(() => {
                               const pagoInm = pagos.find((p) => p.salesforce_id === selected.Id && (p as any).tipo_predio === "inmueble" && p.estado === "Pagado");
                               return pagoInm?.valor_avaluo ? (
