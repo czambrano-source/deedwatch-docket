@@ -85,8 +85,8 @@ const Index = () => {
     const q = search.toLowerCase();
     const matchesSearch = i.Name?.toLowerCase().includes(q) || i.Id?.toLowerCase().includes(q) || i.Ciudad_Inmueble__c?.toLowerCase().includes(q) || i.Opportunity__r?.Name?.toLowerCase().includes(q) || i.chip_apartamento__c?.toLowerCase().includes(q);
     if (!matchesSearch) return false;
-    if (statusFilter === "pagado") return paidSfIds.has(i.Id);
-    if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
+    if (statusFilter === "pagado" && !paidSfIds.has(i.Id)) return false;
+    if (statusFilter === "pendiente" && paidSfIds.has(i.Id)) return false;
     if (fiduciariaFilter !== "all" && getFiduciariaName(i) !== fiduciariaFilter) return false;
     if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
     if (anioDesde !== "all" || anioHasta !== "all") {
