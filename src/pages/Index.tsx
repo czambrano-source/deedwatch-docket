@@ -25,6 +25,7 @@ const getFiduciariaName = (inmueble: Inmueble) => {
 type ModalType = "pago" | "verPago" | "notas";
 type TipoPredio = "inmueble" | "parqueadero" | "deposito";
 
+
 const Index = () => {
   const { data: inmuebles = [], isLoading: loadingInmuebles } = useInmuebles();
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
