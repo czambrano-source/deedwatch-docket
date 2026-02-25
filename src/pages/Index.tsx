@@ -56,11 +56,9 @@ const Index = () => {
   const hasPago = (sfId: string, tipo: TipoPredio) =>
     pagosVigencia.some((p) => p.salesforce_id === sfId && (p as any).tipo_predio === tipo && p.estado === "Pagado");
 
-  const paidSfIds = new Set(pagosVigencia.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id));
-  const pagadosCount = paidSfIds.size;
-  const pendientes = total - pagadosCount;
   const montoRecaudado = pagosVigencia.filter((p) => p.estado === "Pagado").reduce((s, p) => s + (p.valor_pago ?? 0), 0);
-  const pctPagados = total > 0 ? Math.round((pagadosCount / total) * 100) : 0;
+
+  // Compute pagados using getOverallStatus (needs helpers defined first, moved below)
   const formatCurrency = (v: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
 
   // Unique values for filter dropdowns
@@ -88,8 +86,8 @@ const Index = () => {
     const q = search.toLowerCase();
     const matchesSearch = i.Name?.toLowerCase().includes(q) || i.Id?.toLowerCase().includes(q) || i.Ciudad_Inmueble__c?.toLowerCase().includes(q) || i.Opportunity__r?.Name?.toLowerCase().includes(q) || i.chip_apartamento__c?.toLowerCase().includes(q);
     if (!matchesSearch) return false;
-    if (statusFilter === "pagado" && !paidSfIds.has(i.Id)) return false;
-    if (statusFilter === "pendiente" && paidSfIds.has(i.Id)) return false;
+    if (statusFilter === "pagado" && getOverallStatus(i) !== "completo") return false;
+    if (statusFilter === "pendiente" && getOverallStatus(i) === "completo") return false;
     if (fiduciariaFilter !== "all" && getFiduciariaName(i) !== fiduciariaFilter) return false;
     if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
     if (anioDesde !== "all" || anioHasta !== "all") {
@@ -169,6 +167,11 @@ const Index = () => {
     if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP") return true;
     return false;
   };
+
+  // Count using overall status (all blocks must be paid/included)
+  const pagadosCount = inmuebles.filter((i) => getOverallStatus(i) === "completo").length;
+  const pendientes = total - pagadosCount;
+  const pctPagados = total > 0 ? Math.round((pagadosCount / total) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
