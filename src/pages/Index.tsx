@@ -329,6 +329,7 @@ const Index = () => {
                             <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
                             <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
                             <DItem label="Nombre de edificio o conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+                            <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
                           </div>
                           <div className="space-y-4">
                             <DItem label="Tipo de inmueble" value={selected.Tipo_de_inmueble__c} icon={Building2} />
@@ -336,7 +337,6 @@ const Index = () => {
                             <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
                             <DItem label="No. Matricula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
                             <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
-                            <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
                             {(() => {
                               const pagoInm = pagos.find((p) => p.salesforce_id === selected.Id && (p as any).tipo_predio === "inmueble" && p.estado === "Pagado");
                               return pagoInm?.valor_avaluo ? (
