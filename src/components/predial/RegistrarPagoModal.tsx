@@ -15,9 +15,10 @@ interface Props {
   onClose: () => void;
   inmueble: Inmueble;
   tipoPredio: string;
+  vigencia: number;
 }
 
-export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio }: Props) {
+export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio, vigencia }: Props) {
   const [fechaPago, setFechaPago] = useState("");
   const [valorPago, setValorPago] = useState("");
   const [valorAvaluo, setValorAvaluo] = useState("");
@@ -57,7 +58,7 @@ export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio }: Prop
         valor_avaluo: valorAvaluo ? parseFloat(valorAvaluo) : null,
         url_soporte: urlSoporte,
         estado: "Pagado",
-        anio_vigencia: new Date().getFullYear(),
+        anio_vigencia: vigencia,
         tipo_predio: tipoPredio,
       } as any);
 
@@ -77,8 +78,8 @@ export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio }: Prop
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Registrar Pago de Predial</DialogTitle>
-          <p className="text-sm text-muted-foreground">{inmueble.Name}</p>
+          <DialogTitle>Registrar Pago de Predial — {vigencia}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{inmueble.Name} · {tipoPredio === "inmueble" ? "Inmueble" : tipoPredio === "parqueadero" ? "Parqueadero" : "Depósito"}</p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

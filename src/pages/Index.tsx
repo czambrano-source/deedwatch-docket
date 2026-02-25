@@ -35,6 +35,7 @@ const Index = () => {
   const [anioDesde, setAnioDesde] = useState<string>("all");
   const [anioHasta, setAnioHasta] = useState<string>("all");
   const [incluirSinFecha, setIncluirSinFecha] = useState(true);
+  const [vigencia, setVigencia] = useState<number>(new Date().getFullYear());
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -48,17 +49,19 @@ const Index = () => {
   const isLoading = loadingInmuebles || loadingPagos;
   const total = inmuebles.length;
 
-  // Helper: check if a specific tipo_predio has a payment
+  // Filter pagos by selected vigencia year
+  const pagosVigencia = pagos.filter((p) => p.anio_vigencia === vigencia);
+
+  // Helper: check if a specific tipo_predio has a payment for the selected vigencia
   const hasPago = (sfId: string, tipo: TipoPredio) =>
-    pagos.some((p) => p.salesforce_id === sfId && (p as any).tipo_predio === tipo && p.estado === "Pagado");
+    pagosVigencia.some((p) => p.salesforce_id === sfId && (p as any).tipo_predio === tipo && p.estado === "Pagado");
 
-  const pagadosCount = pagos.filter((p) => p.estado === "Pagado").length;
-  const pendientes = total - new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id)).size;
-  const montoRecaudado = pagos.filter((p) => p.estado === "Pagado").reduce((s, p) => s + (p.valor_pago ?? 0), 0);
-  const pctPagados = total > 0 ? Math.round((new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id)).size / total) * 100) : 0;
+  const paidSfIds = new Set(pagosVigencia.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id));
+  const pagadosCount = paidSfIds.size;
+  const pendientes = total - pagadosCount;
+  const montoRecaudado = pagosVigencia.filter((p) => p.estado === "Pagado").reduce((s, p) => s + (p.valor_pago ?? 0), 0);
+  const pctPagados = total > 0 ? Math.round((pagadosCount / total) * 100) : 0;
   const formatCurrency = (v: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
-
-  const paidSfIds = new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id));
 
   // Unique values for filter dropdowns
   const fiduciarias = useMemo(() => {
@@ -193,10 +196,27 @@ const Index = () => {
           {/* Resumen */}
           <div className="p-6 max-w-7xl mx-auto space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-primary" /> Gestión de Prediales
-              </h1>
-              <p className="text-muted-foreground text-sm mt-1">Vista general y gestión de impuestos prediales</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    <TrendingUp className="w-6 h-6 text-primary" /> Gestión de Prediales
+                  </h1>
+                  <p className="text-muted-foreground text-sm mt-1">Vista general y gestión de impuestos prediales</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Vigencia:</span>
+                  <Select value={String(vigencia)} onValueChange={(v) => setVigencia(Number(v))}>
+                    <SelectTrigger className="w-[100px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => 2024 + i).map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard title="Total Inmuebles" value={total} subtitle="En Duppla" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => setStatusFilter(statusFilter === "all" ? "all" : "all")} active={statusFilter === "all"} />
@@ -206,8 +226,8 @@ const Index = () => {
             </div>
             <div className="bg-card rounded-lg border px-4 py-2.5 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">{pctPagados}% completado</span>
-                <span className="text-muted-foreground">{new Set(pagos.filter((p) => p.estado === "Pagado").map((p) => p.salesforce_id)).size} de {total}</span>
+                <span className="text-muted-foreground font-medium">{pctPagados}% completado — Vigencia {vigencia}</span>
+                <span className="text-muted-foreground">{pagadosCount} de {total}</span>
               </div>
               <Progress value={pctPagados} className="h-2" />
             </div>
@@ -504,10 +524,10 @@ const Index = () => {
 
       {/* Modals */}
       {selected && activeModal?.type === "pago" && (
-        <RegistrarPagoModal open onClose={closeModal} inmueble={selected} tipoPredio={activeModal.tipoPredio} />
+        <RegistrarPagoModal open onClose={closeModal} inmueble={selected} tipoPredio={activeModal.tipoPredio} vigencia={vigencia} />
       )}
       {selected && activeModal?.type === "verPago" && (
-        <VerPagoModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
+        <VerPagoModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} vigencia={vigencia} />
       )}
       {selected && activeModal?.type === "notas" && (
         <NotasModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
