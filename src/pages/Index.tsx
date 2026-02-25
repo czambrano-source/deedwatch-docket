@@ -64,7 +64,7 @@ const Index = () => {
 
   const ciudades = useMemo(() => {
     const set = new Set<string>();
-    inmuebles.forEach((i) => { if (i.Ciudad_Inmueble__c) set.add(i.Ciudad_Inmueble__c); });
+    inmuebles.forEach((i) => { if (i.Municipio_del__c) set.add(i.Municipio_del__c); });
     return Array.from(set).sort();
   }, [inmuebles]);
 
@@ -77,7 +77,7 @@ const Index = () => {
     if (statusFilter === "pagado") return paidSfIds.has(i.Id);
     if (statusFilter === "pendiente") return !paidSfIds.has(i.Id);
     if (fiduciariaFilter !== "all" && i.Fiduciaria__c !== fiduciariaFilter) return false;
-    if (ciudadFilter !== "all" && i.Ciudad_Inmueble__c !== ciudadFilter) return false;
+    if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
     return true;
   });
 
@@ -325,8 +325,9 @@ const Index = () => {
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-4">
                             <DItem label="Fiduciaria" value={getFiduciariaName(selected.Fiduciaria__c)} icon={Building2} />
-                            <DItem label="Municipio" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
+                            <DItem label="Municipio" value={selected.Municipio_del__c} icon={MapPin} />
                             <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
+                            <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
                             <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
                             <DItem label="Nombre de edificio o conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
                             <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
