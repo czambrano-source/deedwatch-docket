@@ -18,7 +18,12 @@ const FIDUCIARIA_MAP: Record<string, string> = {
   "a03Rb00000HG7TcIAL": "Accion Sociedad Fiduciaria SA",
   "a03Rb00000HGJGQIA5": "Alianza Fiduciaria SA",
 };
-const getFiduciariaName = (id?: string) => (id ? FIDUCIARIA_MAP[id] ?? id : "—");
+const getFiduciariaName = (id?: string) => {
+  if (!id) return "—";
+  if (FIDUCIARIA_MAP[id]) return FIDUCIARIA_MAP[id];
+  // For unmapped IDs, show a short readable suffix
+  return `Fiduciaria (…${id.slice(-4)})`;
+};
 
 type ModalType = "pago" | "verPago" | "notas";
 type TipoPredio = "inmueble" | "parqueadero" | "deposito";
