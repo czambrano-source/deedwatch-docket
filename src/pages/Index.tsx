@@ -58,8 +58,38 @@ const Index = () => {
 
   const montoRecaudado = pagosVigencia.filter((p) => p.estado === "Pagado").reduce((s, p) => s + (p.valor_pago ?? 0), 0);
 
-  // Compute pagados using getOverallStatus (needs helpers defined first, moved below)
   const formatCurrency = (v: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
+
+  // Check if inmueble has parqueadero — any related field with data counts
+  const hasParqueadero = (i: Inmueble) => {
+    if (i.Parqueadero__c != null && i.Parqueadero__c > 0) return true;
+    if (i.numero_del_parqueadero__c) return true;
+    if (i.No_Matricula_Inmo_Parqueadero__c) return true;
+    if (i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP") return true;
+    return false;
+  };
+  const hasDeposito = (i: Inmueble) => {
+    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0") return true;
+    if (i.No_Matricula_Inmo_Deposito__c) return true;
+    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP") return true;
+    return false;
+  };
+
+  // Combined status: "completo" if all applicable blocks are paid/included, "pendiente" otherwise
+  const getOverallStatus = (i: Inmueble) => {
+    const inmPaid = hasPago(i.Id, "inmueble");
+    if (!inmPaid) return "pendiente";
+    const needsParq = hasParqueadero(i);
+    const needsDep = hasDeposito(i);
+    if (needsParq && !hasPago(i.Id, "parqueadero") && !pagoIncluidoParq[i.Id]) return "pendiente";
+    if (needsDep && !hasPago(i.Id, "deposito") && !pagoIncluidoDep[i.Id]) return "pendiente";
+    return "completo";
+  };
+
+  // Count using overall status (all blocks must be paid/included)
+  const pagadosCount = inmuebles.filter((i) => getOverallStatus(i) === "completo").length;
+  const pendientes = total - pagadosCount;
+  const pctPagados = total > 0 ? Math.round((pagadosCount / total) * 100) : 0;
 
   // Unique values for filter dropdowns
   const fiduciarias = useMemo(() => {
@@ -105,20 +135,8 @@ const Index = () => {
   const openModal = (type: ModalType, tipoPredio: TipoPredio) => setActiveModal({ type, tipoPredio });
   const closeModal = () => setActiveModal(null);
 
-  // Combined status: "completo" if all applicable blocks are paid/included, "pendiente" otherwise
-  const getOverallStatus = (i: Inmueble) => {
-    const inmPaid = hasPago(i.Id, "inmueble");
-    if (!inmPaid) return "pendiente";
-    const needsParq = hasParqueadero(i);
-    const needsDep = hasDeposito(i);
-    if (needsParq && !hasPago(i.Id, "parqueadero") && !pagoIncluidoParq[i.Id]) return "pendiente";
-    if (needsDep && !hasPago(i.Id, "deposito") && !pagoIncluidoDep[i.Id]) return "pendiente";
-    return "completo";
-  };
-
   // Status badge per block
   const StatusBadge = ({ sfId, tipo, inmueble }: { sfId: string; tipo: TipoPredio; inmueble: Inmueble }) => {
-    // If parqueadero/deposito doesn't exist, show "No aplica"
     if (tipo === "parqueadero" && !hasParqueadero(inmueble)) {
       return <Badge variant="outline" className="text-xs text-muted-foreground">No aplica</Badge>;
     }
@@ -152,26 +170,6 @@ const Index = () => {
       </Button>
     </div>
   );
-
-  // Check if inmueble has parqueadero — any related field with data counts
-  const hasParqueadero = (i: Inmueble) => {
-    if (i.Parqueadero__c != null && i.Parqueadero__c > 0) return true;
-    if (i.numero_del_parqueadero__c) return true;
-    if (i.No_Matricula_Inmo_Parqueadero__c) return true;
-    if (i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP") return true;
-    return false;
-  };
-  const hasDeposito = (i: Inmueble) => {
-    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0") return true;
-    if (i.No_Matricula_Inmo_Deposito__c) return true;
-    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP") return true;
-    return false;
-  };
-
-  // Count using overall status (all blocks must be paid/included)
-  const pagadosCount = inmuebles.filter((i) => getOverallStatus(i) === "completo").length;
-  const pendientes = total - pagadosCount;
-  const pctPagados = total > 0 ? Math.round((pagadosCount / total) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
