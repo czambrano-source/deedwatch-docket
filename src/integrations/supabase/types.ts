@@ -5188,6 +5188,51 @@ export type Database = {
         }
         Relationships: []
       }
+      razones_no_pago: {
+        Row: {
+          balance: number | null
+          cedula: string | null
+          codigo_inmueble: string | null
+          created_at: string | null
+          factura: string | null
+          fecha_registro: string | null
+          id: string
+          nombre_cliente: string | null
+          razon_categoria: string
+          razon_detalle: string | null
+          razon_subcategoria: string
+          telefono: string | null
+        }
+        Insert: {
+          balance?: number | null
+          cedula?: string | null
+          codigo_inmueble?: string | null
+          created_at?: string | null
+          factura?: string | null
+          fecha_registro?: string | null
+          id?: string
+          nombre_cliente?: string | null
+          razon_categoria: string
+          razon_detalle?: string | null
+          razon_subcategoria: string
+          telefono?: string | null
+        }
+        Update: {
+          balance?: number | null
+          cedula?: string | null
+          codigo_inmueble?: string | null
+          created_at?: string | null
+          factura?: string | null
+          fecha_registro?: string | null
+          id?: string
+          nombre_cliente?: string | null
+          razon_categoria?: string
+          razon_detalle?: string | null
+          razon_subcategoria?: string
+          telefono?: string | null
+        }
+        Relationships: []
+      }
       reactions: {
         Row: {
           angry: number | null
@@ -5319,6 +5364,39 @@ export type Database = {
           suma_valor_compra?: number | null
           suma_valor_con_desembolso?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      seguimiento_acuerdos: {
+        Row: {
+          cedula: string | null
+          enviado_at: string | null
+          factura: string | null
+          id: string
+          id_acuerdo: string
+          nivel: string
+          nombre_cliente: string | null
+          telefono: string | null
+        }
+        Insert: {
+          cedula?: string | null
+          enviado_at?: string | null
+          factura?: string | null
+          id?: string
+          id_acuerdo: string
+          nivel: string
+          nombre_cliente?: string | null
+          telefono?: string | null
+        }
+        Update: {
+          cedula?: string | null
+          enviado_at?: string | null
+          factura?: string | null
+          id?: string
+          id_acuerdo?: string
+          nivel?: string
+          nombre_cliente?: string | null
+          telefono?: string | null
         }
         Relationships: []
       }
