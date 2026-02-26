@@ -222,9 +222,9 @@ const Index = () => {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard title="Total Inmuebles" value={total} subtitle="En Duppla" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => setStatusFilter(statusFilter === "all" ? "all" : "all")} active={statusFilter === "all"} />
-              <KpiCard title="Prediales Pagados" value={pagadosCount} subtitle="Registrados" icon={CheckCircle2} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" onClick={() => setStatusFilter(statusFilter === "pagado" ? "all" : "pagado")} active={statusFilter === "pagado"} />
-              <KpiCard title="Pendientes" value={pendientes} subtitle="Sin registro" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" onClick={() => setStatusFilter(statusFilter === "pendiente" ? "all" : "pendiente")} active={statusFilter === "pendiente"} />
+              <KpiCard title="Total Inmuebles" value={total} subtitle="En Duppla" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => { setStatusFilter("all"); setSelectedId(null); }} active={statusFilter === "all"} />
+              <KpiCard title="Prediales Pagados" value={pagadosCount} subtitle="Registrados" icon={CheckCircle2} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" onClick={() => { const next = statusFilter === "pagado" ? "all" : "pagado"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "pagado"} />
+              <KpiCard title="Pendientes" value={pendientes} subtitle="Sin registro" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" onClick={() => { const next = statusFilter === "pendiente" ? "all" : "pendiente"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "pendiente"} />
               <KpiCard title="Monto Total Pagado" value={formatCurrency(montoRecaudado)} subtitle="Total pagado" icon={TrendingUp} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
             </div>
             <div className="bg-card rounded-lg border px-4 py-2.5 space-y-1.5">
