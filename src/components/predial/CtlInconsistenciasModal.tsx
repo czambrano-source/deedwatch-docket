@@ -12,28 +12,28 @@ interface CtlInconsistencia {
   descripcion: string;
 }
 
+function isValidField(val?: string | null): boolean {
+  if (!val) return false;
+  const normalized = val.trim().toLowerCase();
+  return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip";
+}
+
 function getCtlInconsistencias(inmuebles: Inmueble[]): CtlInconsistencia[] {
   const result: CtlInconsistencia[] = [];
 
   for (const i of inmuebles) {
-    // Inmueble: always check CTL
-    const hasInmMatricula = !!i.Numero_matricula_inmobiliaria__c;
-    const hasInmChip = !!i.chip_apartamento__c && i.chip_apartamento__c !== "SIN_CHIP" && i.chip_apartamento__c !== "-";
-    if ((hasInmMatricula || hasInmChip) && (!i.nombre_ctl_inmueble__c || !i.nit_ctl_inmueble__c)) {
+    // Inmueble: only flag if Matrícula or Chip have valid alphanumeric data
+    if ((isValidField(i.Numero_matricula_inmobiliaria__c) || isValidField(i.chip_apartamento__c)) && (!i.nombre_ctl_inmueble__c || !i.nit_ctl_inmueble__c)) {
       result.push({ inmueble: i, bloque: "inmueble", descripcion: "CTL Inmueble vacío con Matrícula/Chip existente" });
     }
 
-    // Parqueadero: only if has parqueadero data
-    const hasParqMatricula = !!i.No_Matricula_Inmo_Parqueadero__c;
-    const hasParqChip = !!i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP";
-    if ((hasParqMatricula || hasParqChip) && (!i.nombre_ctl_parqueadero__c || !i.nit_ctl_parqueadero__c)) {
+    // Parqueadero
+    if ((isValidField(i.No_Matricula_Inmo_Parqueadero__c) || isValidField(i.chip_parqueadero__c)) && (!i.nombre_ctl_parqueadero__c || !i.nit_ctl_parqueadero__c)) {
       result.push({ inmueble: i, bloque: "parqueadero", descripcion: "CTL Parqueadero vacío con Matrícula/Chip existente" });
     }
 
-    // Depósito: only if has deposito data
-    const hasDepMatricula = !!i.No_Matricula_Inmo_Deposito__c;
-    const hasDepChip = !!i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP";
-    if ((hasDepMatricula || hasDepChip) && (!i.nombre_ctl_bodega__c || !i.nit_ctl_bodega__c)) {
+    // Depósito
+    if ((isValidField(i.No_Matricula_Inmo_Deposito__c) || isValidField(i.chip_deposito__c)) && (!i.nombre_ctl_bodega__c || !i.nit_ctl_bodega__c)) {
       result.push({ inmueble: i, bloque: "deposito", descripcion: "CTL Bodega vacío con Matrícula/Chip existente" });
     }
   }
