@@ -28,3 +28,27 @@ export function usePagos() {
     },
   });
 }
+
+export interface ReciboPredial {
+  id: string;
+  salesforce_id: string;
+  nombre_inmueble?: string;
+  tipo_predio: string;
+  anio_vigencia?: number;
+  url_recibo?: string;
+  notas?: string;
+  created_at?: string;
+}
+
+export function useRecibos() {
+  return useQuery<ReciboPredial[]>({
+    queryKey: ["recibos_predial"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("recibos_predial")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []) as ReciboPredial[];
+    },
+  });
+}

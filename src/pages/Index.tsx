@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, Filter, X, Upload } from "lucide-react";
-import { useInmuebles, usePagos } from "@/hooks/useInmuebles";
+import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, Filter, X, Upload, Receipt } from "lucide-react";
+import { useInmuebles, usePagos, useRecibos } from "@/hooks/useInmuebles";
 import { KpiCard } from "@/components/predial/KpiCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
 import { RegistrarReciboModal } from "@/components/predial/RegistrarReciboModal";
+import { VerReciboModal } from "@/components/predial/VerReciboModal";
 import { NotasModal } from "@/components/predial/NotasModal";
 import { VerPagoModal } from "@/components/predial/VerPagoModal";
 import { InconsistenciasModal, getInconsistencias } from "@/components/predial/InconsistenciasModal";
@@ -22,13 +23,14 @@ const getFiduciariaName = (inmueble: Inmueble) => {
   return (inmueble as any).Fiduciaria__r?.Name ?? inmueble.Fiduciaria__c ?? "—";
 };
 
-type ModalType = "pago" | "verPago" | "notas" | "recibo";
+type ModalType = "pago" | "verPago" | "notas" | "recibo" | "verRecibo";
 type TipoPredio = "inmueble" | "parqueadero" | "deposito";
 
 
 const Index = () => {
   const { data: inmuebles = [], isLoading: loadingInmuebles } = useInmuebles();
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
+  const { data: recibos = [] } = useRecibos();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
@@ -170,24 +172,42 @@ const Index = () => {
     return <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>;
   };
 
+  const hasRecibo = (sfId: string, tipo: TipoPredio) =>
+    recibos.some((r) => r.salesforce_id === sfId && r.tipo_predio === tipo && r.anio_vigencia === vigencia);
+
   // Action buttons column
-  const ActionButtons = ({ tipoPredio, sfId }: { tipoPredio: TipoPredio; sfId: string }) => (
-    <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
-      <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-      <Button size="sm" onClick={() => openModal("pago", tipoPredio)} className="w-full bg-primary hover:bg-primary/90 text-xs">
-        <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
-      </Button>
-      <Button size="sm" variant="ghost" onClick={() => openModal("recibo", tipoPredio)} className="w-full text-xs border border-dashed border-muted-foreground/40">
-        <Upload className="w-3 h-3 mr-1" /> Registrar Recibo
-      </Button>
-      <Button size="sm" variant="outline" onClick={() => openModal("verPago", tipoPredio)} className="w-full text-xs">
-        <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
-      </Button>
-      <Button size="sm" variant="secondary" onClick={() => openModal("notas", tipoPredio)} className="w-full text-xs">
-        <FileText className="w-3 h-3 mr-1" /> Notas
-      </Button>
-    </div>
-  );
+  const ActionButtons = ({ tipoPredio, sfId }: { tipoPredio: TipoPredio; sfId: string }) => {
+    const reciboExists = hasRecibo(sfId, tipoPredio);
+    return (
+      <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
+        <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+        <Button size="sm" onClick={() => openModal("pago", tipoPredio)} className="w-full bg-primary hover:bg-primary/90 text-xs">
+          <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+        </Button>
+        <div className="flex gap-1">
+          <Button size="sm" variant="ghost" onClick={() => openModal("recibo", tipoPredio)} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
+            <Upload className="w-3 h-3 mr-1" /> Recibo
+          </Button>
+          <Button
+            size="sm"
+            variant={reciboExists ? "default" : "outline"}
+            onClick={() => openModal("verRecibo", tipoPredio)}
+            className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
+            title={reciboExists ? "Recibo cargado" : "Sin recibo"}
+          >
+            <Receipt className="w-3 h-3" />
+            {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
+          </Button>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => openModal("verPago", tipoPredio)} className="w-full text-xs">
+          <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => openModal("notas", tipoPredio)} className="w-full text-xs">
+          <FileText className="w-3 h-3 mr-1" /> Notas
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -606,6 +626,9 @@ const Index = () => {
       )}
       {selected && activeModal?.type === "verPago" && (
         <VerPagoModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
+      )}
+      {selected && activeModal?.type === "verRecibo" && (
+        <VerReciboModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
       )}
       {selected && activeModal?.type === "notas" && (
         <NotasModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
