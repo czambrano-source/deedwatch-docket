@@ -87,10 +87,16 @@ interface Props {
   open: boolean;
   onClose: () => void;
   inmuebles: Inmueble[];
+  onSelectInmueble?: (id: string) => void;
 }
 
-export function InconsistenciasModal({ open, onClose, inmuebles }: Props) {
+export function InconsistenciasModal({ open, onClose, inmuebles, onSelectInmueble }: Props) {
   const inconsistencias = getInconsistencias(inmuebles);
+
+  const handleSelect = (id: string) => {
+    onSelectInmueble?.(id);
+    onClose();
+  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -118,10 +124,14 @@ export function InconsistenciasModal({ open, onClose, inmuebles }: Props) {
           ) : (
             <>
               <p className="text-xs text-muted-foreground mb-3">
-                Se encontraron <span className="font-semibold text-foreground">{inconsistencias.length}</span> inconsistencia(s) donde existe información parcial. Diligencie los campos faltantes.
+                Se encontraron <span className="font-semibold text-foreground">{inconsistencias.length}</span> inconsistencia(s) donde existe información parcial. Haz clic en un inmueble para verlo.
               </p>
               {inconsistencias.map((inc, idx) => (
-                <div key={`${inc.inmueble.Id}-${inc.tipo}-${idx}`} className="border rounded-lg p-4 space-y-2 bg-card">
+                <div
+                  key={`${inc.inmueble.Id}-${inc.tipo}-${idx}`}
+                  className="border rounded-lg p-4 space-y-2 bg-card cursor-pointer transition-colors hover:bg-accent/50"
+                  onClick={() => handleSelect(inc.inmueble.Id)}
+                >
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-foreground">
                       {inc.inmueble.Name}

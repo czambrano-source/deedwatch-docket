@@ -603,9 +603,9 @@ const Index = () => {
       {selected && activeModal?.type === "notas" && (
         <NotasModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
       )}
-      <InconsistenciasModal open={showInconsistencias} onClose={() => setShowInconsistencias(false)} inmuebles={inmuebles} />
-      <SinFechaEscrituraModal open={showSinFechaEscritura} onClose={() => setShowSinFechaEscritura(false)} inmuebles={inmuebles} />
-      <CtlInconsistenciasModal open={showCtlInconsistencias} onClose={() => setShowCtlInconsistencias(false)} inmuebles={inmuebles} />
+      <InconsistenciasModal open={showInconsistencias} onClose={() => setShowInconsistencias(false)} inmuebles={inmuebles} onSelectInmueble={setSelectedId} />
+      <SinFechaEscrituraModal open={showSinFechaEscritura} onClose={() => setShowSinFechaEscritura(false)} inmuebles={inmuebles} onSelectInmueble={setSelectedId} />
+      <CtlInconsistenciasModal open={showCtlInconsistencias} onClose={() => setShowCtlInconsistencias(false)} inmuebles={inmuebles} onSelectInmueble={setSelectedId} />
     </div>
   );
 };

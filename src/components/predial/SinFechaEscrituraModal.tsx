@@ -9,6 +9,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   inmuebles: Inmueble[];
+  onSelectInmueble?: (id: string) => void;
 }
 
 export function getSinFechaEscritura(inmuebles: Inmueble[]): Inmueble[] {
@@ -45,8 +46,13 @@ const generatePDF = (sinFecha: Inmueble[]) => {
   doc.save(`sin_fecha_escritura_${new Date().toISOString().slice(0, 10)}.pdf`);
 };
 
-export function SinFechaEscrituraModal({ open, onClose, inmuebles }: Props) {
+export function SinFechaEscrituraModal({ open, onClose, inmuebles, onSelectInmueble }: Props) {
   const sinFecha = getSinFechaEscritura(inmuebles);
+
+  const handleSelect = (id: string) => {
+    onSelectInmueble?.(id);
+    onClose();
+  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -67,10 +73,14 @@ export function SinFechaEscrituraModal({ open, onClose, inmuebles }: Props) {
 
         <div className="flex-1 overflow-y-auto space-y-1 pr-1">
           <p className="text-xs text-muted-foreground mb-3">
-            Se encontraron <span className="font-semibold text-foreground">{sinFecha.length}</span> inmueble(s) sin fecha de firma de escritura registrada.
+            Se encontraron <span className="font-semibold text-foreground">{sinFecha.length}</span> inmueble(s) sin fecha de firma de escritura. Haz clic para ver el inmueble.
           </p>
           {sinFecha.map((inmueble) => (
-            <div key={inmueble.Id} className="border rounded-lg p-4 bg-card flex items-center gap-3">
+            <div
+              key={inmueble.Id}
+              className="border rounded-lg p-4 bg-card flex items-center gap-3 cursor-pointer transition-colors hover:bg-accent/50"
+              onClick={() => handleSelect(inmueble.Id)}
+            >
               <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                 <Building2 className="w-4 h-4 text-muted-foreground" />
               </div>
