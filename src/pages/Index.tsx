@@ -416,45 +416,41 @@ const Index = () => {
                     </div>
 
                     {/* Inmueble Block */}
-                    <div className="bg-card rounded-xl border p-5 space-y-4">
+                    <div className="bg-card rounded-xl border p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Información del Inmueble</h3>
                         <StatusBadge sfId={selected.Id} tipo="inmueble" inmueble={selected} />
                       </div>
-                      <div className="flex gap-6">
-                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-4">
-                            <DItem label="Fiduciaria" value={getFiduciariaName(selected)} icon={Building2} />
-                            <DItem label="Municipio" value={selected.Municipio_del__c} icon={MapPin} />
-                            <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
-                            <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
-                            <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
-                            <DItem label="Nombre de edificio o conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
-                            <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
-                          </div>
-                          <div className="space-y-4">
-                            <DItem label="Tipo de inmueble" value={selected.Tipo_de_inmueble__c} icon={Building2} />
-                            <DItem label="Número de apartamento" value={selected.Numero_de_apartamento__c} icon={Building2} />
-                            <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
-                            <DItem label="No. Matricula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
-                            <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
-                            {(() => {
-                              const pagoInm = pagos.find((p) => p.salesforce_id === selected.Id && (p as any).tipo_predio === "inmueble" && p.estado === "Pagado");
-                              return <DItem label="Avalúo Catastral" value={pagoInm?.valor_avaluo ? formatCurrency(pagoInm.valor_avaluo) : undefined} icon={DollarSign} />;
-                            })()}
-                          </div>
+                      <div className="flex gap-4">
+                        <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
+                          <DItem label="Fiduciaria" value={getFiduciariaName(selected)} icon={Building2} />
+                          <DItem label="Tipo de inmueble" value={selected.Tipo_de_inmueble__c} icon={Building2} />
+                          <DItem label="Municipio" value={selected.Municipio_del__c} icon={MapPin} />
+                          <DItem label="Número de apartamento" value={selected.Numero_de_apartamento__c} icon={Building2} />
+                          <DItem label="Departamento" value={selected.Departamento__c} icon={MapPin} />
+                          <DItem label="Torre" value={selected.Torre__c} icon={Layers} />
+                          <DItem label="Ciudad Inmueble" value={selected.Ciudad_Inmueble__c} icon={MapPin} />
+                          <DItem label="No. Matricula Inmo Apto" value={selected.Numero_matricula_inmobiliaria__c} icon={FileText} />
+                          <DItem label="Dirección" value={selected.Direccion__c} icon={MapPin} />
+                          <DItem label="Chip Apartamento" value={selected.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (selected.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+                          <DItem label="Nombre de edificio o conjunto" value={selected.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+                          {(() => {
+                            const pagoInm = pagos.find((p) => p.salesforce_id === selected.Id && (p as any).tipo_predio === "inmueble" && p.estado === "Pagado");
+                            return <DItem label="Avalúo Catastral" value={pagoInm?.valor_avaluo ? formatCurrency(pagoInm.valor_avaluo) : undefined} icon={DollarSign} />;
+                          })()}
+                          <DItem label="Fecha Firma Escritura" value={selected.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
                         </div>
                         <ActionButtons tipoPredio="inmueble" sfId={selected.Id} />
                       </div>
                       {/* CTL Inmueble */}
-                      <div className="border-t border-border/40 pt-3 mt-1">
-                        <div className="flex items-center gap-2 mb-2">
+                      <div className="border-t border-border/40 pt-2">
+                        <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
                           {!selected.nombre_ctl_inmueble__c && !selected.nit_ctl_inmueble__c && (
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
                           <DItem label="Nombre" value={selected.nombre_ctl_inmueble__c} icon={FileText} />
                           <DItem label="NIT" value={selected.nit_ctl_inmueble__c} icon={Hash} />
                         </div>
@@ -462,23 +458,23 @@ const Index = () => {
                     </div>
 
                     {/* Parqueadero Block */}
-                    <div className="bg-card rounded-xl border p-5 space-y-4">
+                    <div className="bg-card rounded-xl border p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Car className="w-4 h-4 text-primary" /> Información Parqueadero</h3>
                         <StatusBadge sfId={selected.Id} tipo="parqueadero" inmueble={selected} />
                       </div>
-                      <div className="flex gap-6">
-                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex gap-4">
+                        <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
                           <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
                           <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
                           <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
                           <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" ? selected.chip_parqueadero__c : undefined} icon={Hash} />
                         </div>
                         {hasParqueadero(selected) ? (
-                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
-                            <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                          <div className="w-[170px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-between py-1">
+                            <p className="text-xs text-muted-foreground font-medium">Gestión Predial</p>
                             {!hasPago(selected.Id, "parqueadero") && (
-                              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
+                              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                                 <Checkbox
                                   checked={!!pagoIncluidoParq[selected.Id]}
                                   onCheckedChange={(v) => setPagoIncluidoParq((prev) => ({ ...prev, [selected.Id]: !!v }))}
@@ -497,22 +493,22 @@ const Index = () => {
                             </Button>
                           </div>
                         ) : (
-                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
+                          <div className="w-[170px] flex-shrink-0 border-l pl-4 flex items-center justify-center">
                             <p className="text-xs text-muted-foreground text-center">Sin parqueadero asignado</p>
                           </div>
                         )}
                       </div>
-                      {/* CTL Parqueadero - only show if parqueadero exists */}
+                      {/* CTL Parqueadero */}
                       {hasParqueadero(selected) && (
-                        <div className="border-t border-border/40 pt-3 mt-1">
-                          <div className="flex items-center gap-2 mb-2">
+                        <div className="border-t border-border/40 pt-2">
+                          <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
                             {!selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c &&
                               (selected.No_Matricula_Inmo_Parqueadero__c || (selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" && selected.chip_parqueadero__c !== "SIN_CHIP")) && (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                             )}
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1">
                             <DItem label="Nombre" value={selected.nombre_ctl_parqueadero__c} icon={FileText} />
                             <DItem label="NIT" value={selected.nit_ctl_parqueadero__c} icon={Hash} />
                           </div>
@@ -521,22 +517,22 @@ const Index = () => {
                     </div>
 
                     {/* Depósito Block */}
-                    <div className="bg-card rounded-xl border p-5 space-y-4">
+                    <div className="bg-card rounded-xl border p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Package className="w-4 h-4 text-primary" /> Información Depósito</h3>
                         <StatusBadge sfId={selected.Id} tipo="deposito" inmueble={selected} />
                       </div>
-                      <div className="flex gap-6">
-                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex gap-4">
+                        <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
                           <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
                           <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
                           <DItem label="Chip Depósito" value={selected.chip_deposito__c && selected.chip_deposito__c !== "-" ? selected.chip_deposito__c : undefined} icon={Hash} />
                         </div>
                         {hasDeposito(selected) ? (
-                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
-                            <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                          <div className="w-[170px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-between py-1">
+                            <p className="text-xs text-muted-foreground font-medium">Gestión Predial</p>
                             {!hasPago(selected.Id, "deposito") && (
-                              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-1">
+                              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                                 <Checkbox
                                   checked={!!pagoIncluidoDep[selected.Id]}
                                   onCheckedChange={(v) => setPagoIncluidoDep((prev) => ({ ...prev, [selected.Id]: !!v }))}
@@ -555,22 +551,22 @@ const Index = () => {
                             </Button>
                           </div>
                         ) : (
-                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
+                          <div className="w-[170px] flex-shrink-0 border-l pl-4 flex items-center justify-center">
                             <p className="text-xs text-muted-foreground text-center">Sin depósito asignado</p>
                           </div>
                         )}
                       </div>
-                      {/* CTL Depósito - only show if deposito exists */}
+                      {/* CTL Depósito */}
                       {hasDeposito(selected) && (
-                        <div className="border-t border-border/40 pt-3 mt-1">
-                          <div className="flex items-center gap-2 mb-2">
+                        <div className="border-t border-border/40 pt-2">
+                          <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
                             {!selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c &&
                               (selected.No_Matricula_Inmo_Deposito__c || (selected.chip_deposito__c && selected.chip_deposito__c !== "-" && selected.chip_deposito__c !== "SIN_CHIP")) && (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                             )}
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1">
                             <DItem label="Nombre" value={selected.nombre_ctl_bodega__c} icon={FileText} />
                             <DItem label="NIT" value={selected.nit_ctl_bodega__c} icon={Hash} />
                           </div>
