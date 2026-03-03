@@ -5400,6 +5400,39 @@ export type Database = {
           },
         ]
       }
+      recibos_predial: {
+        Row: {
+          anio_vigencia: number | null
+          created_at: string | null
+          id: string
+          nombre_inmueble: string | null
+          notas: string | null
+          salesforce_id: string
+          tipo_predio: string
+          url_recibo: string | null
+        }
+        Insert: {
+          anio_vigencia?: number | null
+          created_at?: string | null
+          id?: string
+          nombre_inmueble?: string | null
+          notas?: string | null
+          salesforce_id: string
+          tipo_predio?: string
+          url_recibo?: string | null
+        }
+        Update: {
+          anio_vigencia?: number | null
+          created_at?: string | null
+          id?: string
+          nombre_inmueble?: string | null
+          notas?: string | null
+          salesforce_id?: string
+          tipo_predio?: string
+          url_recibo?: string | null
+        }
+        Relationships: []
+      }
       resumen_inmuebles_mensual: {
         Row: {
           anio: number
