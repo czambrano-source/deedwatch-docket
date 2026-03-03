@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, Filter, X } from "lucide-react";
+import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, Filter, X, Upload } from "lucide-react";
 import { useInmuebles, usePagos } from "@/hooks/useInmuebles";
 import { KpiCard } from "@/components/predial/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { RegistrarPagoModal } from "@/components/predial/RegistrarPagoModal";
+import { RegistrarReciboModal } from "@/components/predial/RegistrarReciboModal";
 import { NotasModal } from "@/components/predial/NotasModal";
 import { VerPagoModal } from "@/components/predial/VerPagoModal";
 import { InconsistenciasModal, getInconsistencias } from "@/components/predial/InconsistenciasModal";
@@ -21,7 +22,7 @@ const getFiduciariaName = (inmueble: Inmueble) => {
   return (inmueble as any).Fiduciaria__r?.Name ?? inmueble.Fiduciaria__c ?? "—";
 };
 
-type ModalType = "pago" | "verPago" | "notas";
+type ModalType = "pago" | "verPago" | "notas" | "recibo";
 type TipoPredio = "inmueble" | "parqueadero" | "deposito";
 
 
@@ -175,6 +176,9 @@ const Index = () => {
       <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
       <Button size="sm" onClick={() => openModal("pago", tipoPredio)} className="w-full bg-primary hover:bg-primary/90 text-xs">
         <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => openModal("recibo", tipoPredio)} className="w-full text-xs border border-dashed border-muted-foreground/40">
+        <Upload className="w-3 h-3 mr-1" /> Registrar Recibo
       </Button>
       <Button size="sm" variant="outline" onClick={() => openModal("verPago", tipoPredio)} className="w-full text-xs">
         <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
@@ -596,6 +600,9 @@ const Index = () => {
       {/* Modals */}
       {selected && activeModal?.type === "pago" && (
         <RegistrarPagoModal open onClose={closeModal} inmueble={selected} tipoPredio={activeModal.tipoPredio} vigencia={vigencia} />
+      )}
+      {selected && activeModal?.type === "recibo" && (
+        <RegistrarReciboModal open onClose={closeModal} inmueble={selected} tipoPredio={activeModal.tipoPredio} vigencia={vigencia} />
       )}
       {selected && activeModal?.type === "verPago" && (
         <VerPagoModal open onClose={closeModal} salesforceId={selected.Id} tipoPredio={activeModal.tipoPredio} nombreInmueble={selected.Name} />
