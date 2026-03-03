@@ -77,6 +77,18 @@ const Index = () => {
     return false;
   };
 
+  // Helper: check if a field has valid alphanumeric data (not N/A, No tiene, empty, -, SIN_CHIP)
+  const isValidField = (val?: string | null): boolean => {
+    if (!val) return false;
+    const normalized = val.trim().toLowerCase();
+    return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip";
+  };
+
+  // Show CTL only if both Matrícula and Chip have valid alphanumeric data
+  const showCtlInmueble = (i: Inmueble) => isValidField(i.Numero_matricula_inmobiliaria__c) || isValidField(i.chip_apartamento__c);
+  const showCtlParqueadero = (i: Inmueble) => isValidField(i.No_Matricula_Inmo_Parqueadero__c) || isValidField(i.chip_parqueadero__c);
+  const showCtlDeposito = (i: Inmueble) => isValidField(i.No_Matricula_Inmo_Deposito__c) || isValidField(i.chip_deposito__c);
+
   // Combined status: "completo" if all applicable blocks are paid/included, "pendiente" otherwise
   const getOverallStatus = (i: Inmueble) => {
     const inmPaid = hasPago(i.Id, "inmueble");
@@ -443,18 +455,20 @@ const Index = () => {
                         <ActionButtons tipoPredio="inmueble" sfId={selected.Id} />
                       </div>
                       {/* CTL Inmueble */}
-                      <div className="border-t border-border/40 pt-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
-                          {!selected.nombre_ctl_inmueble__c && !selected.nit_ctl_inmueble__c && (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                          )}
+                      {showCtlInmueble(selected) && (
+                        <div className="border-t border-border/40 pt-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
+                            {!selected.nombre_ctl_inmueble__c && !selected.nit_ctl_inmueble__c && (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <DItem label="Nombre" value={selected.nombre_ctl_inmueble__c} icon={FileText} />
+                            <DItem label="NIT" value={selected.nit_ctl_inmueble__c} icon={Hash} />
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <DItem label="Nombre" value={selected.nombre_ctl_inmueble__c} icon={FileText} />
-                          <DItem label="NIT" value={selected.nit_ctl_inmueble__c} icon={Hash} />
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Parqueadero Block */}
@@ -499,12 +513,11 @@ const Index = () => {
                         )}
                       </div>
                       {/* CTL Parqueadero */}
-                      {hasParqueadero(selected) && (
+                      {hasParqueadero(selected) && showCtlParqueadero(selected) && (
                         <div className="border-t border-border/40 pt-2">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
-                            {!selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c &&
-                              (selected.No_Matricula_Inmo_Parqueadero__c || (selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" && selected.chip_parqueadero__c !== "SIN_CHIP")) && (
+                            {!selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c && (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                             )}
                           </div>
@@ -557,12 +570,11 @@ const Index = () => {
                         )}
                       </div>
                       {/* CTL Depósito */}
-                      {hasDeposito(selected) && (
+                      {hasDeposito(selected) && showCtlDeposito(selected) && (
                         <div className="border-t border-border/40 pt-2">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
-                            {!selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c &&
-                              (selected.No_Matricula_Inmo_Deposito__c || (selected.chip_deposito__c && selected.chip_deposito__c !== "-" && selected.chip_deposito__c !== "SIN_CHIP")) && (
+                            {!selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c && (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                             )}
                           </div>
