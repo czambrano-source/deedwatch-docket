@@ -448,14 +448,16 @@ const Index = () => {
                       </div>
                       {/* CTL Inmueble */}
                       <div className="border-t border-border/40 pt-3 mt-1">
-                        <p className="text-sm font-bold text-foreground mb-1">Ctl apto r2o</p>
-                        {selected.nombre_ctl_inmueble__c || selected.nit_ctl_inmueble__c ? (
-                          <p className="text-xs text-muted-foreground">
-                            Nombre: <span className="text-foreground">{selected.nombre_ctl_inmueble__c || "—"}</span> | NIT: <span className="text-foreground">{selected.nit_ctl_inmueble__c || "—"}</span>
-                          </p>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                        )}
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="text-sm font-bold text-foreground">Ctl apto r2o</p>
+                          {!selected.nombre_ctl_inmueble__c && !selected.nit_ctl_inmueble__c && (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <DItem label="Nombre" value={selected.nombre_ctl_inmueble__c} icon={FileText} />
+                          <DItem label="NIT" value={selected.nit_ctl_inmueble__c} icon={Hash} />
+                        </div>
                       </div>
                     </div>
 
@@ -503,18 +505,17 @@ const Index = () => {
                       {/* CTL Parqueadero - only show if parqueadero exists */}
                       {hasParqueadero(selected) && (
                         <div className="border-t border-border/40 pt-3 mt-1">
-                          <p className="text-sm font-bold text-foreground mb-1">Ctl Parqueadero</p>
-                          {selected.nombre_ctl_parqueadero__c || selected.nit_ctl_parqueadero__c ? (
-                            <p className="text-xs text-muted-foreground">
-                              Nombre: <span className="text-foreground">{selected.nombre_ctl_parqueadero__c || "—"}</span> | NIT: <span className="text-foreground">{selected.nit_ctl_parqueadero__c || "—"}</span>
-                            </p>
-                          ) : (
-                            (selected.No_Matricula_Inmo_Parqueadero__c || (selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" && selected.chip_parqueadero__c !== "SIN_CHIP")) ? (
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-sm font-bold text-foreground">Ctl Parqueadero</p>
+                            {!selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c &&
+                              (selected.No_Matricula_Inmo_Parqueadero__c || (selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" && selected.chip_parqueadero__c !== "SIN_CHIP")) && (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">—</p>
-                            )
-                          )}
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <DItem label="Nombre" value={selected.nombre_ctl_parqueadero__c} icon={FileText} />
+                            <DItem label="NIT" value={selected.nit_ctl_parqueadero__c} icon={Hash} />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -562,18 +563,17 @@ const Index = () => {
                       {/* CTL Depósito - only show if deposito exists */}
                       {hasDeposito(selected) && (
                         <div className="border-t border-border/40 pt-3 mt-1">
-                          <p className="text-sm font-bold text-foreground mb-1">Ctl Bodega</p>
-                          {selected.nombre_ctl_bodega__c || selected.nit_ctl_bodega__c ? (
-                            <p className="text-xs text-muted-foreground">
-                              Nombre: <span className="text-foreground">{selected.nombre_ctl_bodega__c || "—"}</span> | NIT: <span className="text-foreground">{selected.nit_ctl_bodega__c || "—"}</span>
-                            </p>
-                          ) : (
-                            (selected.No_Matricula_Inmo_Deposito__c || (selected.chip_deposito__c && selected.chip_deposito__c !== "-" && selected.chip_deposito__c !== "SIN_CHIP")) ? (
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-sm font-bold text-foreground">Ctl Bodega</p>
+                            {!selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c &&
+                              (selected.No_Matricula_Inmo_Deposito__c || (selected.chip_deposito__c && selected.chip_deposito__c !== "-" && selected.chip_deposito__c !== "SIN_CHIP")) && (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">—</p>
-                            )
-                          )}
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <DItem label="Nombre" value={selected.nombre_ctl_bodega__c} icon={FileText} />
+                            <DItem label="NIT" value={selected.nit_ctl_bodega__c} icon={Hash} />
+                          </div>
                         </div>
                       )}
                     </div>
