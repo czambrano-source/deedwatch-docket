@@ -20,6 +20,12 @@ export interface Inmueble {
   No_Matricula_Inmo_Deposito__c?: string | null;
   chip_deposito__c?: string;
   Proceso_entrega_inmueble__c?: string;
+  nombre_ctl_inmueble__c?: string;
+  nit_ctl_inmueble__c?: string;
+  nombre_ctl_parqueadero__c?: string;
+  nit_ctl_parqueadero__c?: string;
+  nombre_ctl_bodega__c?: string;
+  nit_ctl_bodega__c?: string;
   Legales__r?: {
     totalSize?: number;
     done?: boolean;
