@@ -880,6 +880,7 @@ export type Database = {
           se_nego_a_dar_cedula: boolean | null
           solicitamos_bajar_precio: boolean | null
           ultima_revision: string | null
+          ultimo_paso_finalizado: string | null
         }
         Insert: {
           campana?: string
@@ -906,6 +907,7 @@ export type Database = {
           se_nego_a_dar_cedula?: boolean | null
           solicitamos_bajar_precio?: boolean | null
           ultima_revision?: string | null
+          ultimo_paso_finalizado?: string | null
         }
         Update: {
           campana?: string
@@ -932,6 +934,7 @@ export type Database = {
           se_nego_a_dar_cedula?: boolean | null
           solicitamos_bajar_precio?: boolean | null
           ultima_revision?: string | null
+          ultimo_paso_finalizado?: string | null
         }
         Relationships: [
           {
@@ -1061,6 +1064,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dashboard_routes: {
+        Row: {
+          author: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          kpis: string[] | null
+          last_updated_at: string | null
+          route: string
+          shared_with: string[] | null
+          status: string
+          tags: string[] | null
+          thumbnail_route: string | null
+          title: string
+        }
+        Insert: {
+          author?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          kpis?: string[] | null
+          last_updated_at?: string | null
+          route: string
+          shared_with?: string[] | null
+          status?: string
+          tags?: string[] | null
+          thumbnail_route?: string | null
+          title: string
+        }
+        Update: {
+          author?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          kpis?: string[] | null
+          last_updated_at?: string | null
+          route?: string
+          shared_with?: string[] | null
+          status?: string
+          tags?: string[] | null
+          thumbnail_route?: string | null
+          title?: string
+        }
+        Relationships: []
       }
       dashboards: {
         Row: {
@@ -3784,6 +3832,27 @@ export type Database = {
         }
         Relationships: []
       }
+      moved_messages_log_inbox_merge: {
+        Row: {
+          created_at: string
+          mensaje_id: string
+          new_conversation_id: string
+          old_conversation_id: string
+        }
+        Insert: {
+          created_at?: string
+          mensaje_id: string
+          new_conversation_id: string
+          old_conversation_id: string
+        }
+        Update: {
+          created_at?: string
+          mensaje_id?: string
+          new_conversation_id?: string
+          old_conversation_id?: string
+        }
+        Relationships: []
+      }
       notas_predial: {
         Row: {
           created_at: string
@@ -5847,6 +5916,36 @@ export type Database = {
           },
         ]
       }
+      user_registry: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          role: string
+          ssh_fingerprint: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email: string
+          id?: string
+          role?: string
+          ssh_fingerprint?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string
+          id?: string
+          role?: string
+          ssh_fingerprint?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -6605,6 +6704,30 @@ export type Database = {
           is_consolidado: number
           pct_avanzaron: number
           total_conversaciones: number
+        }[]
+      }
+      rpc_distribucion_ultimo_paso_por_di: {
+        Args: {
+          end_date_supabase_conversaciones_exclusive: string
+          start_date_supabase_conversaciones: string
+        }
+        Returns: {
+          conteo: number
+          fecha_co: string
+          pct_del_dia: number
+          ultimo_paso_finalizado: string
+        }[]
+      }
+      rpc_distribucion_ultimo_paso_por_dia: {
+        Args: {
+          end_date_supabase_conversaciones_exclusive: string
+          start_date_supabase_conversaciones: string
+        }
+        Returns: {
+          conteo: number
+          fecha_co: string
+          pct_del_dia: number
+          ultimo_paso_finalizado: string
         }[]
       }
       rpc_funnel_conversaciones_por_dia: {

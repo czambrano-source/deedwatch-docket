@@ -14,6 +14,7 @@ import { NotasModal } from "@/components/predial/NotasModal";
 import { VerPagoModal } from "@/components/predial/VerPagoModal";
 import { InconsistenciasModal, getInconsistencias } from "@/components/predial/InconsistenciasModal";
 import { SinFechaEscrituraModal, getSinFechaEscritura } from "@/components/predial/SinFechaEscrituraModal";
+import { CtlInconsistenciasModal, getCtlInconsistencias } from "@/components/predial/CtlInconsistenciasModal";
 import type { Inmueble, GestionPredial } from "@/types/inmueble";
 
 const getFiduciariaName = (inmueble: Inmueble) => {
@@ -41,6 +42,7 @@ const Index = () => {
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
   const [showInconsistencias, setShowInconsistencias] = useState(false);
   const [showSinFechaEscritura, setShowSinFechaEscritura] = useState(false);
+  const [showCtlInconsistencias, setShowCtlInconsistencias] = useState(false);
 
   // Pago incluido state (local toggle per session, in real app could be persisted)
   const [pagoIncluidoParq, setPagoIncluidoParq] = useState<Record<string, boolean>>({});
@@ -263,6 +265,21 @@ const Index = () => {
                   </button>
                 );
               })()}
+              {(() => {
+                const ctlCount = getCtlInconsistencias(inmuebles).length;
+                if (ctlCount === 0) return null;
+                return (
+                  <button
+                    onClick={() => setShowCtlInconsistencias(true)}
+                    className="flex-1 flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2 text-left transition-colors hover:bg-destructive/20"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                    <p className="text-xs font-medium text-foreground">
+                      ⚠️ {ctlCount} inconsistencia{ctlCount !== 1 ? "s" : ""} en datos de CTL
+                    </p>
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
@@ -429,6 +446,17 @@ const Index = () => {
                         </div>
                         <ActionButtons tipoPredio="inmueble" sfId={selected.Id} />
                       </div>
+                      {/* CTL Inmueble */}
+                      <div className="border-t border-border/40 pt-3 mt-1">
+                        <p className="text-sm font-bold text-foreground mb-1">Ctl apto r2o</p>
+                        {selected.nombre_ctl_inmueble__c || selected.nit_ctl_inmueble__c ? (
+                          <p className="text-xs text-muted-foreground">
+                            Nombre: <span className="text-foreground">{selected.nombre_ctl_inmueble__c || "—"}</span> | NIT: <span className="text-foreground">{selected.nit_ctl_inmueble__c || "—"}</span>
+                          </p>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Parqueadero Block */}
@@ -472,6 +500,23 @@ const Index = () => {
                           </div>
                         )}
                       </div>
+                      {/* CTL Parqueadero - only show if parqueadero exists */}
+                      {hasParqueadero(selected) && (
+                        <div className="border-t border-border/40 pt-3 mt-1">
+                          <p className="text-sm font-bold text-foreground mb-1">Ctl Parqueadero</p>
+                          {selected.nombre_ctl_parqueadero__c || selected.nit_ctl_parqueadero__c ? (
+                            <p className="text-xs text-muted-foreground">
+                              Nombre: <span className="text-foreground">{selected.nombre_ctl_parqueadero__c || "—"}</span> | NIT: <span className="text-foreground">{selected.nit_ctl_parqueadero__c || "—"}</span>
+                            </p>
+                          ) : (
+                            (selected.No_Matricula_Inmo_Parqueadero__c || (selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" && selected.chip_parqueadero__c !== "SIN_CHIP")) ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">—</p>
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Depósito Block */}
@@ -514,6 +559,23 @@ const Index = () => {
                           </div>
                         )}
                       </div>
+                      {/* CTL Depósito - only show if deposito exists */}
+                      {hasDeposito(selected) && (
+                        <div className="border-t border-border/40 pt-3 mt-1">
+                          <p className="text-sm font-bold text-foreground mb-1">Ctl Bodega</p>
+                          {selected.nombre_ctl_bodega__c || selected.nit_ctl_bodega__c ? (
+                            <p className="text-xs text-muted-foreground">
+                              Nombre: <span className="text-foreground">{selected.nombre_ctl_bodega__c || "—"}</span> | NIT: <span className="text-foreground">{selected.nit_ctl_bodega__c || "—"}</span>
+                            </p>
+                          ) : (
+                            (selected.No_Matricula_Inmo_Deposito__c || (selected.chip_deposito__c && selected.chip_deposito__c !== "-" && selected.chip_deposito__c !== "SIN_CHIP")) ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">—</p>
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -535,6 +597,7 @@ const Index = () => {
       )}
       <InconsistenciasModal open={showInconsistencias} onClose={() => setShowInconsistencias(false)} inmuebles={inmuebles} />
       <SinFechaEscrituraModal open={showSinFechaEscritura} onClose={() => setShowSinFechaEscritura(false)} inmuebles={inmuebles} />
+      <CtlInconsistenciasModal open={showCtlInconsistencias} onClose={() => setShowCtlInconsistencias(false)} inmuebles={inmuebles} />
     </div>
   );
 };
