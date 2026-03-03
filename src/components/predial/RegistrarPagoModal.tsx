@@ -99,15 +99,15 @@ export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio, vigenc
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="soporte">Soporte PDF</Label>
+            <Label htmlFor="soporte">Soporte (PDF o Imagen)</Label>
             <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => document.getElementById("soporte")?.click()}>
               <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
               <p className="text-sm text-muted-foreground">
-                {file ? file.name : "Clic para seleccionar PDF"}
+                {file ? file.name : "Clic para seleccionar archivo"}
               </p>
             </div>
-            <input id="soporte" type="file" accept=".pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <input id="soporte" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
