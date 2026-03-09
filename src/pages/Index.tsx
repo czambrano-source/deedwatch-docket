@@ -74,9 +74,9 @@ const Index = () => {
     return false;
   };
   const hasDeposito = (i: Inmueble) => {
-    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "N/A" && i.Deposito__c !== "No tiene") return true;
-    if (i.No_Matricula_Inmo_Deposito__c && i.No_Matricula_Inmo_Deposito__c !== "N/A" && i.No_Matricula_Inmo_Deposito__c !== "No tiene") return true;
-    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "N/A" && i.chip_deposito__c !== "No tiene") return true;
+    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "N/A" && i.Deposito__c !== "No tiene" && i.Deposito__c !== "SIN_MATRICULA") return true;
+    if (i.No_Matricula_Inmo_Deposito__c && i.No_Matricula_Inmo_Deposito__c !== "N/A" && i.No_Matricula_Inmo_Deposito__c !== "No tiene" && i.No_Matricula_Inmo_Deposito__c !== "SIN_MATRICULA") return true;
+    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "N/A" && i.chip_deposito__c !== "No tiene" && i.chip_deposito__c !== "SIN_MATRICULA") return true;
     return false;
   };
 
