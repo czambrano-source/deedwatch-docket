@@ -480,7 +480,7 @@ const Index = () => {
                       </div>
                       {/* CTL Inmueble */}
                       {showCtlInmueble(selected) && (
-                        <div className="border-t border-border/40 pt-2">
+                        <div className="border-t border-border/40 pt-3 mt-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
                             {!selected.nombre_ctl_inmueble__c && !selected.nit_ctl_inmueble__c && (
