@@ -15,7 +15,7 @@ interface CtlInconsistencia {
 function isValidField(val?: string | null): boolean {
   if (!val) return false;
   const normalized = val.trim().toLowerCase();
-  return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip";
+  return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip" && normalized !== "sin_matricula";
 }
 
 function getCtlInconsistencias(inmuebles: Inmueble[]): CtlInconsistencia[] {

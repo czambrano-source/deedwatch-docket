@@ -16,7 +16,7 @@ interface Inconsistencia {
 function isInvalidPlaceholder(val?: string | number | null): boolean {
   if (val == null) return true;
   const n = String(val).trim().toLowerCase();
-  return n === "" || n === "n/a" || n === "no tiene" || n === "-" || n === "sin_chip";
+  return n === "" || n === "n/a" || n === "no tiene" || n === "-" || n === "sin_chip" || n === "sin_matricula";
 }
 
 function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
