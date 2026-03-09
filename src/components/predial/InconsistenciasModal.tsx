@@ -20,8 +20,8 @@ function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
     const parqFields: { label: string; present: boolean }[] = [
       { label: "Cantidad", present: i.Parqueadero__c != null && i.Parqueadero__c > 0 },
       { label: "Número", present: !!i.numero_del_parqueadero__c },
-      { label: "Matrícula", present: !!i.No_Matricula_Inmo_Parqueadero__c },
-      { label: "CHIP", present: !!i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP" },
+      { label: "Matrícula", present: !!i.No_Matricula_Inmo_Parqueadero__c && i.No_Matricula_Inmo_Parqueadero__c !== "N/A" && i.No_Matricula_Inmo_Parqueadero__c !== "No tiene" },
+      { label: "CHIP", present: !!i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP" && i.chip_parqueadero__c !== "N/A" },
     ];
     const parqPresent = parqFields.filter((f) => f.present);
     const parqMissing = parqFields.filter((f) => !f.present);
@@ -34,11 +34,11 @@ function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
       });
     }
 
-    const depHasMain = !!i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0";
+    const depHasMain = !!i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "SIN_DEPOSITO";
     const depFields: { label: string; present: boolean }[] = [
       { label: "Depósito", present: depHasMain },
-      { label: "Matrícula", present: !!i.No_Matricula_Inmo_Deposito__c },
-      { label: "CHIP", present: !!i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" },
+      { label: "Matrícula", present: !!i.No_Matricula_Inmo_Deposito__c && i.No_Matricula_Inmo_Deposito__c !== "N/A" && i.No_Matricula_Inmo_Deposito__c !== "No tiene" },
+      { label: "CHIP", present: !!i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "SIN_DEPOSITO" && i.chip_deposito__c !== "N/A" },
     ];
     const depPresent = depFields.filter((f) => f.present);
     const depMissing = depFields.filter((f) => !f.present);
