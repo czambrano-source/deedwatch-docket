@@ -509,8 +509,8 @@ const Index = () => {
                           <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" ? selected.chip_parqueadero__c : undefined} icon={Hash} />
                         </div>
                         {hasParqueadero(selected) ? (
-                          <div className="w-[170px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-between py-1">
-                            <p className="text-xs text-muted-foreground font-medium">Gestión Predial</p>
+                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
+                            <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
                             {!hasPago(selected.Id, "parqueadero") && (
                               <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                                 <Checkbox
@@ -523,6 +523,26 @@ const Index = () => {
                             <Button size="sm" onClick={() => openModal("pago", "parqueadero")} className="w-full bg-primary hover:bg-primary/90 text-xs">
                               <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
                             </Button>
+                            {(() => {
+                              const reciboExists = hasRecibo(selected.Id, "parqueadero");
+                              return (
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="ghost" onClick={() => openModal("recibo", "parqueadero")} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
+                                    <Upload className="w-3 h-3 mr-1" /> Recibo
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant={reciboExists ? "default" : "outline"}
+                                    onClick={() => openModal("verRecibo", "parqueadero")}
+                                    className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
+                                    title={reciboExists ? "Recibo cargado" : "Sin recibo"}
+                                  >
+                                    <Receipt className="w-3 h-3" />
+                                    {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
+                                  </Button>
+                                </div>
+                              );
+                            })()}
                             <Button size="sm" variant="outline" onClick={() => openModal("verPago", "parqueadero")} className="w-full text-xs">
                               <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
                             </Button>
@@ -531,7 +551,7 @@ const Index = () => {
                             </Button>
                           </div>
                         ) : (
-                          <div className="w-[170px] flex-shrink-0 border-l pl-4 flex items-center justify-center">
+                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
                             <p className="text-xs text-muted-foreground text-center">Sin parqueadero asignado</p>
                           </div>
                         )}
