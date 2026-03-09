@@ -68,15 +68,15 @@ const Index = () => {
   // Check if inmueble has parqueadero — any related field with data counts
   const hasParqueadero = (i: Inmueble) => {
     if (i.Parqueadero__c != null && i.Parqueadero__c > 0) return true;
-    if (i.numero_del_parqueadero__c) return true;
-    if (i.No_Matricula_Inmo_Parqueadero__c) return true;
-    if (i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP") return true;
+    if (i.numero_del_parqueadero__c && i.numero_del_parqueadero__c !== "N/A" && i.numero_del_parqueadero__c !== "No tiene") return true;
+    if (i.No_Matricula_Inmo_Parqueadero__c && i.No_Matricula_Inmo_Parqueadero__c !== "N/A" && i.No_Matricula_Inmo_Parqueadero__c !== "No tiene") return true;
+    if (i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP" && i.chip_parqueadero__c !== "N/A" && i.chip_parqueadero__c !== "No tiene") return true;
     return false;
   };
   const hasDeposito = (i: Inmueble) => {
-    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "SIN_DEPOSITO") return true;
-    if (i.No_Matricula_Inmo_Deposito__c) return true;
-    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "SIN_DEPOSITO") return true;
+    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "SIN_DEPOSITO" && i.Deposito__c !== "N/A" && i.Deposito__c !== "No tiene") return true;
+    if (i.No_Matricula_Inmo_Deposito__c && i.No_Matricula_Inmo_Deposito__c !== "N/A" && i.No_Matricula_Inmo_Deposito__c !== "No tiene") return true;
+    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "SIN_DEPOSITO" && i.chip_deposito__c !== "N/A" && i.chip_deposito__c !== "No tiene") return true;
     return false;
   };
 
