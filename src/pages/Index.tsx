@@ -75,8 +75,8 @@ const Index = () => {
   };
   const hasDeposito = (i: Inmueble) => {
     if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "SIN_DEPOSITO") return true;
-    if (i.No_Matricula_Inmo_Deposito__c && i.No_Matricula_Inmo_Deposito__c !== "N/A" && i.No_Matricula_Inmo_Deposito__c !== "No tiene") return true;
-    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "SIN_DEPOSITO" && i.chip_deposito__c !== "N/A") return true;
+    if (i.No_Matricula_Inmo_Deposito__c) return true;
+    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "SIN_DEPOSITO") return true;
     return false;
   };
 
