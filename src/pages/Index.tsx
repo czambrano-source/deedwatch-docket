@@ -501,7 +501,7 @@ const Index = () => {
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Car className="w-4 h-4 text-primary" /> Información Parqueadero</h3>
                         <StatusBadge sfId={selected.Id} tipo="parqueadero" inmueble={selected} />
                       </div>
-                      <div className="flex gap-4">
+                      <div className="flex gap-4 items-center">
                         <div className="flex-1 space-y-1.5">
                           <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
                           <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
