@@ -13,9 +13,9 @@ interface Inconsistencia {
   camposFaltantes: string[];
 }
 
-function isInvalidPlaceholder(val?: string | null): boolean {
-  if (!val) return true;
-  const n = val.trim().toLowerCase();
+function isInvalidPlaceholder(val?: string | number | null): boolean {
+  if (val == null) return true;
+  const n = String(val).trim().toLowerCase();
   return n === "" || n === "n/a" || n === "no tiene" || n === "-" || n === "sin_chip";
 }
 
