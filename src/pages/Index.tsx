@@ -502,7 +502,7 @@ const Index = () => {
                         <StatusBadge sfId={selected.Id} tipo="parqueadero" inmueble={selected} />
                       </div>
                       <div className="flex gap-4">
-                        <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
+                        <div className="flex-1 space-y-1.5">
                           <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
                           <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
                           <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
