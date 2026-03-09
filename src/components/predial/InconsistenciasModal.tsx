@@ -19,9 +19,9 @@ function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
   for (const i of inmuebles) {
     const parqFields: { label: string; present: boolean }[] = [
       { label: "Cantidad", present: i.Parqueadero__c != null && i.Parqueadero__c > 0 },
-      { label: "Número", present: !!i.numero_del_parqueadero__c },
-      { label: "Matrícula", present: !!i.No_Matricula_Inmo_Parqueadero__c },
-      { label: "CHIP", present: !!i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP" },
+      { label: "Número", present: !!i.numero_del_parqueadero__c && i.numero_del_parqueadero__c !== "N/A" && i.numero_del_parqueadero__c !== "No tiene" },
+      { label: "Matrícula", present: !!i.No_Matricula_Inmo_Parqueadero__c && i.No_Matricula_Inmo_Parqueadero__c !== "N/A" && i.No_Matricula_Inmo_Parqueadero__c !== "No tiene" },
+      { label: "CHIP", present: !!i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP" && i.chip_parqueadero__c !== "N/A" && i.chip_parqueadero__c !== "No tiene" },
     ];
     const parqPresent = parqFields.filter((f) => f.present);
     const parqMissing = parqFields.filter((f) => !f.present);
