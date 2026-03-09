@@ -13,16 +13,37 @@ interface Inconsistencia {
   camposFaltantes: string[];
 }
 
+function isInvalidPlaceholder(val?: string | null): boolean {
+  if (!val) return true;
+  const n = val.trim().toLowerCase();
+  return n === "" || n === "n/a" || n === "no tiene" || n === "-" || n === "sin_chip";
+}
+
 function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
   const result: Inconsistencia[] = [];
 
   for (const i of inmuebles) {
+    // Only include fields that have real data or are truly empty (null/undefined)
+    // Skip fields with placeholder values (N/A, SIN_CHIP, No tiene) entirely
     const parqFields: { label: string; present: boolean }[] = [
       { label: "Cantidad", present: i.Parqueadero__c != null && i.Parqueadero__c > 0 },
-      { label: "Número", present: !!i.numero_del_parqueadero__c && i.numero_del_parqueadero__c !== "N/A" && i.numero_del_parqueadero__c !== "No tiene" },
-      { label: "Matrícula", present: !!i.No_Matricula_Inmo_Parqueadero__c && i.No_Matricula_Inmo_Parqueadero__c !== "N/A" && i.No_Matricula_Inmo_Parqueadero__c !== "No tiene" },
-      { label: "CHIP", present: !!i.chip_parqueadero__c && i.chip_parqueadero__c !== "-" && i.chip_parqueadero__c !== "SIN_CHIP" && i.chip_parqueadero__c !== "N/A" && i.chip_parqueadero__c !== "No tiene" },
     ];
+    if (!isInvalidPlaceholder(i.numero_del_parqueadero__c)) {
+      parqFields.push({ label: "Número", present: true });
+    } else if (!i.numero_del_parqueadero__c) {
+      parqFields.push({ label: "Número", present: false });
+    }
+    if (!isInvalidPlaceholder(i.No_Matricula_Inmo_Parqueadero__c)) {
+      parqFields.push({ label: "Matrícula", present: true });
+    } else if (!i.No_Matricula_Inmo_Parqueadero__c) {
+      parqFields.push({ label: "Matrícula", present: false });
+    }
+    if (!isInvalidPlaceholder(i.chip_parqueadero__c)) {
+      parqFields.push({ label: "CHIP", present: true });
+    } else if (!i.chip_parqueadero__c) {
+      parqFields.push({ label: "CHIP", present: false });
+    }
+
     const parqPresent = parqFields.filter((f) => f.present);
     const parqMissing = parqFields.filter((f) => !f.present);
     if (parqPresent.length > 0 && parqMissing.length > 0) {
@@ -34,12 +55,25 @@ function getInconsistencias(inmuebles: Inmueble[]): Inconsistencia[] {
       });
     }
 
-    const depHasMain = !!i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "N/A" && i.Deposito__c !== "No tiene";
-    const depFields: { label: string; present: boolean }[] = [
-      { label: "Depósito", present: depHasMain },
-      { label: "Matrícula", present: !!i.No_Matricula_Inmo_Deposito__c && i.No_Matricula_Inmo_Deposito__c !== "N/A" && i.No_Matricula_Inmo_Deposito__c !== "No tiene" },
-      { label: "CHIP", present: !!i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "N/A" && i.chip_deposito__c !== "No tiene" },
-    ];
+    const depFields: { label: string; present: boolean }[] = [];
+    const depMainVal = i.Deposito__c;
+    const depHasMain = !!depMainVal && depMainVal !== "No" && depMainVal !== "0" && !isInvalidPlaceholder(depMainVal);
+    if (depHasMain) {
+      depFields.push({ label: "Depósito", present: true });
+    } else if (!depMainVal || depMainVal === "No" || depMainVal === "0") {
+      depFields.push({ label: "Depósito", present: false });
+    }
+    if (!isInvalidPlaceholder(i.No_Matricula_Inmo_Deposito__c)) {
+      depFields.push({ label: "Matrícula", present: true });
+    } else if (!i.No_Matricula_Inmo_Deposito__c) {
+      depFields.push({ label: "Matrícula", present: false });
+    }
+    if (!isInvalidPlaceholder(i.chip_deposito__c)) {
+      depFields.push({ label: "CHIP", present: true });
+    } else if (!i.chip_deposito__c) {
+      depFields.push({ label: "CHIP", present: false });
+    }
+
     const depPresent = depFields.filter((f) => f.present);
     const depMissing = depFields.filter((f) => !f.present);
     if (depPresent.length > 0 && depMissing.length > 0) {
