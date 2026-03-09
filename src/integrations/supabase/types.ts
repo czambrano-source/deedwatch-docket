@@ -6795,6 +6795,42 @@ export type Database = {
           pct_respondieron: number
         }[]
       }
+      rpc_pct_primera_pregunta_por_dia: {
+        Args: {
+          end_date_supabase_conversaciones_exclusive: string
+          start_date_supabase_conversaciones: string
+        }
+        Returns: {
+          fecha: string
+          pct_respondieron: number
+          respondieron_primera_pregunta: number
+          total_conversaciones: number
+        }[]
+      }
+      rpc_tasa_cierre_conversacion_por_dia: {
+        Args: {
+          end_date_supabase_conversaciones_exclusive: string
+          start_date_supabase_conversaciones: string
+        }
+        Returns: {
+          cerradas: number
+          fecha: string
+          pct_cierre: number
+          total_conversaciones: number
+        }[]
+      }
+      rpc_tasa_rechazo_por_dia: {
+        Args: {
+          end_date_supabase_conversaciones_exclusive: string
+          start_date_supabase_conversaciones: string
+        }
+        Returns: {
+          fecha: string
+          pct_rechazo: number
+          rechazados: number
+          total_conversaciones: number
+        }[]
+      }
       search_conversations: {
         Args: {
           agent_ids: string[]
