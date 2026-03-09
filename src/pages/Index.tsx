@@ -480,7 +480,7 @@ const Index = () => {
                       </div>
                       {/* CTL Inmueble */}
                       {showCtlInmueble(selected) && (
-                        <div className="border-t border-border/40 pt-2">
+                        <div className="border-t border-border/40 pt-3 mt-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
                             {!selected.nombre_ctl_inmueble__c && !selected.nit_ctl_inmueble__c && (
@@ -501,7 +501,7 @@ const Index = () => {
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Car className="w-4 h-4 text-primary" /> Información Parqueadero</h3>
                         <StatusBadge sfId={selected.Id} tipo="parqueadero" inmueble={selected} />
                       </div>
-                      <div className="flex gap-4">
+                      <div className="flex gap-4 items-center">
                         <div className="flex-1 space-y-1.5">
                           <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
                           <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
@@ -558,7 +558,7 @@ const Index = () => {
                       </div>
                       {/* CTL Parqueadero */}
                       {hasParqueadero(selected) && showCtlParqueadero(selected) && (
-                        <div className="border-t border-border/40 pt-2">
+                        <div className="border-t border-border/40 pt-3 mt-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
                             {!selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c && (
@@ -579,7 +579,7 @@ const Index = () => {
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Package className="w-4 h-4 text-primary" /> Información Depósito</h3>
                         <StatusBadge sfId={selected.Id} tipo="deposito" inmueble={selected} />
                       </div>
-                      <div className="flex gap-4">
+                      <div className="flex gap-4 items-center">
                         <div className="flex-1 space-y-1.5">
                           <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
                           <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
@@ -635,7 +635,7 @@ const Index = () => {
                       </div>
                       {/* CTL Depósito */}
                       {hasDeposito(selected) && showCtlDeposito(selected) && (
-                        <div className="border-t border-border/40 pt-2">
+                        <div className="border-t border-border/40 pt-3 mt-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
                             {!selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c && (
