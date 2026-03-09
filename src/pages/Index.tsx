@@ -74,9 +74,9 @@ const Index = () => {
     return false;
   };
   const hasDeposito = (i: Inmueble) => {
-    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "SIN_DEPOSITO" && i.Deposito__c !== "N/A" && i.Deposito__c !== "No tiene") return true;
+    if (i.Deposito__c && i.Deposito__c !== "No" && i.Deposito__c !== "0" && i.Deposito__c !== "N/A" && i.Deposito__c !== "No tiene") return true;
     if (i.No_Matricula_Inmo_Deposito__c && i.No_Matricula_Inmo_Deposito__c !== "N/A" && i.No_Matricula_Inmo_Deposito__c !== "No tiene") return true;
-    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "SIN_DEPOSITO" && i.chip_deposito__c !== "N/A" && i.chip_deposito__c !== "No tiene") return true;
+    if (i.chip_deposito__c && i.chip_deposito__c !== "-" && i.chip_deposito__c !== "SIN_CHIP" && i.chip_deposito__c !== "N/A" && i.chip_deposito__c !== "No tiene") return true;
     return false;
   };
 
@@ -84,7 +84,7 @@ const Index = () => {
   const isValidField = (val?: string | null): boolean => {
     if (!val) return false;
     const normalized = val.trim().toLowerCase();
-    return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip" && normalized !== "sin_deposito";
+    return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip";
   };
 
   // Show CTL only if both Matrícula and Chip have valid alphanumeric data
