@@ -3805,6 +3805,57 @@ export type Database = {
         }
         Relationships: []
       }
+      micromanager_snapshots: {
+        Row: {
+          actividades: number
+          avances_detalle: string | null
+          comercial: string
+          created_at: string | null
+          etapas: Json | null
+          fecha: string
+          id: number
+          ops_avanzaron: number
+          ops_nuevas: number
+          pct_avance: number
+          resultado_dia: string | null
+          score: number
+          total_ops: number
+          valor_funnel: number
+        }
+        Insert: {
+          actividades?: number
+          avances_detalle?: string | null
+          comercial: string
+          created_at?: string | null
+          etapas?: Json | null
+          fecha: string
+          id?: never
+          ops_avanzaron?: number
+          ops_nuevas?: number
+          pct_avance?: number
+          resultado_dia?: string | null
+          score: number
+          total_ops?: number
+          valor_funnel?: number
+        }
+        Update: {
+          actividades?: number
+          avances_detalle?: string | null
+          comercial?: string
+          created_at?: string | null
+          etapas?: Json | null
+          fecha?: string
+          id?: never
+          ops_avanzaron?: number
+          ops_nuevas?: number
+          pct_avance?: number
+          resultado_dia?: string | null
+          score?: number
+          total_ops?: number
+          valor_funnel?: number
+        }
+        Relationships: []
+      }
       milestones: {
         Row: {
           created_at: string | null
