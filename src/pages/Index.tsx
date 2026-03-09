@@ -84,7 +84,7 @@ const Index = () => {
   const isValidField = (val?: string | null): boolean => {
     if (!val) return false;
     const normalized = val.trim().toLowerCase();
-    return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip";
+    return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip" && normalized !== "sin_matricula";
   };
 
   // Show CTL only if both Matrícula and Chip have valid alphanumeric data
