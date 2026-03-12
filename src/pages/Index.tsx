@@ -40,6 +40,7 @@ const Index = () => {
   const [anioHasta, setAnioHasta] = useState<string>("all");
   const [incluirSinFecha, setIncluirSinFecha] = useState(true);
   const [vigencia, setVigencia] = useState<number>(new Date().getFullYear());
+  const [conReciboFilter, setConReciboFilter] = useState(false);
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
@@ -127,7 +128,13 @@ const Index = () => {
     return years;
   }, []);
 
-  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || anioDesde !== "all" || anioHasta !== "all";
+  // Helper: check if inmueble has at least one recibo for any tipo_predio in current vigencia
+  const hasAnyRecibo = (sfId: string) =>
+    recibos.some((r) => r.salesforce_id === sfId && r.anio_vigencia === vigencia);
+
+  const conReciboCount = useMemo(() => inmuebles.filter((i) => hasAnyRecibo(i.Id)).length, [inmuebles, recibos, vigencia]);
+
+  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || anioDesde !== "all" || anioHasta !== "all" || conReciboFilter;
 
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
@@ -144,6 +151,7 @@ const Index = () => {
       if (anioDesde !== "all" && year < Number(anioDesde)) return false;
       if (anioHasta !== "all" && year > Number(anioHasta)) return false;
     }
+    if (conReciboFilter && !hasAnyRecibo(i.Id)) return false;
     return true;
   });
 
@@ -328,7 +336,7 @@ const Index = () => {
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-foreground text-sm">Inmuebles ({filtered.length})</h2>
                     {hasActiveFilters && (
-                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setAnioDesde("all"); setAnioHasta("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setAnioDesde("all"); setAnioHasta("all"); setConReciboFilter(false); }} className="text-xs text-primary hover:underline flex items-center gap-1">
                         <X className="w-3 h-3" /> Limpiar filtros
                       </button>
                     )}
@@ -391,6 +399,10 @@ const Index = () => {
                       Incluir sin fecha de escritura
                     </label>
                   )}
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <Checkbox checked={conReciboFilter} onCheckedChange={(v) => { setConReciboFilter(!!v); setSelectedId(null); }} className="h-3.5 w-3.5" />
+                    <Receipt className="w-3 h-3" /> Con recibo adjunto ({conReciboCount})
+                  </label>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   {filtered.map((inmueble) => {
