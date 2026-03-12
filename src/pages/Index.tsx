@@ -128,7 +128,13 @@ const Index = () => {
     return years;
   }, []);
 
-  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || anioDesde !== "all" || anioHasta !== "all";
+  // Helper: check if inmueble has at least one recibo for any tipo_predio in current vigencia
+  const hasAnyRecibo = (sfId: string) =>
+    recibos.some((r) => r.salesforce_id === sfId && r.anio_vigencia === vigencia);
+
+  const conReciboCount = useMemo(() => inmuebles.filter((i) => hasAnyRecibo(i.Id)).length, [inmuebles, recibos, vigencia]);
+
+  const hasActiveFilters = fiduciariaFilter !== "all" || ciudadFilter !== "all" || anioDesde !== "all" || anioHasta !== "all" || conReciboFilter;
 
   const filtered = inmuebles.filter((i) => {
     const q = search.toLowerCase();
