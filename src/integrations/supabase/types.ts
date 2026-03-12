@@ -517,6 +517,39 @@ export type Database = {
         }
         Relationships: []
       }
+      briefing_opciones: {
+        Row: {
+          channel: string | null
+          comercial: string
+          created_at: string | null
+          fecha: string
+          id: number
+          opciones: Json
+          slack_user_id: string
+          thread_ts: string | null
+        }
+        Insert: {
+          channel?: string | null
+          comercial: string
+          created_at?: string | null
+          fecha: string
+          id?: never
+          opciones: Json
+          slack_user_id: string
+          thread_ts?: string | null
+        }
+        Update: {
+          channel?: string | null
+          comercial?: string
+          created_at?: string | null
+          fecha?: string
+          id?: never
+          opciones?: Json
+          slack_user_id?: string
+          thread_ts?: string | null
+        }
+        Relationships: []
+      }
       call_analysis: {
         Row: {
           amount_saved: number | null
@@ -782,6 +815,57 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      compromisos_diarios: {
+        Row: {
+          Accion: string | null
+          avanzo: boolean | null
+          comercial: string
+          created_at: string | null
+          etapa_cierre: string | null
+          etapa_inicio: string
+          fecha: string
+          id: number
+          numbered_text: string | null
+          oportunidad_id: string
+          oportunidad_nombre: string
+          prioridad: string | null
+          score: number | null
+          slack_user_id: string
+        }
+        Insert: {
+          Accion?: string | null
+          avanzo?: boolean | null
+          comercial: string
+          created_at?: string | null
+          etapa_cierre?: string | null
+          etapa_inicio: string
+          fecha: string
+          id?: never
+          numbered_text?: string | null
+          oportunidad_id: string
+          oportunidad_nombre: string
+          prioridad?: string | null
+          score?: number | null
+          slack_user_id: string
+        }
+        Update: {
+          Accion?: string | null
+          avanzo?: boolean | null
+          comercial?: string
+          created_at?: string | null
+          etapa_cierre?: string | null
+          etapa_inicio?: string
+          fecha?: string
+          id?: never
+          numbered_text?: string | null
+          oportunidad_id?: string
+          oportunidad_nombre?: string
+          prioridad?: string | null
+          score?: number | null
+          slack_user_id?: string
         }
         Relationships: []
       }
