@@ -151,6 +151,7 @@ const Index = () => {
       if (anioDesde !== "all" && year < Number(anioDesde)) return false;
       if (anioHasta !== "all" && year > Number(anioHasta)) return false;
     }
+    if (conReciboFilter && !hasAnyRecibo(i.Id)) return false;
     return true;
   });
 
