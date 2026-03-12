@@ -336,7 +336,7 @@ const Index = () => {
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-foreground text-sm">Inmuebles ({filtered.length})</h2>
                     {hasActiveFilters && (
-                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setAnioDesde("all"); setAnioHasta("all"); }} className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <button onClick={() => { setFiduciariaFilter("all"); setCiudadFilter("all"); setAnioDesde("all"); setAnioHasta("all"); setConReciboFilter(false); }} className="text-xs text-primary hover:underline flex items-center gap-1">
                         <X className="w-3 h-3" /> Limpiar filtros
                       </button>
                     )}
