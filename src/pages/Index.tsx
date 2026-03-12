@@ -399,6 +399,10 @@ const Index = () => {
                       Incluir sin fecha de escritura
                     </label>
                   )}
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <Checkbox checked={conReciboFilter} onCheckedChange={(v) => { setConReciboFilter(!!v); setSelectedId(null); }} className="h-3.5 w-3.5" />
+                    <Receipt className="w-3 h-3" /> Con recibo adjunto ({conReciboCount})
+                  </label>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   {filtered.map((inmueble) => {
