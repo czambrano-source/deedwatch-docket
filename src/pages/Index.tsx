@@ -40,6 +40,7 @@ const Index = () => {
   const [anioHasta, setAnioHasta] = useState<string>("all");
   const [incluirSinFecha, setIncluirSinFecha] = useState(true);
   const [vigencia, setVigencia] = useState<number>(new Date().getFullYear());
+  const [conReciboFilter, setConReciboFilter] = useState(false);
 
   // Modal state
   const [activeModal, setActiveModal] = useState<{ type: ModalType; tipoPredio: TipoPredio } | null>(null);
