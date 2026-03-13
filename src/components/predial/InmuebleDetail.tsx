@@ -36,17 +36,15 @@ export function InmuebleDetail({ inmueble, pago, onRegistrarPago }: InmuebleDeta
   const sel = inmueble;
   const getFidName = (i: any) => i.Fiduciaria__r?.Name ?? i.Fiduciaria__c ?? "—";
 
-  // Parking logic
-  const parqExplicitNo = sel.Parqueadero__c != null && sel.Parqueadero__c === 0;
+  // Parking logic: "No" means show only "No" label, no other fields
+  const parqIsNo = sel.Parqueadero__c != null && sel.Parqueadero__c === 0;
   const hasValidMatrParq = isValidField(sel.No_Matricula_Inmo_Parqueadero__c);
   const hasValidChipParq = isValidField(sel.chip_parqueadero__c);
-  const showParqBlock = !(parqExplicitNo && !hasValidMatrParq && !hasValidChipParq);
 
-  // Deposit logic
-  const depExplicitNo = sel.Deposito__c && ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
+  // Deposit logic: "No" means show only "No" label, no other fields
+  const depIsNo = !!sel.Deposito__c && ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
   const hasValidMatrDep = isValidField(sel.No_Matricula_Inmo_Deposito__c);
   const hasValidChipDep = isValidField(sel.chip_deposito__c);
-  const showDepBlock = !((depExplicitNo && !hasValidMatrDep && !hasValidChipDep) || (!sel.Deposito__c && !hasValidMatrDep && !hasValidChipDep));
 
   // CTL visibility
   const showCtlInm = isValidField(sel.Numero_matricula_inmobiliaria__c) || isValidField(sel.chip_apartamento__c);
