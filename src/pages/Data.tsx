@@ -85,17 +85,14 @@ export default function DataPage() {
     setFixing(key);
 
     try {
-      const res = await fetch(N8N_FIX, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", {
+        body: {
           codigo_inmueble: selectedInmueble.Name,
           salesforce_id: selectedInmueble.Id,
           ...discrepancia,
-        }),
+        },
       });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const data = await res.json();
+      if (error) throw new Error(error.message);
 
       if (data?.status === "updated") {
         toast({ title: "Corregido", description: `Campo "${discrepancia.campo}" actualizado en SF.` });
