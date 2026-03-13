@@ -500,75 +500,87 @@ const Index = () => {
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Car className="w-4 h-4 text-primary" /> Información Parqueadero</h3>
                         <StatusBadge sfId={selected.Id} tipo="parqueadero" inmueble={selected} />
                       </div>
-                      <div className="flex gap-4 items-center">
-                        <div className="flex-1 space-y-1.5">
-                          <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
-                          <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
-                          <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
-                          <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c && selected.chip_parqueadero__c !== "-" ? selected.chip_parqueadero__c : undefined} icon={Hash} />
-                        </div>
-                        {hasParqueadero(selected) ? (
-                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
-                            <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                            {!hasPago(selected.Id, "parqueadero") && (
-                              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                                <Checkbox
-                                  checked={!!pagoIncluidoParq[selected.Id]}
-                                  onCheckedChange={(v) => setPagoIncluidoParq((prev) => ({ ...prev, [selected.Id]: !!v }))}
-                                />
-                                Pago incluido en inmueble
-                              </label>
+                      {selected.Parqueadero__c != null && selected.Parqueadero__c === 0 && !hasParqueadero(selected) ? (
+                        <DItem label="Parqueadero" value="No" icon={Car} />
+                      ) : (
+                        <>
+                          <div className="flex gap-4 items-center">
+                            <div className="flex-1 space-y-1.5">
+                              <DItem label="Parqueadero" value={selected.Parqueadero__c != null ? (selected.Parqueadero__c > 0 ? `Sí (${selected.Parqueadero__c})` : "No") : undefined} icon={Car} />
+                              {isValidField(selected.numero_del_parqueadero__c) && (
+                                <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
+                              )}
+                              {isValidField(selected.No_Matricula_Inmo_Parqueadero__c) && (
+                                <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
+                              )}
+                              {isValidField(selected.chip_parqueadero__c) && (
+                                <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c} icon={Hash} />
+                              )}
+                            </div>
+                            {hasParqueadero(selected) ? (
+                              <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
+                                <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                                {!hasPago(selected.Id, "parqueadero") && (
+                                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                                    <Checkbox
+                                      checked={!!pagoIncluidoParq[selected.Id]}
+                                      onCheckedChange={(v) => setPagoIncluidoParq((prev) => ({ ...prev, [selected.Id]: !!v }))}
+                                    />
+                                    Pago incluido en inmueble
+                                  </label>
+                                )}
+                                <Button size="sm" onClick={() => openModal("pago", "parqueadero")} className="w-full bg-primary hover:bg-primary/90 text-xs">
+                                  <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+                                </Button>
+                                {(() => {
+                                  const reciboExists = hasRecibo(selected.Id, "parqueadero");
+                                  return (
+                                    <div className="flex gap-1">
+                                      <Button size="sm" variant="ghost" onClick={() => openModal("recibo", "parqueadero")} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
+                                        <Upload className="w-3 h-3 mr-1" /> Recibo
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant={reciboExists ? "default" : "outline"}
+                                        onClick={() => openModal("verRecibo", "parqueadero")}
+                                        className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
+                                        title={reciboExists ? "Recibo cargado" : "Sin recibo"}
+                                      >
+                                        <Receipt className="w-3 h-3" />
+                                        {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
+                                      </Button>
+                                    </div>
+                                  );
+                                })()}
+                                <Button size="sm" variant="outline" onClick={() => openModal("verPago", "parqueadero")} className="w-full text-xs">
+                                  <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+                                </Button>
+                                <Button size="sm" variant="secondary" onClick={() => openModal("notas", "parqueadero")} className="w-full text-xs">
+                                  <FileText className="w-3 h-3 mr-1" /> Notas
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
+                                <p className="text-xs text-muted-foreground text-center">Sin parqueadero asignado</p>
+                              </div>
                             )}
-                            <Button size="sm" onClick={() => openModal("pago", "parqueadero")} className="w-full bg-primary hover:bg-primary/90 text-xs">
-                              <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
-                            </Button>
-                            {(() => {
-                              const reciboExists = hasRecibo(selected.Id, "parqueadero");
-                              return (
-                                <div className="flex gap-1">
-                                  <Button size="sm" variant="ghost" onClick={() => openModal("recibo", "parqueadero")} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
-                                    <Upload className="w-3 h-3 mr-1" /> Recibo
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant={reciboExists ? "default" : "outline"}
-                                    onClick={() => openModal("verRecibo", "parqueadero")}
-                                    className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
-                                    title={reciboExists ? "Recibo cargado" : "Sin recibo"}
-                                  >
-                                    <Receipt className="w-3 h-3" />
-                                    {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
-                                  </Button>
-                                </div>
-                              );
-                            })()}
-                            <Button size="sm" variant="outline" onClick={() => openModal("verPago", "parqueadero")} className="w-full text-xs">
-                              <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
-                            </Button>
-                            <Button size="sm" variant="secondary" onClick={() => openModal("notas", "parqueadero")} className="w-full text-xs">
-                              <FileText className="w-3 h-3 mr-1" /> Notas
-                            </Button>
                           </div>
-                        ) : (
-                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
-                            <p className="text-xs text-muted-foreground text-center">Sin parqueadero asignado</p>
-                          </div>
-                        )}
-                      </div>
-                      {/* CTL Parqueadero */}
-                      {hasParqueadero(selected) && showCtlParqueadero(selected) && (
-                        <div className="border-t border-border/40 pt-3 mt-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
-                            {!selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c && (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <DItem label="Nombre" value={selected.nombre_ctl_parqueadero__c} icon={FileText} />
-                            <DItem label="NIT" value={selected.nit_ctl_parqueadero__c} icon={Hash} />
-                          </div>
-                        </div>
+                          {/* CTL Parqueadero */}
+                          {hasParqueadero(selected) && showCtlParqueadero(selected) && (
+                            <div className="border-t border-border/40 pt-3 mt-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
+                                {!selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c && (
+                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                <DItem label="Nombre" value={selected.nombre_ctl_parqueadero__c} icon={FileText} />
+                                <DItem label="NIT" value={selected.nit_ctl_parqueadero__c} icon={Hash} />
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -578,74 +590,86 @@ const Index = () => {
                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><Package className="w-4 h-4 text-primary" /> Información Depósito</h3>
                         <StatusBadge sfId={selected.Id} tipo="deposito" inmueble={selected} />
                       </div>
-                      <div className="flex gap-4 items-center">
-                        <div className="flex-1 space-y-1.5">
-                          <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
-                          <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
-                          <DItem label="Chip Depósito" value={selected.chip_deposito__c && selected.chip_deposito__c !== "-" ? selected.chip_deposito__c : undefined} icon={Hash} />
-                        </div>
-                        {hasDeposito(selected) ? (
-                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
-                            <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                            {!hasPago(selected.Id, "deposito") && (
-                              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                                <Checkbox
-                                  checked={!!pagoIncluidoDep[selected.Id]}
-                                  onCheckedChange={(v) => setPagoIncluidoDep((prev) => ({ ...prev, [selected.Id]: !!v }))}
-                                />
-                                Pago incluido en inmueble
-                              </label>
+                      {selected.Deposito__c && ["no", "0"].includes(selected.Deposito__c.trim().toLowerCase()) && !hasDeposito(selected) ? (
+                        <DItem label="Depósito" value="No" icon={Package} />
+                      ) : (
+                        <>
+                          <div className="flex gap-4 items-center">
+                            <div className="flex-1 space-y-1.5">
+                              {selected.Deposito__c && (
+                                <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
+                              )}
+                              {isValidField(selected.No_Matricula_Inmo_Deposito__c) && (
+                                <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
+                              )}
+                              {isValidField(selected.chip_deposito__c) && (
+                                <DItem label="Chip Depósito" value={selected.chip_deposito__c} icon={Hash} />
+                              )}
+                            </div>
+                            {hasDeposito(selected) ? (
+                              <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
+                                <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
+                                {!hasPago(selected.Id, "deposito") && (
+                                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                                    <Checkbox
+                                      checked={!!pagoIncluidoDep[selected.Id]}
+                                      onCheckedChange={(v) => setPagoIncluidoDep((prev) => ({ ...prev, [selected.Id]: !!v }))}
+                                    />
+                                    Pago incluido en inmueble
+                                  </label>
+                                )}
+                                <Button size="sm" onClick={() => openModal("pago", "deposito")} className="w-full bg-primary hover:bg-primary/90 text-xs">
+                                  <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
+                                </Button>
+                                {(() => {
+                                  const reciboExists = hasRecibo(selected.Id, "deposito");
+                                  return (
+                                    <div className="flex gap-1">
+                                      <Button size="sm" variant="ghost" onClick={() => openModal("recibo", "deposito")} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
+                                        <Upload className="w-3 h-3 mr-1" /> Recibo
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant={reciboExists ? "default" : "outline"}
+                                        onClick={() => openModal("verRecibo", "deposito")}
+                                        className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
+                                        title={reciboExists ? "Recibo cargado" : "Sin recibo"}
+                                      >
+                                        <Receipt className="w-3 h-3" />
+                                        {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
+                                      </Button>
+                                    </div>
+                                  );
+                                })()}
+                                <Button size="sm" variant="outline" onClick={() => openModal("verPago", "deposito")} className="w-full text-xs">
+                                  <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+                                </Button>
+                                <Button size="sm" variant="secondary" onClick={() => openModal("notas", "deposito")} className="w-full text-xs">
+                                  <FileText className="w-3 h-3 mr-1" /> Notas
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
+                                <p className="text-xs text-muted-foreground text-center">Sin depósito asignado</p>
+                              </div>
                             )}
-                            <Button size="sm" onClick={() => openModal("pago", "deposito")} className="w-full bg-primary hover:bg-primary/90 text-xs">
-                              <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
-                            </Button>
-                            {(() => {
-                              const reciboExists = hasRecibo(selected.Id, "deposito");
-                              return (
-                                <div className="flex gap-1">
-                                  <Button size="sm" variant="ghost" onClick={() => openModal("recibo", "deposito")} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
-                                    <Upload className="w-3 h-3 mr-1" /> Recibo
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant={reciboExists ? "default" : "outline"}
-                                    onClick={() => openModal("verRecibo", "deposito")}
-                                    className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
-                                    title={reciboExists ? "Recibo cargado" : "Sin recibo"}
-                                  >
-                                    <Receipt className="w-3 h-3" />
-                                    {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
-                                  </Button>
-                                </div>
-                              );
-                            })()}
-                            <Button size="sm" variant="outline" onClick={() => openModal("verPago", "deposito")} className="w-full text-xs">
-                              <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
-                            </Button>
-                            <Button size="sm" variant="secondary" onClick={() => openModal("notas", "deposito")} className="w-full text-xs">
-                              <FileText className="w-3 h-3 mr-1" /> Notas
-                            </Button>
                           </div>
-                        ) : (
-                          <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
-                            <p className="text-xs text-muted-foreground text-center">Sin depósito asignado</p>
-                          </div>
-                        )}
-                      </div>
-                      {/* CTL Depósito */}
-                      {hasDeposito(selected) && showCtlDeposito(selected) && (
-                        <div className="border-t border-border/40 pt-3 mt-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
-                            {!selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c && (
-                              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <DItem label="Nombre" value={selected.nombre_ctl_bodega__c} icon={FileText} />
-                            <DItem label="NIT" value={selected.nit_ctl_bodega__c} icon={Hash} />
-                          </div>
-                        </div>
+                          {/* CTL Depósito */}
+                          {hasDeposito(selected) && showCtlDeposito(selected) && (
+                            <div className="border-t border-border/40 pt-3 mt-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
+                                {!selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c && (
+                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                <DItem label="Nombre" value={selected.nombre_ctl_bodega__c} icon={FileText} />
+                                <DItem label="NIT" value={selected.nit_ctl_bodega__c} icon={Hash} />
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
