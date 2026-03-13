@@ -573,57 +573,69 @@ export default function DataPage() {
         </div>
       )}
 
-      {/* ─── Problems Sheet ─── */}
-      <Sheet open={problemasSheetOpen} onOpenChange={setProblemasSheetOpen}>
-        <SheetContent className="sm:max-w-2xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="text-base">Problemas — {problemasInmueble?.codigo}</SheetTitle>
-          </SheetHeader>
+      {/* ─── Problems Modal (like Prediales) ─── */}
+      <Dialog open={problemasSheetOpen} onOpenChange={(v) => !v && setProblemasSheetOpen(false)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="w-5 h-5 text-duppla-orange" />
+                Reporte de Problemas — {problemasInmueble?.codigo}
+              </DialogTitle>
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={() => {
+                  setProblemasSheetOpen(false);
+                  if (problemasInmueble) handleAnalizarIA(problemasInmueble);
+                }}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Analizar con IA
+              </Button>
+            </div>
+          </DialogHeader>
 
           {problemasInmueble && (
-            <div className="space-y-4 mt-4">
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{problemasInmueble.oportunidad || "Sin oportunidad"}</span>
-                {problemasInmueble.nombre_conjunto && <span>• {problemasInmueble.nombre_conjunto}</span>}
-                {problemasInmueble.direccion && <span>• {problemasInmueble.direccion}</span>}
-              </div>
-
-              <div className="space-y-2">
-                {problemasInmueble.discrepancias.map((d, idx) => (
-                  <div key={idx} className="border rounded-lg p-3 bg-card space-y-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-semibold text-foreground">{d.campo || "Campo sin nombre"}</p>
-                      <span className={cn(
-                        "text-[11px] font-medium px-2 py-0.5 rounded-md whitespace-nowrap",
-                        (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                        (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                        (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
-                      )}>
-                        {d.severidad || "baja"} — {d.tipo || "General"}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">{d.descripcion || "Sin detalle disponible para esta alerta."}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  size="sm"
-                  className="gap-1.5 text-xs h-8"
-                  onClick={() => {
-                    setProblemasSheetOpen(false);
-                    handleAnalizarIA(problemasInmueble);
-                  }}
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+              <p className="text-xs text-muted-foreground mb-3">
+                Se encontraron <span className="font-semibold text-foreground">{problemasInmueble.discrepancias.length}</span> problema(s) en este inmueble.
+                {problemasInmueble.oportunidad && <span> — {problemasInmueble.oportunidad}</span>}
+              </p>
+              {problemasInmueble.discrepancias.map((d, idx) => (
+                <div
+                  key={idx}
+                  className="border rounded-lg p-4 space-y-2 bg-card"
                 >
-                  <Eye className="w-3.5 h-3.5" />
-                  Analizar con IA
-                </Button>
-              </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-foreground">{problemasInmueble.codigo}</p>
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      {d.tipo || "General"}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="text-muted-foreground font-medium mb-1">📋 Campo:</p>
+                      <p className="text-foreground font-medium">{d.campo || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground font-medium mb-1">⚠️ Problema:</p>
+                      <p className={cn(
+                        "font-medium",
+                        (d.severidad || "").toLowerCase() === "alta" && "text-destructive",
+                        (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange",
+                        (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground",
+                      )}>
+                        {d.descripcion || "Sin detalle disponible"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── AI Analysis Sheet ─── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
