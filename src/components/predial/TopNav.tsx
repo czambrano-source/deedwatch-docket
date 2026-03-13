@@ -1,14 +1,13 @@
-import { Building2, BarChart3 } from "lucide-react";
+import { Building2, BarChart3, Database } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
-interface TopNavProps {
-  activeTab: "resumen" | "inmuebles";
-  onTabChange: (tab: "resumen" | "inmuebles") => void;
-}
+export function TopNav() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-export function TopNav({ activeTab, onTabChange }: TopNavProps) {
   const tabs = [
-    { id: "resumen" as const, label: "Resumen", icon: BarChart3 },
-    { id: "inmuebles" as const, label: "Inmuebles", icon: Building2 },
+    { path: "/", label: "Resumen", icon: BarChart3, match: (p: string) => p === "/" },
+    { path: "/data", label: "Data", icon: Database, match: (p: string) => p === "/data" },
   ];
 
   return (
@@ -23,11 +22,11 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
       <nav className="flex items-center gap-1 h-full">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+          const isActive = tab.match(location.pathname);
           return (
             <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              key={tab.path}
+              onClick={() => navigate(tab.path)}
               className={`flex items-center gap-2 px-4 h-full text-sm font-medium border-b-2 transition-colors ${
                 isActive
                   ? "border-primary text-primary"
