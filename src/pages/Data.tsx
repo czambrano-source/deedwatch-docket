@@ -494,21 +494,21 @@ export default function DataPage() {
                           <TableCell className="text-xs">{inm.proceso || "—"}</TableCell>
                           <TableCell className="text-xs text-center font-semibold">{inm.discrepancias.length}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1.5">
                               {counts.alta > 0 && (
-                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
                                   {counts.alta} alta
-                                </Badge>
+                                </span>
                               )}
                               {counts.media > 0 && (
-                                <Badge className="text-[10px] px-1.5 py-0 bg-accent text-accent-foreground">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
                                   {counts.media} media
-                                </Badge>
+                                </span>
                               )}
                               {counts.baja > 0 && (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                                   {counts.baja} baja
-                                </Badge>
+                                </span>
                               )}
                             </div>
                           </TableCell>
