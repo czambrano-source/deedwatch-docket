@@ -573,6 +573,58 @@ export default function DataPage() {
         </div>
       )}
 
+      {/* ─── Problems Sheet ─── */}
+      <Sheet open={problemasSheetOpen} onOpenChange={setProblemasSheetOpen}>
+        <SheetContent className="sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-base">Problemas — {problemasInmueble?.codigo}</SheetTitle>
+          </SheetHeader>
+
+          {problemasInmueble && (
+            <div className="space-y-4 mt-4">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{problemasInmueble.oportunidad || "Sin oportunidad"}</span>
+                {problemasInmueble.nombre_conjunto && <span>• {problemasInmueble.nombre_conjunto}</span>}
+                {problemasInmueble.direccion && <span>• {problemasInmueble.direccion}</span>}
+              </div>
+
+              <div className="space-y-2">
+                {problemasInmueble.discrepancias.map((d, idx) => (
+                  <div key={idx} className="border rounded-lg p-3 bg-card space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-foreground">{d.campo || "Campo sin nombre"}</p>
+                      <span className={cn(
+                        "text-[11px] font-medium px-2 py-0.5 rounded-md whitespace-nowrap",
+                        (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
+                        (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                        (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
+                      )}>
+                        {d.severidad || "baja"} — {d.tipo || "General"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">{d.descripcion || "Sin detalle disponible para esta alerta."}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  size="sm"
+                  className="gap-1.5 text-xs h-8"
+                  onClick={() => {
+                    setProblemasSheetOpen(false);
+                    handleAnalizarIA(problemasInmueble);
+                  }}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Analizar con IA
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
       {/* ─── AI Analysis Sheet ─── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="sm:max-w-xl overflow-y-auto">
