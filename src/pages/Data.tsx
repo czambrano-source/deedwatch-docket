@@ -37,6 +37,7 @@ interface Discrepancia {
 interface InmuebleProblema {
   codigo: string;
   salesforce_id: string;
+  oportunidad: string;
   nombre_conjunto: string;
   direccion: string;
   proceso: string;
