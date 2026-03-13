@@ -513,38 +513,132 @@ export default function DataPage() {
                           </div>
 
                           {/* Expanded: inmueble details */}
-                          {isExpanded && (
-                            <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-2">
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                                {inm.nombre_conjunto && (
-                                  <div>
-                                    <p className="text-muted-foreground">Conjunto</p>
-                                    <p className="font-medium text-foreground">{inm.nombre_conjunto}</p>
+                          {isExpanded && (() => {
+                            const sel = inm.raw;
+                            const isValidField = (val?: string | null) => {
+                              if (!val) return false;
+                              const n = val.trim().toLowerCase();
+                              return n !== "" && n !== "n/a" && n !== "no tiene" && n !== "-" && n !== "sin_chip" && n !== "sin_matricula";
+                            };
+                            const getFidName = (i: any) => i.Fiduciaria__r?.Name ?? i.Fiduciaria__c ?? "—";
+                            const hasParq = () => {
+                              if (sel.Parqueadero__c != null && sel.Parqueadero__c > 0) return true;
+                              if (isValidField(sel.numero_del_parqueadero__c)) return true;
+                              if (isValidField(sel.No_Matricula_Inmo_Parqueadero__c)) return true;
+                              if (isValidField(sel.chip_parqueadero__c)) return true;
+                              return false;
+                            };
+                            const hasDep = () => {
+                              if (sel.Deposito__c && sel.Deposito__c !== "No" && sel.Deposito__c !== "0" && !["n/a","no tiene","sin_matricula"].includes(sel.Deposito__c.toLowerCase())) return true;
+                              if (isValidField(sel.No_Matricula_Inmo_Deposito__c)) return true;
+                              if (isValidField(sel.chip_deposito__c)) return true;
+                              return false;
+                            };
+                            const showCtlInm = isValidField(sel.Numero_matricula_inmobiliaria__c) || isValidField(sel.chip_apartamento__c);
+                            const showCtlParq = isValidField(sel.No_Matricula_Inmo_Parqueadero__c) || isValidField(sel.chip_parqueadero__c);
+                            const showCtlDep = isValidField(sel.No_Matricula_Inmo_Deposito__c) || isValidField(sel.chip_deposito__c);
+
+                            return (
+                              <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-4">
+                                {/* Inmueble Block */}
+                                <div className="bg-card rounded-xl border p-4 space-y-3">
+                                  <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+                                    <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
+                                  </h3>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                                    <DItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
+                                    <DItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
+                                    <DItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
+                                    <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
+                                    <DItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
+                                    <DItem label="Torre" value={sel.Torre__c} icon={Layers} />
+                                    <DItem label="Ciudad Inmueble" value={sel.Ciudad_Inmueble__c} icon={MapPin} />
+                                    <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
+                                    <DItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
+                                    <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+                                    <DItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+                                    <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
                                   </div>
-                                )}
-                                {inm.direccion && (
-                                  <div>
-                                    <p className="text-muted-foreground">Dirección</p>
-                                    <p className="font-medium text-foreground">{inm.direccion}</p>
+                                  {showCtlInm && (
+                                    <div className="border-t border-border/40 pt-3 mt-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
+                                        {!sel.nombre_ctl_inmueble__c && !sel.nit_ctl_inmueble__c && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                        )}
+                                      </div>
+                                      <div className="space-y-1">
+                                        <DItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
+                                        <DItem label="NIT" value={sel.nit_ctl_inmueble__c} icon={Hash} />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Parqueadero Block */}
+                                <div className="bg-card rounded-xl border p-4 space-y-3">
+                                  <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+                                    <Car className="w-4 h-4 text-primary" /> Información Parqueadero
+                                  </h3>
+                                  <div className="space-y-1.5">
+                                    <DItem label="Parqueadero" value={sel.Parqueadero__c != null ? (sel.Parqueadero__c > 0 ? `Sí (${sel.Parqueadero__c})` : "No") : undefined} icon={Car} />
+                                    <DItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} />
+                                    <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
+                                    <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c && sel.chip_parqueadero__c !== "-" ? sel.chip_parqueadero__c : undefined} icon={Hash} />
                                   </div>
-                                )}
-                                {inm.proceso && (
-                                  <div>
-                                    <p className="text-muted-foreground">Proceso</p>
-                                    <p className="font-medium text-foreground">{inm.proceso}</p>
+                                  {hasParq() && showCtlParq && (
+                                    <div className="border-t border-border/40 pt-3 mt-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
+                                        {!sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                        )}
+                                      </div>
+                                      <div className="space-y-1">
+                                        <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
+                                        <DItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Depósito Block */}
+                                <div className="bg-card rounded-xl border p-4 space-y-3">
+                                  <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+                                    <Package className="w-4 h-4 text-primary" /> Información Depósito
+                                  </h3>
+                                  <div className="space-y-1.5">
+                                    <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
+                                    <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
+                                    <DItem label="Chip Depósito" value={sel.chip_deposito__c && sel.chip_deposito__c !== "-" ? sel.chip_deposito__c : undefined} icon={Hash} />
                                   </div>
-                                )}
+                                  {hasDep() && showCtlDep && (
+                                    <div className="border-t border-border/40 pt-3 mt-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
+                                        {!sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                        )}
+                                      </div>
+                                      <div className="space-y-1">
+                                        <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
+                                        <DItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <Button
+                                  size="sm"
+                                  className="gap-1.5 text-xs h-8 mt-2"
+                                  onClick={() => handleAnalizarIA(inm)}
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  Analizar con IA
+                                </Button>
                               </div>
-                              <Button
-                                size="sm"
-                                className="gap-1.5 text-xs h-8 mt-2"
-                                onClick={() => handleAnalizarIA(inm)}
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                Analizar con IA
-                              </Button>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       );
                     })}
