@@ -454,12 +454,12 @@ export default function DataPage() {
                   <div className="bg-card rounded-xl border overflow-hidden divide-y">
                     {filteredInmuebles.map((inm) => {
                       const counts = severityCounts(inm.discrepancias);
-                      const isExpanded = detailInmueble?.salesforce_id === inm.salesforce_id;
+                      const isExpanded = expandedId === inm.salesforce_id;
                       return (
                         <div key={inm.salesforce_id}>
                           {/* Row header */}
                           <button
-                            onClick={() => setDetailInmueble(isExpanded ? null : inm)}
+                            onClick={() => setExpandedId(isExpanded ? null : inm.salesforce_id)}
                             className={`w-full text-left p-4 transition-colors hover:bg-muted/50 flex items-center gap-3 ${
                               isExpanded ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"
                             }`}
