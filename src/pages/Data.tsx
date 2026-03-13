@@ -457,89 +457,43 @@ export default function DataPage() {
                   <div className="bg-card rounded-xl border overflow-hidden divide-y">
                     {filteredInmuebles.map((inm) => {
                       const counts = severityCounts(inm.discrepancias);
-                      const isExpanded = expandedId === inm.salesforce_id;
                       return (
-                        <div key={inm.salesforce_id}>
-                          {/* Row header */}
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : inm.salesforce_id)}
-                            className={`w-full text-left p-4 transition-colors hover:bg-muted/50 flex items-center gap-3 ${
-                              isExpanded ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"
-                            }`}
-                          >
-                            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                              <Building2 className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {inm.nombre_conjunto || "—"}
-                              </p>
-                            </div>
-                            {/* Severity badges */}
-                            <div className="flex gap-1.5 flex-shrink-0">
-                              {counts.alta > 0 && (
-                                <span className="inline-flex items-center text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
-                                  {counts.alta} alta
-                                </span>
-                              )}
-                              {counts.media > 0 && (
-                                <span className="inline-flex items-center text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
-                                  {counts.media} media
-                                </span>
-                              )}
-                              {counts.baja > 0 && (
-                                <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                                  {counts.baja} baja
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex-shrink-0 text-muted-foreground">
-                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                            </div>
-                          </button>
-
-                          {/* Expanded detail */}
-                          {isExpanded && (
-                            <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-3">
-                              {/* Info + Action row */}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  {inm.direccion && <span>📍 {inm.direccion}</span>}
-                                  {inm.proceso && <span>• {inm.proceso}</span>}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="gap-1.5 text-xs h-8"
-                                  onClick={(e) => { e.stopPropagation(); handleAnalizarIA(inm); }}
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  Analizar con IA
-                                </Button>
-                              </div>
-                              {/* Problems list */}
-                              <div className="space-y-2">
-                                {inm.discrepancias.map((d, idx) => (
-                                  <div key={idx} className="border rounded-lg p-3 bg-card space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-xs font-semibold text-foreground">{d.campo}</p>
-                                      <span className={cn(
-                                        "text-[11px] font-medium px-2 py-0.5 rounded-md",
-                                        (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                                        (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                                        (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
-                                      )}>
-                                        {d.severidad || "baja"} — {d.tipo}
-                                      </span>
-                                    </div>
-                                    {d.descripcion && <p className="text-[11px] text-muted-foreground">{d.descripcion}</p>}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          key={inm.salesforce_id}
+                          onClick={() => {
+                            setProblemasInmueble(inm);
+                            setProblemasSheetOpen(true);
+                          }}
+                          className="w-full text-left p-4 transition-colors hover:bg-muted/50 flex items-center gap-3 border-l-4 border-l-transparent"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
+                            <p className="text-xs text-muted-foreground truncate">{inm.oportunidad || "—"}</p>
+                          </div>
+                          <div className="flex gap-1.5 flex-shrink-0">
+                            {counts.alta > 0 && (
+                              <span className="inline-flex items-center text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
+                                {counts.alta} alta
+                              </span>
+                            )}
+                            {counts.media > 0 && (
+                              <span className="inline-flex items-center text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
+                                {counts.media} media
+                              </span>
+                            )}
+                            {counts.baja > 0 && (
+                              <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                                {counts.baja} baja
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-shrink-0 text-muted-foreground">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
+                        </button>
                       );
                     })}
                   </div>
