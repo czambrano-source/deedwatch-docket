@@ -141,8 +141,8 @@ export default function DataPage() {
   const [procesoFilter, setProcesoFilter] = useState("all");
   const [severidadFilter, setSeveridadFilter] = useState("all");
 
-  // Detail modal (problems list)
-  const [detailInmueble, setDetailInmueble] = useState<InmuebleProblema | null>(null);
+  // Expanded row
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // AI Analysis
   const [selectedInmueble, setSelectedInmueble] = useState<InmuebleProblema | null>(null);
