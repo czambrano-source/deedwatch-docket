@@ -96,8 +96,11 @@ export default function DataPage() {
         },
       });
       if (error) throw new Error(error.message);
+      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error en corrección");
 
-      if (data?.status === "updated") {
+      const responseData = (data as any)?.payload ?? data;
+
+      if (responseData?.status === "updated") {
         toast({ title: "Corregido", description: `Campo "${discrepancia.campo}" actualizado en SF.` });
         // Remove from list
         setAnalisis((prev) =>
@@ -106,7 +109,7 @@ export default function DataPage() {
             : prev
         );
       } else {
-        toast({ title: "Respuesta", description: JSON.stringify(data) });
+        toast({ title: "Respuesta", description: JSON.stringify(responseData) });
       }
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
