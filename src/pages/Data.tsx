@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
-  ShieldAlert, ShieldCheck, Shield, Building2, ChevronDown, ChevronRight
+  ShieldAlert, ShieldCheck, Shield, Building2, ChevronRight
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ interface Discrepancia {
 interface InmuebleProblema {
   codigo: string;
   salesforce_id: string;
+  oportunidad: string;
   nombre_conjunto: string;
   direccion: string;
   proceso: string;
@@ -72,6 +73,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       map.set(i.Id, {
         codigo: i.Name,
         salesforce_id: i.Id,
+        oportunidad: i.Opportunity__r?.Name || "",
         nombre_conjunto: i.Nombre_de_edificio_o_conjunto__c || "",
         direccion: i.Direccion__c || "",
         proceso: i.Proceso_entrega_inmueble__c || "",
@@ -141,8 +143,9 @@ export default function DataPage() {
   const [procesoFilter, setProcesoFilter] = useState("all");
   const [severidadFilter, setSeveridadFilter] = useState("all");
 
-  // Expanded row
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Problemas sheet
+  const [problemasInmueble, setProblemasInmueble] = useState<InmuebleProblema | null>(null);
+  const [problemasSheetOpen, setProblemasSheetOpen] = useState(false);
 
   // AI Analysis
   const [selectedInmueble, setSelectedInmueble] = useState<InmuebleProblema | null>(null);
@@ -190,6 +193,7 @@ export default function DataPage() {
       result = result.filter(
         (i) =>
           i.codigo.toLowerCase().includes(q) ||
+          i.oportunidad.toLowerCase().includes(q) ||
           i.nombre_conjunto.toLowerCase().includes(q) ||
           i.direccion.toLowerCase().includes(q)
       );
@@ -401,7 +405,7 @@ export default function DataPage() {
                     <div className="relative flex-1 min-w-[200px] max-w-xs">
                       <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
                       <Input
-                        placeholder="Buscar código, conjunto, dirección…"
+                        placeholder="Buscar código, oportunidad, dirección…"
                         value={searchFilter}
                         onChange={(e) => setSearchFilter(e.target.value)}
                         className="pl-8 h-9 text-xs"
@@ -454,89 +458,43 @@ export default function DataPage() {
                   <div className="bg-card rounded-xl border overflow-hidden divide-y">
                     {filteredInmuebles.map((inm) => {
                       const counts = severityCounts(inm.discrepancias);
-                      const isExpanded = expandedId === inm.salesforce_id;
                       return (
-                        <div key={inm.salesforce_id}>
-                          {/* Row header */}
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : inm.salesforce_id)}
-                            className={`w-full text-left p-4 transition-colors hover:bg-muted/50 flex items-center gap-3 ${
-                              isExpanded ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"
-                            }`}
-                          >
-                            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                              <Building2 className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {inm.nombre_conjunto || "—"}
-                              </p>
-                            </div>
-                            {/* Severity badges */}
-                            <div className="flex gap-1.5 flex-shrink-0">
-                              {counts.alta > 0 && (
-                                <span className="inline-flex items-center text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
-                                  {counts.alta} alta
-                                </span>
-                              )}
-                              {counts.media > 0 && (
-                                <span className="inline-flex items-center text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
-                                  {counts.media} media
-                                </span>
-                              )}
-                              {counts.baja > 0 && (
-                                <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                                  {counts.baja} baja
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex-shrink-0 text-muted-foreground">
-                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                            </div>
-                          </button>
-
-                          {/* Expanded detail */}
-                          {isExpanded && (
-                            <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-3">
-                              {/* Info + Action row */}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  {inm.direccion && <span>📍 {inm.direccion}</span>}
-                                  {inm.proceso && <span>• {inm.proceso}</span>}
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="gap-1.5 text-xs h-8"
-                                  onClick={(e) => { e.stopPropagation(); handleAnalizarIA(inm); }}
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  Analizar con IA
-                                </Button>
-                              </div>
-                              {/* Problems list */}
-                              <div className="space-y-2">
-                                {inm.discrepancias.map((d, idx) => (
-                                  <div key={idx} className="border rounded-lg p-3 bg-card space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-xs font-semibold text-foreground">{d.campo}</p>
-                                      <span className={cn(
-                                        "text-[11px] font-medium px-2 py-0.5 rounded-md",
-                                        (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                                        (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                                        (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
-                                      )}>
-                                        {d.severidad || "baja"} — {d.tipo}
-                                      </span>
-                                    </div>
-                                    {d.descripcion && <p className="text-[11px] text-muted-foreground">{d.descripcion}</p>}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          key={inm.salesforce_id}
+                          onClick={() => {
+                            setProblemasInmueble(inm);
+                            setProblemasSheetOpen(true);
+                          }}
+                          className="w-full text-left p-4 transition-colors hover:bg-muted/50 flex items-center gap-3 border-l-4 border-l-transparent"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
+                            <p className="text-xs text-muted-foreground truncate">{inm.oportunidad || "—"}</p>
+                          </div>
+                          <div className="flex gap-1.5 flex-shrink-0">
+                            {counts.alta > 0 && (
+                              <span className="inline-flex items-center text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
+                                {counts.alta} alta
+                              </span>
+                            )}
+                            {counts.media > 0 && (
+                              <span className="inline-flex items-center text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
+                                {counts.media} media
+                              </span>
+                            )}
+                            {counts.baja > 0 && (
+                              <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                                {counts.baja} baja
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-shrink-0 text-muted-foreground">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -614,6 +572,58 @@ export default function DataPage() {
           </div>
         </div>
       )}
+
+      {/* ─── Problems Sheet ─── */}
+      <Sheet open={problemasSheetOpen} onOpenChange={setProblemasSheetOpen}>
+        <SheetContent className="sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-base">Problemas — {problemasInmueble?.codigo}</SheetTitle>
+          </SheetHeader>
+
+          {problemasInmueble && (
+            <div className="space-y-4 mt-4">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{problemasInmueble.oportunidad || "Sin oportunidad"}</span>
+                {problemasInmueble.nombre_conjunto && <span>• {problemasInmueble.nombre_conjunto}</span>}
+                {problemasInmueble.direccion && <span>• {problemasInmueble.direccion}</span>}
+              </div>
+
+              <div className="space-y-2">
+                {problemasInmueble.discrepancias.map((d, idx) => (
+                  <div key={idx} className="border rounded-lg p-3 bg-card space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-foreground">{d.campo || "Campo sin nombre"}</p>
+                      <span className={cn(
+                        "text-[11px] font-medium px-2 py-0.5 rounded-md whitespace-nowrap",
+                        (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
+                        (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                        (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
+                      )}>
+                        {d.severidad || "baja"} — {d.tipo || "General"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">{d.descripcion || "Sin detalle disponible para esta alerta."}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  size="sm"
+                  className="gap-1.5 text-xs h-8"
+                  onClick={() => {
+                    setProblemasSheetOpen(false);
+                    handleAnalizarIA(problemasInmueble);
+                  }}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Analizar con IA
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* ─── AI Analysis Sheet ─── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
