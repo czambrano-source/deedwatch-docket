@@ -391,16 +391,16 @@ export default function DataPage() {
                     <p className="text-2xl font-bold text-foreground">{kpis.conProblemas}</p>
                   </CardContent>
                 </Card>
-                <Card className="border-l-4 border-l-destructive">
+                <Card className="bg-destructive/10 border-destructive/20">
                   <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-muted-foreground">Severidad Alta</p>
+                    <p className="text-xs text-destructive/70">Severidad Alta</p>
                     <p className="text-2xl font-bold text-destructive">{kpis.alta}</p>
                   </CardContent>
                 </Card>
-                <Card className="border-l-4 border-l-accent">
+                <Card className="bg-duppla-orange/10 border-duppla-orange/20">
                   <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-muted-foreground">Severidad Media</p>
-                    <p className="text-2xl font-bold text-accent-foreground">{kpis.media}</p>
+                    <p className="text-xs text-duppla-orange/70">Severidad Media</p>
+                    <p className="text-2xl font-bold text-duppla-orange">{kpis.media}</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -494,21 +494,21 @@ export default function DataPage() {
                           <TableCell className="text-xs">{inm.proceso || "—"}</TableCell>
                           <TableCell className="text-xs text-center font-semibold">{inm.discrepancias.length}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1.5">
                               {counts.alta > 0 && (
-                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
                                   {counts.alta} alta
-                                </Badge>
+                                </span>
                               )}
                               {counts.media > 0 && (
-                                <Badge className="text-[10px] px-1.5 py-0 bg-accent text-accent-foreground">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
                                   {counts.media} media
-                                </Badge>
+                                </span>
                               )}
                               {counts.baja > 0 && (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                                   {counts.baja} baja
-                                </Badge>
+                                </span>
                               )}
                             </div>
                           </TableCell>
