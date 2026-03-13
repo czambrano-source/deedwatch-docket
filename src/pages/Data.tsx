@@ -461,43 +461,88 @@ export default function DataPage() {
                   <div className="bg-card rounded-xl border overflow-hidden divide-y">
                     {filteredInmuebles.map((inm) => {
                       const counts = severityCounts(inm.discrepancias);
+                      const totalProblems = inm.discrepancias.length;
+                      const isExpanded = expandedId === inm.salesforce_id;
                       return (
-                        <button
-                          key={inm.salesforce_id}
-                          onClick={() => {
-                            setProblemasInmueble(inm);
-                            setProblemasSheetOpen(true);
-                          }}
-                          className="w-full text-left p-4 transition-colors hover:bg-muted/50 flex items-center gap-3 border-l-4 border-l-transparent"
-                        >
-                          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                        <div key={inm.salesforce_id}>
+                          <div className="flex items-center gap-3 p-4 border-l-4 border-l-transparent hover:bg-muted/50 transition-colors">
+                            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
+                              <p className="text-xs text-muted-foreground truncate">{inm.oportunidad || "—"}</p>
+                            </div>
+                            {/* Severity badges — clickable to open modal */}
+                            <div className="flex gap-2 flex-shrink-0 items-center">
+                              {counts.alta > 0 && (
+                                <button
+                                  onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }}
+                                  className="inline-flex items-center text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1 rounded-md hover:bg-destructive/20 transition-colors cursor-pointer"
+                                >
+                                  {counts.alta} alta
+                                </button>
+                              )}
+                              {counts.media > 0 && (
+                                <button
+                                  onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }}
+                                  className="inline-flex items-center text-xs font-bold text-duppla-orange bg-duppla-orange/10 px-2.5 py-1 rounded-md hover:bg-duppla-orange/20 transition-colors cursor-pointer"
+                                >
+                                  {counts.media} media
+                                </button>
+                              )}
+                              {counts.baja > 0 && (
+                                <button
+                                  onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }}
+                                  className="inline-flex items-center text-xs font-bold text-muted-foreground bg-muted px-2.5 py-1 rounded-md hover:bg-muted/80 transition-colors cursor-pointer"
+                                >
+                                  {counts.baja} baja
+                                </button>
+                              )}
+                            </div>
+                            {/* Chevron to expand inmueble details */}
+                            <button
+                              onClick={() => setExpandedId(isExpanded ? null : inm.salesforce_id)}
+                              className="flex-shrink-0 text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+                            >
+                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </button>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
-                            <p className="text-xs text-muted-foreground truncate">{inm.oportunidad || "—"}</p>
-                          </div>
-                          <div className="flex gap-1.5 flex-shrink-0">
-                            {counts.alta > 0 && (
-                              <span className="inline-flex items-center text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
-                                {counts.alta} alta
-                              </span>
-                            )}
-                            {counts.media > 0 && (
-                              <span className="inline-flex items-center text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
-                                {counts.media} media
-                              </span>
-                            )}
-                            {counts.baja > 0 && (
-                              <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                                {counts.baja} baja
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0 text-muted-foreground">
-                            <ChevronRight className="w-4 h-4" />
-                          </div>
-                        </button>
+
+                          {/* Expanded: inmueble details */}
+                          {isExpanded && (
+                            <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-2">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                                {inm.nombre_conjunto && (
+                                  <div>
+                                    <p className="text-muted-foreground">Conjunto</p>
+                                    <p className="font-medium text-foreground">{inm.nombre_conjunto}</p>
+                                  </div>
+                                )}
+                                {inm.direccion && (
+                                  <div>
+                                    <p className="text-muted-foreground">Dirección</p>
+                                    <p className="font-medium text-foreground">{inm.direccion}</p>
+                                  </div>
+                                )}
+                                {inm.proceso && (
+                                  <div>
+                                    <p className="text-muted-foreground">Proceso</p>
+                                    <p className="font-medium text-foreground">{inm.proceso}</p>
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                size="sm"
+                                className="gap-1.5 text-xs h-8 mt-2"
+                                onClick={() => handleAnalizarIA(inm)}
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                Analizar con IA
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
