@@ -616,46 +616,6 @@ export default function DataPage() {
         </div>
       )}
 
-      {/* ─── Problems Detail Modal ─── */}
-      <Dialog open={!!detailInmueble} onOpenChange={(v) => !v && setDetailInmueble(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="w-5 h-5 text-duppla-orange" />
-              Problemas — {detailInmueble?.codigo}
-            </DialogTitle>
-          </DialogHeader>
-          {detailInmueble && (
-            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-              <p className="text-xs text-muted-foreground mb-3">
-                Se encontraron <span className="font-semibold text-foreground">{detailInmueble.discrepancias.length}</span> problema(s) en este inmueble.
-              </p>
-              {detailInmueble.discrepancias.map((d, idx) => (
-                <div
-                  key={idx}
-                  className="border rounded-lg p-4 space-y-1 bg-card"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground">{d.campo}</p>
-                    <span className={cn(
-                      "text-[11px] font-medium px-2 py-0.5 rounded-md",
-                      (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                      (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                      (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
-                    )}>
-                      {d.severidad || "baja"} — {d.tipo}
-                    </span>
-                  </div>
-                  {d.descripcion && (
-                    <p className="text-xs text-muted-foreground">{d.descripcion}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* ─── AI Analysis Sheet ─── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="sm:max-w-xl overflow-y-auto">
