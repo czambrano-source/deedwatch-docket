@@ -80,6 +80,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         direccion: i.Direccion__c || "",
         proceso: i.Proceso_entrega_inmueble__c || "",
         discrepancias: [],
+        raw: i,
       });
     }
     return map.get(i.Id)!;
