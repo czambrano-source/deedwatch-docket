@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.fix-discrepancia-sf]
 verify_jwt = false
+
+[functions.check-consistencia-sf]
+verify_jwt = false
+
+[functions.check-escritura-antecedente]
+verify_jwt = false
