@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
-  Wrench, Eye, History, LayoutDashboard, FileText, FileX, X, ChevronDown
+  Wrench, Eye, History, LayoutDashboard, FileText, FileX, X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -15,11 +15,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useInmuebles } from "@/hooks/useInmuebles";
+import { getInconsistencias } from "@/components/predial/InconsistenciasModal";
+import { getCtlInconsistencias } from "@/components/predial/CtlInconsistenciasModal";
+import type { Inmueble } from "@/types/inmueble";
 
 /* ─── Types ─── */
 interface Discrepancia {
   tipo?: string;
-  severidad?: string; // alta, media, baja
+  severidad?: string;
   campo?: string;
   descripcion?: string;
   valor_actual?: string | null;
@@ -29,13 +33,12 @@ interface Discrepancia {
 }
 
 interface InmuebleProblema {
-  codigo?: string;
-  nombre_conjunto?: string;
-  direccion?: string;
-  proceso?: string;
-  salesforce_id?: string;
+  codigo: string;
+  salesforce_id: string;
+  nombre_conjunto: string;
+  direccion: string;
+  proceso: string;
   discrepancias: Discrepancia[];
-  [key: string]: any;
 }
 
 interface AnalisisIA {
@@ -58,6 +61,66 @@ interface HistorialCambio {
   aprobado_por: string;
 }
 
+/* ─── Build local inconsistencies from inmuebles ─── */
+function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
+  const map = new Map<string, InmuebleProblema>();
+
+  const ensure = (i: Inmueble): InmuebleProblema => {
+    if (!map.has(i.Id)) {
+      map.set(i.Id, {
+        codigo: i.Name,
+        salesforce_id: i.Id,
+        nombre_conjunto: i.Nombre_de_edificio_o_conjunto__c || "",
+        direccion: i.Direccion__c || "",
+        proceso: i.Proceso_entrega_inmueble__c || "",
+        discrepancias: [],
+      });
+    }
+    return map.get(i.Id)!;
+  };
+
+  // Parqueadero / Depósito inconsistencies
+  for (const inc of getInconsistencias(inmuebles)) {
+    const p = ensure(inc.inmueble);
+    for (const campo of inc.camposFaltantes) {
+      p.discrepancias.push({
+        tipo: inc.tipo === "parqueadero" ? "Parqueadero" : "Depósito",
+        severidad: "media",
+        campo: `${inc.tipo === "parqueadero" ? "Parqueadero" : "Depósito"} — ${campo}`,
+        descripcion: `Campo "${campo}" faltante en ${inc.tipo}. Campos con datos: ${inc.camposPresentes.join(", ")}`,
+      });
+    }
+  }
+
+  // CTL inconsistencies
+  for (const inc of getCtlInconsistencias(inmuebles)) {
+    const p = ensure(inc.inmueble);
+    const bloqueLabel = inc.bloque === "inmueble" ? "Inmueble" : inc.bloque === "parqueadero" ? "Parqueadero" : "Depósito";
+    p.discrepancias.push({
+      tipo: "CTL",
+      severidad: "alta",
+      campo: `CTL ${bloqueLabel}`,
+      descripcion: inc.descripcion,
+    });
+  }
+
+  // Fecha escritura missing
+  for (const i of inmuebles) {
+    const fecha = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
+    if (!fecha) {
+      const p = ensure(i);
+      p.discrepancias.push({
+        tipo: "Escritura",
+        severidad: "alta",
+        campo: "Fecha firma escritura",
+        descripcion: "No tiene fecha de firma de escritura registrada",
+      });
+    }
+  }
+
+  return Array.from(map.values()).filter((p) => p.discrepancias.length > 0);
+}
+
 /* ─── Helpers ─── */
 const severidadColor = (sev: string) => {
   const s = (sev || "").toLowerCase();
@@ -66,24 +129,12 @@ const severidadColor = (sev: string) => {
   return "bg-muted text-muted-foreground";
 };
 
-const severidadDot = (sev: string) => {
-  const s = (sev || "").toLowerCase();
-  if (s === "alta") return "bg-destructive";
-  if (s === "media") return "bg-accent";
-  return "bg-muted-foreground";
-};
-
 /* ─── Main Component ─── */
 export default function DataPage() {
   const { toast } = useToast();
+  const { data: rawInmuebles = [], isLoading } = useInmuebles();
 
-  // Sub-navigation
   const [view, setView] = useState<"general" | "historial">("general");
-
-  // Data from check-consistencia-sf
-  const [inmuebles, setInmuebles] = useState<InmuebleProblema[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalAnalizados, setTotalAnalizados] = useState(0);
 
   // Filters
   const [searchFilter, setSearchFilter] = useState("");
@@ -109,29 +160,47 @@ export default function DataPage() {
   const [historialFilterInmueble, setHistorialFilterInmueble] = useState("");
   const [historialFilterUsuario, setHistorialFilterUsuario] = useState("");
 
-  /* ─── Load consistency check on mount ─── */
-  const fetchConsistencia = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("check-consistencia-sf");
-      if (error) throw new Error(error.message);
-      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
+  /* ─── Build problems from local data ─── */
+  const inmuebles = useMemo(() => buildProblemas(rawInmuebles), [rawInmuebles]);
 
-      const payload = (data as any)?.payload ?? data;
-      const items: InmuebleProblema[] = Array.isArray(payload)
-        ? payload
-        : payload?.inmuebles ?? payload?.data ?? [];
+  /* ─── KPIs ─── */
+  const kpis = useMemo(() => {
+    let alta = 0, media = 0, baja = 0;
+    inmuebles.forEach((i) =>
+      i.discrepancias.forEach((d) => {
+        const s = (d.severidad || "baja").toLowerCase();
+        if (s === "alta") alta++;
+        else if (s === "media") media++;
+        else baja++;
+      })
+    );
+    return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja };
+  }, [inmuebles, rawInmuebles]);
 
-      setInmuebles(items.filter((i: any) => i.discrepancias?.length > 0));
-      setTotalAnalizados(payload?.total_analizados ?? items.length);
-    } catch (err: any) {
-      toast({ title: "Error al cargar datos", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
+  /* ─── Filters ─── */
+  const conjuntos = useMemo(() => [...new Set(inmuebles.map((i) => i.nombre_conjunto).filter(Boolean))], [inmuebles]);
+  const procesos = useMemo(() => [...new Set(inmuebles.map((i) => i.proceso).filter(Boolean))], [inmuebles]);
+
+  const filteredInmuebles = useMemo(() => {
+    let result = [...inmuebles];
+    if (searchFilter) {
+      const q = searchFilter.toLowerCase();
+      result = result.filter(
+        (i) =>
+          i.codigo.toLowerCase().includes(q) ||
+          i.nombre_conjunto.toLowerCase().includes(q) ||
+          i.direccion.toLowerCase().includes(q)
+      );
     }
-  };
-
-  useEffect(() => { fetchConsistencia(); }, []);
+    if (conjuntoFilter !== "all") result = result.filter((i) => i.nombre_conjunto === conjuntoFilter);
+    if (procesoFilter !== "all") result = result.filter((i) => i.proceso === procesoFilter);
+    if (severidadFilter !== "all") {
+      result = result.filter((i) =>
+        i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
+      );
+    }
+    return result.sort((a, b) => b.discrepancias.length - a.discrepancias.length);
+  }, [inmuebles, searchFilter, conjuntoFilter, procesoFilter, severidadFilter]);
 
   /* ─── Load historial ─── */
   const fetchHistorial = async () => {
@@ -148,51 +217,15 @@ export default function DataPage() {
     if (view === "historial") fetchHistorial();
   }, [view]);
 
-  /* ─── KPI calculations ─── */
-  const kpis = useMemo(() => {
-    let alta = 0, media = 0, baja = 0;
-    inmuebles.forEach((i) =>
-      i.discrepancias.forEach((d) => {
-        const s = (d.severidad || "baja").toLowerCase();
-        if (s === "alta") alta++;
-        else if (s === "media") media++;
-        else baja++;
-      })
-    );
-    return { total: totalAnalizados, conProblemas: inmuebles.length, alta, media, baja };
-  }, [inmuebles, totalAnalizados]);
-
-  /* ─── Filtered & sorted ─── */
-  const conjuntos = useMemo(() => [...new Set(inmuebles.map((i) => i.nombre_conjunto).filter(Boolean))], [inmuebles]);
-  const procesos = useMemo(() => [...new Set(inmuebles.map((i) => i.proceso).filter(Boolean))], [inmuebles]);
-
-  const filteredInmuebles = useMemo(() => {
-    let result = [...inmuebles];
-    if (searchFilter) {
-      const q = searchFilter.toLowerCase();
-      result = result.filter(
-        (i) =>
-          (i.codigo || "").toLowerCase().includes(q) ||
-          (i.nombre_conjunto || "").toLowerCase().includes(q) ||
-          (i.direccion || "").toLowerCase().includes(q)
-      );
-    }
-    if (conjuntoFilter !== "all") result = result.filter((i) => i.nombre_conjunto === conjuntoFilter);
-    if (procesoFilter !== "all") result = result.filter((i) => i.proceso === procesoFilter);
-    if (severidadFilter !== "all") {
-      result = result.filter((i) =>
-        i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
-      );
-    }
-    return result.sort((a, b) => b.discrepancias.length - a.discrepancias.length);
-  }, [inmuebles, searchFilter, conjuntoFilter, procesoFilter, severidadFilter]);
-
   /* ─── AI Analysis ─── */
   const handleAnalizarIA = async (inm: InmuebleProblema) => {
     setSelectedInmueble(inm);
     setAnalisisIA(null);
     setAnalyzingIA(true);
     setSheetOpen(true);
+
+    // Also load historial for this inmueble
+    fetchHistorial();
 
     try {
       const { data, error } = await supabase.functions.invoke("check-escritura-antecedente", {
@@ -230,16 +263,15 @@ export default function DataPage() {
         valor_actual: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
-        aprobador: "usuario@duppla.co", // TODO: get from auth
+        aprobador: "usuario@duppla.co",
       };
 
       const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
       if (error) throw new Error(error.message);
       if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
 
-      // Save to historial
       await supabase.from("historial_cambios_sf").insert({
-        codigo_inmueble: selectedInmueble.codigo || "",
+        codigo_inmueble: selectedInmueble.codigo,
         salesforce_id: selectedInmueble.salesforce_id,
         campo_corregido: fixDiscrepancia.campo || "",
         valor_anterior: fixDiscrepancia.valor_actual,
@@ -250,7 +282,6 @@ export default function DataPage() {
 
       toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
 
-      // Remove fixed discrepancy from analysis
       if (analisisIA?.discrepancias) {
         setAnalisisIA({
           ...analisisIA,
@@ -259,6 +290,7 @@ export default function DataPage() {
       }
 
       setFixModalOpen(false);
+      fetchHistorial();
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
     } finally {
@@ -266,7 +298,7 @@ export default function DataPage() {
     }
   };
 
-  /* ─── Historial for specific inmueble (in detail view) ─── */
+  /* ─── Historial for specific inmueble ─── */
   const inmuebleHistorial = useMemo(() => {
     if (!selectedInmueble?.codigo) return [];
     return historial.filter((h) => h.codigo_inmueble === selectedInmueble.codigo);
@@ -286,7 +318,7 @@ export default function DataPage() {
     return result;
   }, [historial, historialFilterInmueble, historialFilterUsuario]);
 
-  /* ─── Severity badge counts for a row ─── */
+  /* ─── Severity badge counts ─── */
   const severityCounts = (discs: Discrepancia[]) => {
     let alta = 0, media = 0, baja = 0;
     discs.forEach((d) => {
@@ -336,16 +368,10 @@ export default function DataPage() {
       <main className="flex-1 overflow-y-auto">
         {view === "general" && (
           <div className="p-6 space-y-6">
-            {/* KPI Cards */}
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-foreground">Consistencia de Datos SF</h1>
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={fetchConsistencia} disabled={loading}>
-                <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-                Actualizar
-              </Button>
-            </div>
+            <h1 className="text-xl font-bold text-foreground">Consistencia de Datos SF</h1>
 
-            {loading ? (
+            {/* KPI Cards */}
+            {isLoading ? (
               <div className="grid grid-cols-5 gap-4">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-24 rounded-lg" />
@@ -404,7 +430,7 @@ export default function DataPage() {
                 <SelectContent>
                   <SelectItem value="all">Todos los conjuntos</SelectItem>
                   {conjuntos.map((c) => (
-                    <SelectItem key={c} value={c!}>{c}</SelectItem>
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -415,7 +441,7 @@ export default function DataPage() {
                 <SelectContent>
                   <SelectItem value="all">Todos los procesos</SelectItem>
                   {procesos.map((p) => (
-                    <SelectItem key={p} value={p!}>{p}</SelectItem>
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -433,7 +459,7 @@ export default function DataPage() {
             </div>
 
             {/* Table */}
-            {loading ? (
+            {isLoading ? (
               <Skeleton className="h-64 rounded-lg" />
             ) : filteredInmuebles.length === 0 ? (
               <Card>
@@ -458,11 +484,11 @@ export default function DataPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredInmuebles.map((inm, idx) => {
+                    {filteredInmuebles.map((inm) => {
                       const counts = severityCounts(inm.discrepancias);
                       return (
-                        <TableRow key={idx}>
-                          <TableCell className="text-xs font-mono font-medium">{inm.codigo || "—"}</TableCell>
+                        <TableRow key={inm.salesforce_id}>
+                          <TableCell className="text-xs font-mono font-medium">{inm.codigo}</TableCell>
                           <TableCell className="text-xs">{inm.nombre_conjunto || "—"}</TableCell>
                           <TableCell className="text-xs max-w-[200px] truncate">{inm.direccion || "—"}</TableCell>
                           <TableCell className="text-xs">{inm.proceso || "—"}</TableCell>
@@ -617,7 +643,7 @@ export default function DataPage() {
               )}
 
               {/* Documents */}
-              {(analisisIA.documentos_analizados?.length || analisisIA.documentos_faltantes?.length) && (
+              {(analisisIA.documentos_analizados?.length || analisisIA.documentos_faltantes?.length) ? (
                 <div>
                   <h3 className="text-sm font-semibold text-foreground mb-2">Documentos</h3>
                   <div className="space-y-1">
@@ -637,17 +663,17 @@ export default function DataPage() {
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {/* Discrepancies */}
+              {/* Discrepancies from IA */}
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-2">
-                  Discrepancias ({analisisIA.discrepancias?.length || 0})
+                  Discrepancias IA ({analisisIA.discrepancias?.length || 0})
                 </h3>
                 {!analisisIA.discrepancias?.length ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    Sin discrepancias detectadas
+                    Sin discrepancias adicionales detectadas por IA
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -686,7 +712,7 @@ export default function DataPage() {
                           {disc.fuente && (
                             <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>
                           )}
-                          {disc.valor_documento && !disc.valor_actual && (
+                          {disc.valor_documento && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -703,6 +729,28 @@ export default function DataPage() {
                   </div>
                 )}
               </div>
+
+              {/* Local discrepancies for context */}
+              {selectedInmueble && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">
+                    Problemas detectados localmente ({selectedInmueble.discrepancias.length})
+                  </h3>
+                  <div className="space-y-1">
+                    {selectedInmueble.discrepancias.map((d, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b last:border-0">
+                        <div className="flex items-center gap-2">
+                          <Badge className={cn("text-[10px] px-1.5", severidadColor(d.severidad || "baja"))}>
+                            {d.severidad || "baja"}
+                          </Badge>
+                          <span className="font-medium text-foreground">{d.campo}</span>
+                        </div>
+                        <span className="text-muted-foreground text-[11px]">{d.tipo}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Historial for this inmueble */}
               {inmuebleHistorial.length > 0 && (
