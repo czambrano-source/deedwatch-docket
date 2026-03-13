@@ -147,6 +147,9 @@ export default function DataPage() {
   const [problemasInmueble, setProblemasInmueble] = useState<InmuebleProblema | null>(null);
   const [problemasSheetOpen, setProblemasSheetOpen] = useState(false);
 
+  // Expanded row for inmueble details
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   // AI Analysis
   const [selectedInmueble, setSelectedInmueble] = useState<InmuebleProblema | null>(null);
   const [analisisIA, setAnalisisIA] = useState<AnalisisIA | null>(null);
