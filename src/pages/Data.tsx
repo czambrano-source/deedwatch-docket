@@ -993,3 +993,12 @@ export default function DataPage() {
     </div>
   );
 }
+
+function DItem({ label, value, icon: Icon }: { label: string; value?: string | null; icon: any }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs text-muted-foreground flex items-center gap-1"><Icon className="w-3 h-3" /> {label}</p>
+      <p className="text-sm font-medium text-foreground">{value || "—"}</p>
+    </div>
+  );
+}
