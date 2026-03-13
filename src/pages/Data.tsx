@@ -57,16 +57,19 @@ export default function DataPage() {
         body: { codigo_inmueble: inmueble.Name },
       });
       if (error) throw new Error(error.message);
-      setRawResponse(data);
+      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error en análisis");
+
+      const responseData = (data as any)?.payload ?? data;
+      setRawResponse(responseData);
 
       // Normalize response: could be { discrepancias: [...] } or an array directly
-      if (Array.isArray(data)) {
-        setAnalisis({ codigo_inmueble: inmueble.Name, discrepancias: data });
-      } else if (data?.discrepancias) {
-        setAnalisis(data);
+      if (Array.isArray(responseData)) {
+        setAnalisis({ codigo_inmueble: inmueble.Name, discrepancias: responseData });
+      } else if (responseData?.discrepancias) {
+        setAnalisis(responseData);
       } else {
         // Treat entire object as the result
-        setAnalisis({ codigo_inmueble: inmueble.Name, discrepancias: [], ...data });
+        setAnalisis({ codigo_inmueble: inmueble.Name, discrepancias: [], ...responseData });
       }
     } catch (err: any) {
       toast({
@@ -93,8 +96,11 @@ export default function DataPage() {
         },
       });
       if (error) throw new Error(error.message);
+      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error en corrección");
 
-      if (data?.status === "updated") {
+      const responseData = (data as any)?.payload ?? data;
+
+      if (responseData?.status === "updated") {
         toast({ title: "Corregido", description: `Campo "${discrepancia.campo}" actualizado en SF.` });
         // Remove from list
         setAnalisis((prev) =>
@@ -103,7 +109,7 @@ export default function DataPage() {
             : prev
         );
       } else {
-        toast({ title: "Respuesta", description: JSON.stringify(data) });
+        toast({ title: "Respuesta", description: JSON.stringify(responseData) });
       }
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
