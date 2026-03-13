@@ -43,6 +43,7 @@ interface InmuebleProblema {
   direccion: string;
   proceso: string;
   discrepancias: Discrepancia[];
+  raw: Inmueble;
 }
 
 interface AnalisisIA {
