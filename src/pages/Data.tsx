@@ -193,6 +193,7 @@ export default function DataPage() {
       result = result.filter(
         (i) =>
           i.codigo.toLowerCase().includes(q) ||
+          i.oportunidad.toLowerCase().includes(q) ||
           i.nombre_conjunto.toLowerCase().includes(q) ||
           i.direccion.toLowerCase().includes(q)
       );
