@@ -1,4 +1,4 @@
-import { Building2, MapPin, Hash, FileText, Calendar, DollarSign, CheckCircle2, ExternalLink } from "lucide-react";
+import { Building2, MapPin, Hash, FileText, Calendar, DollarSign, CheckCircle2, ExternalLink, Car, Package, Layers, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Inmueble, GestionPredial } from "@/types/inmueble";
@@ -7,6 +7,12 @@ interface InmuebleDetailProps {
   inmueble: Inmueble | null;
   pago: GestionPredial | undefined;
   onRegistrarPago: () => void;
+}
+
+function isValidField(val?: string | null): boolean {
+  if (!val) return false;
+  const n = val.trim().toLowerCase();
+  return n !== "" && n !== "n/a" && n !== "no tiene" && n !== "-" && n !== "sin_chip" && n !== "sin_matricula";
 }
 
 export function InmuebleDetail({ inmueble, pago, onRegistrarPago }: InmuebleDetailProps) {
@@ -26,6 +32,26 @@ export function InmuebleDetail({ inmueble, pago, onRegistrarPago }: InmuebleDeta
   const isPagado = pago?.estado === "Pagado";
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
+
+  const sel = inmueble;
+  const getFidName = (i: any) => i.Fiduciaria__r?.Name ?? i.Fiduciaria__c ?? "—";
+
+  // Parking logic
+  const parqExplicitNo = sel.Parqueadero__c != null && sel.Parqueadero__c === 0;
+  const hasValidMatrParq = isValidField(sel.No_Matricula_Inmo_Parqueadero__c);
+  const hasValidChipParq = isValidField(sel.chip_parqueadero__c);
+  const showParqBlock = !(parqExplicitNo && !hasValidMatrParq && !hasValidChipParq);
+
+  // Deposit logic
+  const depExplicitNo = sel.Deposito__c && ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
+  const hasValidMatrDep = isValidField(sel.No_Matricula_Inmo_Deposito__c);
+  const hasValidChipDep = isValidField(sel.chip_deposito__c);
+  const showDepBlock = !((depExplicitNo && !hasValidMatrDep && !hasValidChipDep) || (!sel.Deposito__c && !hasValidMatrDep && !hasValidChipDep));
+
+  // CTL visibility
+  const showCtlInm = isValidField(sel.Numero_matricula_inmobiliaria__c) || isValidField(sel.chip_apartamento__c);
+  const showCtlParq = hasValidMatrParq || hasValidChipParq;
+  const showCtlDep = hasValidMatrDep || hasValidChipDep;
 
   return (
     <div className="flex-1 overflow-y-auto bg-background p-6 space-y-6">
@@ -61,20 +87,113 @@ export function InmuebleDetail({ inmueble, pago, onRegistrarPago }: InmuebleDeta
         </div>
       </div>
 
-      {/* Grid de detalles */}
+      {/* Inmueble Info */}
       <div className="bg-card rounded-xl border p-5 space-y-4">
         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
           <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <DetailItem label="CHIP" value={inmueble.chip_apartamento__c || "Sin asignar"} icon={Hash} />
-          <DetailItem label="Matrícula Inmobiliaria" value={inmueble.Numero_matricula_inmobiliaria__c} icon={FileText} />
-          <DetailItem label="Fiduciaria" value={inmueble.Fiduciaria__c} icon={Building2} />
-          <DetailItem label="Dirección" value={inmueble.Direccion__c ?? inmueble.Direcci_n__c} icon={MapPin} />
-          <DetailItem label="Ciudad" value={inmueble.Ciudad_Inmueble__c ?? inmueble.Ciudad__c} icon={MapPin} />
-          <DetailItem label="Estado Operativo" value={inmueble.Proceso_entrega_inmueble__c ?? "N/A"} icon={CheckCircle2} />
+          <DetailItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
+          <DetailItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
+          <DetailItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
+          <DetailItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
+          <DetailItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
+          <DetailItem label="Torre" value={sel.Torre__c} icon={Layers} />
+          <DetailItem label="Ciudad Inmueble" value={sel.Ciudad_Inmueble__c} icon={MapPin} />
+          <DetailItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
+          <DetailItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
+          <DetailItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+          <DetailItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+          <DetailItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
         </div>
+        {showCtlInm && (
+          <div className="border-t border-border/40 pt-3 mt-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
+              {!sel.nombre_ctl_inmueble__c && !sel.nit_ctl_inmueble__c && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+              )}
+            </div>
+            <div className="space-y-1">
+              <DetailItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
+              <DetailItem label="NIT" value={sel.nit_ctl_inmueble__c} icon={Hash} />
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Parqueadero Block */}
+      {showParqBlock && (
+        <div className="bg-card rounded-xl border p-5 space-y-4">
+          <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+            <Car className="w-4 h-4 text-primary" /> Información Parqueadero
+          </h3>
+          <div className="space-y-1.5">
+            {!parqExplicitNo && (
+              <>
+                <DetailItem label="Parqueadero" value={sel.Parqueadero__c != null ? (sel.Parqueadero__c > 0 ? `Sí (${sel.Parqueadero__c})` : "No") : undefined} icon={Car} />
+                {isValidField(sel.numero_del_parqueadero__c) && (
+                  <DetailItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} />
+                )}
+              </>
+            )}
+            {hasValidMatrParq && (
+              <DetailItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
+            )}
+            {hasValidChipParq && (
+              <DetailItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} />
+            )}
+          </div>
+          {showCtlParq && (
+            <div className="border-t border-border/40 pt-3 mt-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
+                {!sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                )}
+              </div>
+              <div className="space-y-1">
+                <DetailItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
+                <DetailItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Depósito Block */}
+      {showDepBlock && (
+        <div className="bg-card rounded-xl border p-5 space-y-4">
+          <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+            <Package className="w-4 h-4 text-primary" /> Información Depósito
+          </h3>
+          <div className="space-y-1.5">
+            {!depExplicitNo && sel.Deposito__c && (
+              <DetailItem label="Depósito" value={sel.Deposito__c} icon={Package} />
+            )}
+            {hasValidMatrDep && (
+              <DetailItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
+            )}
+            {hasValidChipDep && (
+              <DetailItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
+            )}
+          </div>
+          {showCtlDep && (
+            <div className="border-t border-border/40 pt-3 mt-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
+                {!sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                )}
+              </div>
+              <div className="space-y-1">
+                <DetailItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
+                <DetailItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Sección de Gestión de Pago */}
       <div className="bg-card rounded-xl border p-5 space-y-4">

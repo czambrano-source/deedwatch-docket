@@ -576,57 +576,92 @@ export default function DataPage() {
                                 </div>
 
                                 {/* Parqueadero Block */}
-                                <div className="bg-card rounded-xl border p-4 space-y-3">
-                                  <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
-                                    <Car className="w-4 h-4 text-primary" /> Información Parqueadero
-                                  </h3>
-                                  <div className="space-y-1.5">
-                                    <DItem label="Parqueadero" value={sel.Parqueadero__c != null ? (sel.Parqueadero__c > 0 ? `Sí (${sel.Parqueadero__c})` : "No") : undefined} icon={Car} />
-                                    <DItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} />
-                                    <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
-                                    <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c && sel.chip_parqueadero__c !== "-" ? sel.chip_parqueadero__c : undefined} icon={Hash} />
-                                  </div>
-                                  {hasParq() && showCtlParq && (
-                                    <div className="border-t border-border/40 pt-3 mt-1">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
-                                        {!sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c && (
-                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                {(() => {
+                                  const parqExplicitNo = sel.Parqueadero__c != null && sel.Parqueadero__c === 0;
+                                  const hasValidMatrParq = isValidField(sel.No_Matricula_Inmo_Parqueadero__c);
+                                  const hasValidChipParq = isValidField(sel.chip_parqueadero__c);
+                                  // If explicitly "No" and no valid matricula/chip → hide entirely
+                                  if (parqExplicitNo && !hasValidMatrParq && !hasValidChipParq) return null;
+                                  return (
+                                    <div className="bg-card rounded-xl border p-4 space-y-3">
+                                      <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+                                        <Car className="w-4 h-4 text-primary" /> Información Parqueadero
+                                      </h3>
+                                      <div className="space-y-1.5">
+                                        {!parqExplicitNo && (
+                                          <>
+                                            <DItem label="Parqueadero" value={sel.Parqueadero__c != null ? (sel.Parqueadero__c > 0 ? `Sí (${sel.Parqueadero__c})` : "No") : undefined} icon={Car} />
+                                            {isValidField(sel.numero_del_parqueadero__c) && (
+                                              <DItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} />
+                                            )}
+                                          </>
+                                        )}
+                                        {hasValidMatrParq && (
+                                          <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
+                                        )}
+                                        {hasValidChipParq && (
+                                          <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} />
                                         )}
                                       </div>
-                                      <div className="space-y-1">
-                                        <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
-                                        <DItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
-                                      </div>
+                                      {showCtlParq && (
+                                        <div className="border-t border-border/40 pt-3 mt-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
+                                            {!sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c && (
+                                              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                            )}
+                                          </div>
+                                          <div className="space-y-1">
+                                            <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
+                                            <DItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
+                                  );
+                                })()}
 
                                 {/* Depósito Block */}
-                                <div className="bg-card rounded-xl border p-4 space-y-3">
-                                  <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
-                                    <Package className="w-4 h-4 text-primary" /> Información Depósito
-                                  </h3>
-                                  <div className="space-y-1.5">
-                                    <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
-                                    <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
-                                    <DItem label="Chip Depósito" value={sel.chip_deposito__c && sel.chip_deposito__c !== "-" ? sel.chip_deposito__c : undefined} icon={Hash} />
-                                  </div>
-                                  {hasDep() && showCtlDep && (
-                                    <div className="border-t border-border/40 pt-3 mt-1">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
-                                        {!sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c && (
-                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                {(() => {
+                                  const depExplicitNo = sel.Deposito__c && ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
+                                  const hasValidMatrDep = isValidField(sel.No_Matricula_Inmo_Deposito__c);
+                                  const hasValidChipDep = isValidField(sel.chip_deposito__c);
+                                  // If explicitly "No" and no valid matricula/chip → hide entirely
+                                  if (depExplicitNo && !hasValidMatrDep && !hasValidChipDep) return null;
+                                  if (!sel.Deposito__c && !hasValidMatrDep && !hasValidChipDep) return null;
+                                  return (
+                                    <div className="bg-card rounded-xl border p-4 space-y-3">
+                                      <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+                                        <Package className="w-4 h-4 text-primary" /> Información Depósito
+                                      </h3>
+                                      <div className="space-y-1.5">
+                                        {!depExplicitNo && sel.Deposito__c && (
+                                          <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
+                                        )}
+                                        {hasValidMatrDep && (
+                                          <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
+                                        )}
+                                        {hasValidChipDep && (
+                                          <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
                                         )}
                                       </div>
-                                      <div className="space-y-1">
-                                        <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
-                                        <DItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
-                                      </div>
+                                      {showCtlDep && (
+                                        <div className="border-t border-border/40 pt-3 mt-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
+                                            {!sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c && (
+                                              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
+                                            )}
+                                          </div>
+                                          <div className="space-y-1">
+                                            <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
+                                            <DItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
+                                  );
+                                })()}
 
                                 <Button
                                   size="sm"
