@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
-  ShieldAlert, ShieldCheck, Shield, Building2, ChevronRight
+  ShieldAlert, ShieldCheck, Shield, Building2, ChevronRight, ChevronDown
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
