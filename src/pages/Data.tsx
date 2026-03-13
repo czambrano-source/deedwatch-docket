@@ -405,7 +405,7 @@ export default function DataPage() {
                     <div className="relative flex-1 min-w-[200px] max-w-xs">
                       <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
                       <Input
-                        placeholder="Buscar código, conjunto, dirección…"
+                        placeholder="Buscar código, oportunidad, dirección…"
                         value={searchFilter}
                         onChange={(e) => setSearchFilter(e.target.value)}
                         className="pl-8 h-9 text-xs"
