@@ -391,16 +391,16 @@ export default function DataPage() {
                     <p className="text-2xl font-bold text-foreground">{kpis.conProblemas}</p>
                   </CardContent>
                 </Card>
-                <Card className="border-l-4 border-l-destructive">
+                <Card className="bg-destructive/10 border-destructive/20">
                   <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-muted-foreground">Severidad Alta</p>
+                    <p className="text-xs text-destructive/70">Severidad Alta</p>
                     <p className="text-2xl font-bold text-destructive">{kpis.alta}</p>
                   </CardContent>
                 </Card>
-                <Card className="border-l-4 border-l-accent">
+                <Card className="bg-duppla-orange/10 border-duppla-orange/20">
                   <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-muted-foreground">Severidad Media</p>
-                    <p className="text-2xl font-bold text-accent-foreground">{kpis.media}</p>
+                    <p className="text-xs text-duppla-orange/70">Severidad Media</p>
+                    <p className="text-2xl font-bold text-duppla-orange">{kpis.media}</p>
                   </CardContent>
                 </Card>
                 <Card>
