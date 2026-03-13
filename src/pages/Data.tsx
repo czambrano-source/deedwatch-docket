@@ -515,8 +515,9 @@ export default function DataPage() {
                           {/* Expanded: inmueble details */}
                           {isExpanded && (() => {
                             const sel = inm.raw;
-                            const isValidField = (val?: string | null) => {
-                              if (!val) return false;
+                            const isValidField = (val?: string | number | null) => {
+                              if (val == null) return false;
+                              if (typeof val !== 'string') return false;
                               const n = val.trim().toLowerCase();
                               return n !== "" && n !== "n/a" && n !== "no tiene" && n !== "-" && n !== "sin_chip" && n !== "sin_matricula";
                             };
