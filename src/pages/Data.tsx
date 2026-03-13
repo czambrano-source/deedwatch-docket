@@ -1,296 +1,787 @@
-import { useState, useMemo } from "react";
-import { Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw, ChevronRight, Wrench, ArrowLeft } from "lucide-react";
-import { useInmuebles } from "@/hooks/useInmuebles";
+import { useState, useEffect, useMemo } from "react";
+import {
+  Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
+  Wrench, Eye, History, LayoutDashboard, FileText, FileX, X, ChevronDown
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import type { Inmueble } from "@/types/inmueble";
 
+/* ─── Types ─── */
 interface Discrepancia {
-  campo: string;
-  valor_duppla?: string | null;
-  valor_sf?: string | null;
+  tipo?: string;
+  severidad?: string; // alta, media, baja
+  campo?: string;
   descripcion?: string;
+  valor_actual?: string | null;
+  valor_documento?: string | null;
+  fuente?: string;
   [key: string]: any;
 }
 
-interface AnalisisResult {
-  codigo_inmueble: string;
+interface InmuebleProblema {
+  codigo?: string;
+  nombre_conjunto?: string;
+  direccion?: string;
+  proceso?: string;
+  salesforce_id?: string;
   discrepancias: Discrepancia[];
   [key: string]: any;
 }
 
+interface AnalisisIA {
+  datos_actuales_sf?: Record<string, any>;
+  documentos_analizados?: string[];
+  documentos_faltantes?: string[];
+  discrepancias?: Discrepancia[];
+  [key: string]: any;
+}
+
+interface HistorialCambio {
+  id: string;
+  created_at: string;
+  codigo_inmueble: string;
+  salesforce_id: string | null;
+  campo_corregido: string;
+  valor_anterior: string | null;
+  valor_nuevo: string | null;
+  fuente: string | null;
+  aprobado_por: string;
+}
+
+/* ─── Helpers ─── */
+const severidadColor = (sev: string) => {
+  const s = (sev || "").toLowerCase();
+  if (s === "alta") return "bg-destructive text-destructive-foreground";
+  if (s === "media") return "bg-accent text-accent-foreground";
+  return "bg-muted text-muted-foreground";
+};
+
+const severidadDot = (sev: string) => {
+  const s = (sev || "").toLowerCase();
+  if (s === "alta") return "bg-destructive";
+  if (s === "media") return "bg-accent";
+  return "bg-muted-foreground";
+};
+
+/* ─── Main Component ─── */
 export default function DataPage() {
-  const { data: inmuebles = [], isLoading } = useInmuebles();
   const { toast } = useToast();
 
-  const [search, setSearch] = useState("");
-  const [selectedInmueble, setSelectedInmueble] = useState<Inmueble | null>(null);
-  const [analisis, setAnalisis] = useState<AnalisisResult | null>(null);
-  const [rawResponse, setRawResponse] = useState<any>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [fixing, setFixing] = useState<string | null>(null);
+  // Sub-navigation
+  const [view, setView] = useState<"general" | "historial">("general");
 
-  const filtered = useMemo(() => {
-    if (!search) return inmuebles;
-    const q = search.toLowerCase();
-    return inmuebles.filter(
-      (i) =>
-        i.Name.toLowerCase().includes(q) ||
-        i.Id.toLowerCase().includes(q) ||
-        (i.Opportunity__r?.Name ?? "").toLowerCase().includes(q)
-    );
-  }, [inmuebles, search]);
+  // Data from check-consistencia-sf
+  const [inmuebles, setInmuebles] = useState<InmuebleProblema[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalAnalizados, setTotalAnalizados] = useState(0);
 
-  const handleAnalizar = async (inmueble: Inmueble) => {
-    setSelectedInmueble(inmueble);
-    setAnalisis(null);
-    setRawResponse(null);
-    setAnalyzing(true);
+  // Filters
+  const [searchFilter, setSearchFilter] = useState("");
+  const [conjuntoFilter, setConjuntoFilter] = useState("all");
+  const [procesoFilter, setProcesoFilter] = useState("all");
+  const [severidadFilter, setSeveridadFilter] = useState("all");
 
+  // AI Analysis
+  const [selectedInmueble, setSelectedInmueble] = useState<InmuebleProblema | null>(null);
+  const [analisisIA, setAnalisisIA] = useState<AnalisisIA | null>(null);
+  const [analyzingIA, setAnalyzingIA] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Fix modal
+  const [fixModalOpen, setFixModalOpen] = useState(false);
+  const [fixDiscrepancia, setFixDiscrepancia] = useState<Discrepancia | null>(null);
+  const [fixValorNuevo, setFixValorNuevo] = useState("");
+  const [fixingInProgress, setFixingInProgress] = useState(false);
+
+  // Historial
+  const [historial, setHistorial] = useState<HistorialCambio[]>([]);
+  const [historialLoading, setHistorialLoading] = useState(false);
+  const [historialFilterInmueble, setHistorialFilterInmueble] = useState("");
+  const [historialFilterUsuario, setHistorialFilterUsuario] = useState("");
+
+  /* ─── Load consistency check on mount ─── */
+  const fetchConsistencia = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("analisis-discrepancias", {
-        body: {
-          codigo_inmueble: inmueble.Id,
-          salesforce_id: inmueble.Id,
-          nombre_inmueble: inmueble.Name,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke("check-consistencia-sf");
       if (error) throw new Error(error.message);
-      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error en análisis");
+      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
 
-      const responseData = (data as any)?.payload ?? data;
-      setRawResponse(responseData);
+      const payload = (data as any)?.payload ?? data;
+      const items: InmuebleProblema[] = Array.isArray(payload)
+        ? payload
+        : payload?.inmuebles ?? payload?.data ?? [];
 
-      // Normalize response: could be { discrepancias: [...] } or an array directly
-      if (Array.isArray(responseData)) {
-        setAnalisis({ codigo_inmueble: inmueble.Name, discrepancias: responseData });
-      } else if (responseData?.discrepancias) {
-        setAnalisis(responseData);
-      } else {
-        // Treat entire object as the result
-        setAnalisis({ codigo_inmueble: inmueble.Name, discrepancias: [], ...responseData });
-      }
+      setInmuebles(items.filter((i: any) => i.discrepancias?.length > 0));
+      setTotalAnalizados(payload?.total_analizados ?? items.length);
     } catch (err: any) {
-      toast({
-        title: "Error al analizar",
-        description: err.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error al cargar datos", description: err.message, variant: "destructive" });
     } finally {
-      setAnalyzing(false);
+      setLoading(false);
     }
   };
 
-  const handleFix = async (discrepancia: Discrepancia) => {
-    if (!selectedInmueble) return;
-    const key = discrepancia.campo ?? JSON.stringify(discrepancia);
-    setFixing(key);
+  useEffect(() => { fetchConsistencia(); }, []);
+
+  /* ─── Load historial ─── */
+  const fetchHistorial = async () => {
+    setHistorialLoading(true);
+    const { data, error } = await supabase
+      .from("historial_cambios_sf")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) setHistorial(data as HistorialCambio[]);
+    setHistorialLoading(false);
+  };
+
+  useEffect(() => {
+    if (view === "historial") fetchHistorial();
+  }, [view]);
+
+  /* ─── KPI calculations ─── */
+  const kpis = useMemo(() => {
+    let alta = 0, media = 0, baja = 0;
+    inmuebles.forEach((i) =>
+      i.discrepancias.forEach((d) => {
+        const s = (d.severidad || "baja").toLowerCase();
+        if (s === "alta") alta++;
+        else if (s === "media") media++;
+        else baja++;
+      })
+    );
+    return { total: totalAnalizados, conProblemas: inmuebles.length, alta, media, baja };
+  }, [inmuebles, totalAnalizados]);
+
+  /* ─── Filtered & sorted ─── */
+  const conjuntos = useMemo(() => [...new Set(inmuebles.map((i) => i.nombre_conjunto).filter(Boolean))], [inmuebles]);
+  const procesos = useMemo(() => [...new Set(inmuebles.map((i) => i.proceso).filter(Boolean))], [inmuebles]);
+
+  const filteredInmuebles = useMemo(() => {
+    let result = [...inmuebles];
+    if (searchFilter) {
+      const q = searchFilter.toLowerCase();
+      result = result.filter(
+        (i) =>
+          (i.codigo || "").toLowerCase().includes(q) ||
+          (i.nombre_conjunto || "").toLowerCase().includes(q) ||
+          (i.direccion || "").toLowerCase().includes(q)
+      );
+    }
+    if (conjuntoFilter !== "all") result = result.filter((i) => i.nombre_conjunto === conjuntoFilter);
+    if (procesoFilter !== "all") result = result.filter((i) => i.proceso === procesoFilter);
+    if (severidadFilter !== "all") {
+      result = result.filter((i) =>
+        i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
+      );
+    }
+    return result.sort((a, b) => b.discrepancias.length - a.discrepancias.length);
+  }, [inmuebles, searchFilter, conjuntoFilter, procesoFilter, severidadFilter]);
+
+  /* ─── AI Analysis ─── */
+  const handleAnalizarIA = async (inm: InmuebleProblema) => {
+    setSelectedInmueble(inm);
+    setAnalisisIA(null);
+    setAnalyzingIA(true);
+    setSheetOpen(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", {
-        body: {
-          codigo_inmueble: selectedInmueble.Name,
-          salesforce_id: selectedInmueble.Id,
-          ...discrepancia,
-        },
+      const { data, error } = await supabase.functions.invoke("check-escritura-antecedente", {
+        body: { codigo_inmueble: inm.codigo, salesforce_id: inm.salesforce_id },
       });
       if (error) throw new Error(error.message);
-      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error en corrección");
+      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
 
-      const responseData = (data as any)?.payload ?? data;
+      const payload = (data as any)?.payload ?? data;
+      setAnalisisIA(payload);
+    } catch (err: any) {
+      toast({ title: "Error en análisis IA", description: err.message, variant: "destructive" });
+      setSheetOpen(false);
+    } finally {
+      setAnalyzingIA(false);
+    }
+  };
 
-      if (responseData?.status === "updated") {
-        toast({ title: "Corregido", description: `Campo "${discrepancia.campo}" actualizado en SF.` });
-        // Remove from list
-        setAnalisis((prev) =>
-          prev
-            ? { ...prev, discrepancias: prev.discrepancias.filter((d) => d !== discrepancia) }
-            : prev
-        );
-      } else {
-        toast({ title: "Respuesta", description: JSON.stringify(responseData) });
+  /* ─── Fix flow ─── */
+  const openFixModal = (disc: Discrepancia) => {
+    setFixDiscrepancia(disc);
+    setFixValorNuevo(disc.valor_documento || "");
+    setFixModalOpen(true);
+  };
+
+  const handleConfirmFix = async () => {
+    if (!fixDiscrepancia || !selectedInmueble) return;
+    setFixingInProgress(true);
+
+    try {
+      const payload = {
+        codigo_inmueble: selectedInmueble.codigo,
+        salesforce_id: selectedInmueble.salesforce_id,
+        campo: fixDiscrepancia.campo,
+        valor_actual: fixDiscrepancia.valor_actual,
+        valor_nuevo: fixValorNuevo,
+        fuente: fixDiscrepancia.fuente,
+        aprobador: "usuario@duppla.co", // TODO: get from auth
+      };
+
+      const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
+      if (error) throw new Error(error.message);
+      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
+
+      // Save to historial
+      await supabase.from("historial_cambios_sf").insert({
+        codigo_inmueble: selectedInmueble.codigo || "",
+        salesforce_id: selectedInmueble.salesforce_id,
+        campo_corregido: fixDiscrepancia.campo || "",
+        valor_anterior: fixDiscrepancia.valor_actual,
+        valor_nuevo: fixValorNuevo,
+        fuente: fixDiscrepancia.fuente,
+        aprobado_por: payload.aprobador,
+      });
+
+      toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
+
+      // Remove fixed discrepancy from analysis
+      if (analisisIA?.discrepancias) {
+        setAnalisisIA({
+          ...analisisIA,
+          discrepancias: analisisIA.discrepancias.filter((d) => d !== fixDiscrepancia),
+        });
       }
+
+      setFixModalOpen(false);
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
     } finally {
-      setFixing(null);
+      setFixingInProgress(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Cargando inmuebles…</span>
-      </div>
-    );
-  }
+  /* ─── Historial for specific inmueble (in detail view) ─── */
+  const inmuebleHistorial = useMemo(() => {
+    if (!selectedInmueble?.codigo) return [];
+    return historial.filter((h) => h.codigo_inmueble === selectedInmueble.codigo);
+  }, [historial, selectedInmueble]);
+
+  /* ─── Filtered historial ─── */
+  const filteredHistorial = useMemo(() => {
+    let result = [...historial];
+    if (historialFilterInmueble) {
+      const q = historialFilterInmueble.toLowerCase();
+      result = result.filter((h) => h.codigo_inmueble.toLowerCase().includes(q));
+    }
+    if (historialFilterUsuario) {
+      const q = historialFilterUsuario.toLowerCase();
+      result = result.filter((h) => h.aprobado_por.toLowerCase().includes(q));
+    }
+    return result;
+  }, [historial, historialFilterInmueble, historialFilterUsuario]);
+
+  /* ─── Severity badge counts for a row ─── */
+  const severityCounts = (discs: Discrepancia[]) => {
+    let alta = 0, media = 0, baja = 0;
+    discs.forEach((d) => {
+      const s = (d.severidad || "baja").toLowerCase();
+      if (s === "alta") alta++;
+      else if (s === "media") media++;
+      else baja++;
+    });
+    return { alta, media, baja };
+  };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-      {/* Left panel — inmueble list */}
-      <aside className="w-80 border-r bg-card flex flex-col shrink-0">
-        <div className="p-3 border-b space-y-2">
-          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+    <div className="flex h-[calc(100vh-3.5rem)]">
+      {/* ─── Side menu ─── */}
+      <aside className="w-52 border-r bg-card flex flex-col shrink-0">
+        <div className="p-4 border-b">
+          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
             <Database className="w-4 h-4 text-primary" />
-            Sincronización de Datos
+            Data SF
           </h2>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar inmueble…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs"
-            />
-          </div>
         </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {filtered.map((inm) => {
-            const isSelected = selectedInmueble?.Id === inm.Id;
-            return (
-              <button
-                key={inm.Id}
-                onClick={() => handleAnalizar(inm)}
-                className={cn(
-                  "w-full text-left px-3 py-2.5 border-b text-xs transition-colors hover:bg-accent/30",
-                  isSelected && "bg-primary/10 border-l-2 border-l-primary"
-                )}
-              >
-                <p className="font-semibold text-foreground truncate">{inm.Name}</p>
-                <p className="text-muted-foreground truncate">{inm.Opportunity__r?.Name ?? "—"}</p>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="p-2 border-t text-xs text-muted-foreground text-center">
-          {filtered.length} de {inmuebles.length} inmuebles
-        </div>
+        <nav className="flex-1 p-2 space-y-1">
+          <button
+            onClick={() => setView("general")}
+            className={cn(
+              "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+              view === "general" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Vista General
+          </button>
+          <button
+            onClick={() => setView("historial")}
+            className={cn(
+              "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+              view === "historial" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <History className="w-4 h-4" />
+            Historial de Cambios
+          </button>
+        </nav>
       </aside>
 
-      {/* Right panel — analysis results */}
-      <main className="flex-1 overflow-y-auto p-6">
-        {!selectedInmueble && !analyzing && (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-3">
-            <Database className="w-12 h-12 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              Selecciona un inmueble de la lista para analizar discrepancias entre Duppla Net y Salesforce.
-            </p>
-          </div>
-        )}
-
-        {analyzing && (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Analizando discrepancias de <span className="font-semibold text-foreground">{selectedInmueble?.Name}</span>…</p>
-          </div>
-        )}
-
-        {!analyzing && selectedInmueble && analisis && (
-          <div className="max-w-3xl mx-auto space-y-4">
+      {/* ─── Main content ─── */}
+      <main className="flex-1 overflow-y-auto">
+        {view === "general" && (
+          <div className="p-6 space-y-6">
+            {/* KPI Cards */}
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-foreground">{selectedInmueble.Name}</h2>
-                <p className="text-xs text-muted-foreground">{selectedInmueble.Opportunity__r?.Name} — ID: {selectedInmueble.Id}</p>
-              </div>
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleAnalizar(selectedInmueble)}>
-                <RefreshCw className="w-3.5 h-3.5" /> Re-analizar
+              <h1 className="text-xl font-bold text-foreground">Consistencia de Datos SF</h1>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={fetchConsistencia} disabled={loading}>
+                <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+                Actualizar
               </Button>
             </div>
 
-            {analisis.discrepancias.length === 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-5 gap-4">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-24 rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-5 gap-4">
+                <Card>
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <p className="text-xs text-muted-foreground">Analizados</p>
+                    <p className="text-2xl font-bold text-foreground">{kpis.total}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <p className="text-xs text-muted-foreground">Con problemas</p>
+                    <p className="text-2xl font-bold text-foreground">{kpis.conProblemas}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-destructive">
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <p className="text-xs text-muted-foreground">Severidad Alta</p>
+                    <p className="text-2xl font-bold text-destructive">{kpis.alta}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-accent">
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <p className="text-xs text-muted-foreground">Severidad Media</p>
+                    <p className="text-2xl font-bold text-accent-foreground">{kpis.media}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <p className="text-xs text-muted-foreground">Severidad Baja</p>
+                    <p className="text-2xl font-bold text-muted-foreground">{kpis.baja}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Filters */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar código, conjunto, dirección…"
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="pl-8 h-9 text-xs"
+                />
+              </div>
+              <Select value={conjuntoFilter} onValueChange={setConjuntoFilter}>
+                <SelectTrigger className="w-48 h-9 text-xs">
+                  <SelectValue placeholder="Conjunto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los conjuntos</SelectItem>
+                  {conjuntos.map((c) => (
+                    <SelectItem key={c} value={c!}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={procesoFilter} onValueChange={setProcesoFilter}>
+                <SelectTrigger className="w-44 h-9 text-xs">
+                  <SelectValue placeholder="Proceso" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los procesos</SelectItem>
+                  {procesos.map((p) => (
+                    <SelectItem key={p} value={p!}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={severidadFilter} onValueChange={setSeveridadFilter}>
+                <SelectTrigger className="w-40 h-9 text-xs">
+                  <SelectValue placeholder="Severidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="alta">Alta</SelectItem>
+                  <SelectItem value="media">Media</SelectItem>
+                  <SelectItem value="baja">Baja</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Table */}
+            {loading ? (
+              <Skeleton className="h-64 rounded-lg" />
+            ) : filteredInmuebles.length === 0 ? (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12 gap-3">
-                  <CheckCircle2 className="w-10 h-10 text-duppla-green" />
-                  <p className="text-sm font-medium text-foreground">Sin discrepancias</p>
-                  <p className="text-xs text-muted-foreground">Los datos coinciden entre Duppla Net y Salesforce.</p>
-                  {rawResponse && (
-                    <details className="w-full mt-4">
-                      <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">Ver respuesta completa</summary>
-                      <pre className="mt-2 p-3 bg-muted rounded-lg text-xs overflow-auto max-h-60">
-                        {JSON.stringify(rawResponse, null, 2)}
-                      </pre>
-                    </details>
-                  )}
+                <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
+                  <CheckCircle2 className="w-10 h-10 text-primary" />
+                  <p className="text-sm font-medium text-foreground">Sin inconsistencias encontradas</p>
+                  <p className="text-xs text-muted-foreground">Todos los inmuebles están sincronizados.</p>
                 </CardContent>
               </Card>
             ) : (
-              <>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs bg-duppla-orange-light text-duppla-orange border-duppla-orange/30">
-                    <AlertTriangle className="w-3 h-3 mr-1" />
-                    {analisis.discrepancias.length} discrepancia(s)
-                  </Badge>
-                </div>
-
-                <div className="space-y-2">
-                  {analisis.discrepancias.map((disc, idx) => {
-                    const isFixing = fixing === (disc.campo ?? JSON.stringify(disc));
-                    return (
-                      <Card key={idx} className="border-l-4 border-l-duppla-orange/60">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 space-y-1.5">
-                              <p className="text-sm font-semibold text-foreground">{disc.campo ?? `Discrepancia ${idx + 1}`}</p>
-                              {disc.descripcion && (
-                                <p className="text-xs text-muted-foreground">{disc.descripcion}</p>
+              <Card>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Código</TableHead>
+                      <TableHead className="text-xs">Conjunto</TableHead>
+                      <TableHead className="text-xs">Dirección</TableHead>
+                      <TableHead className="text-xs">Proceso</TableHead>
+                      <TableHead className="text-xs text-center">Problemas</TableHead>
+                      <TableHead className="text-xs">Severidad</TableHead>
+                      <TableHead className="text-xs text-right">Acción</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredInmuebles.map((inm, idx) => {
+                      const counts = severityCounts(inm.discrepancias);
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell className="text-xs font-mono font-medium">{inm.codigo || "—"}</TableCell>
+                          <TableCell className="text-xs">{inm.nombre_conjunto || "—"}</TableCell>
+                          <TableCell className="text-xs max-w-[200px] truncate">{inm.direccion || "—"}</TableCell>
+                          <TableCell className="text-xs">{inm.proceso || "—"}</TableCell>
+                          <TableCell className="text-xs text-center font-semibold">{inm.discrepancias.length}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {counts.alta > 0 && (
+                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                  {counts.alta} alta
+                                </Badge>
                               )}
-                              <div className="flex gap-4 text-xs">
-                                {disc.valor_duppla !== undefined && (
-                                  <div>
-                                    <span className="text-muted-foreground">Duppla Net: </span>
-                                    <span className="font-mono text-foreground">{disc.valor_duppla ?? "—"}</span>
-                                  </div>
-                                )}
-                                {disc.valor_sf !== undefined && (
-                                  <div>
-                                    <span className="text-muted-foreground">Salesforce: </span>
-                                    <span className="font-mono text-foreground">{disc.valor_sf ?? "—"}</span>
-                                  </div>
-                                )}
-                              </div>
+                              {counts.media > 0 && (
+                                <Badge className="text-[10px] px-1.5 py-0 bg-accent text-accent-foreground">
+                                  {counts.media} media
+                                </Badge>
+                              )}
+                              {counts.baja > 0 && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                  {counts.baja} baja
+                                </Badge>
+                              )}
                             </div>
+                          </TableCell>
+                          <TableCell className="text-right">
                             <Button
                               size="sm"
                               variant="outline"
-                              className="gap-1.5 text-xs shrink-0"
-                              disabled={isFixing}
-                              onClick={() => handleFix(disc)}
+                              className="gap-1.5 text-xs h-7"
+                              onClick={() => handleAnalizarIA(inm)}
                             >
-                              {isFixing ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Wrench className="w-3.5 h-3.5" />
-                              )}
-                              Corregir en SF
+                              <Eye className="w-3.5 h-3.5" />
+                              Analizar con IA
                             </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </Card>
+            )}
+          </div>
+        )}
 
-                {rawResponse && (
-                  <details className="mt-4">
-                    <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">Ver respuesta completa del webhook</summary>
-                    <pre className="mt-2 p-3 bg-muted rounded-lg text-xs overflow-auto max-h-60">
-                      {JSON.stringify(rawResponse, null, 2)}
-                    </pre>
-                  </details>
-                )}
-              </>
+        {/* ─── Historial View ─── */}
+        {view === "historial" && (
+          <div className="p-6 space-y-6">
+            <h1 className="text-xl font-bold text-foreground">Historial de Cambios</h1>
+
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Filtrar por inmueble…"
+                  value={historialFilterInmueble}
+                  onChange={(e) => setHistorialFilterInmueble(e.target.value)}
+                  className="pl-8 h-9 text-xs"
+                />
+              </div>
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Filtrar por usuario…"
+                  value={historialFilterUsuario}
+                  onChange={(e) => setHistorialFilterUsuario(e.target.value)}
+                  className="pl-8 h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            {historialLoading ? (
+              <Skeleton className="h-64 rounded-lg" />
+            ) : filteredHistorial.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
+                  <History className="w-10 h-10 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">No hay cambios registrados aún.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Fecha</TableHead>
+                      <TableHead className="text-xs">Inmueble</TableHead>
+                      <TableHead className="text-xs">Campo</TableHead>
+                      <TableHead className="text-xs">Valor Anterior</TableHead>
+                      <TableHead className="text-xs">Valor Nuevo</TableHead>
+                      <TableHead className="text-xs">Aprobó</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredHistorial.map((h) => (
+                      <TableRow key={h.id}>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(h.created_at).toLocaleDateString("es-CO", {
+                            day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                          })}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{h.codigo_inmueble}</TableCell>
+                        <TableCell className="text-xs font-medium">{h.campo_corregido}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{h.valor_anterior || "—"}</TableCell>
+                        <TableCell className="text-xs font-medium text-primary">{h.valor_nuevo || "—"}</TableCell>
+                        <TableCell className="text-xs">{h.aprobado_por}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
             )}
           </div>
         )}
       </main>
+
+      {/* ─── AI Analysis Sheet ─── */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-base">
+              Análisis IA — {selectedInmueble?.codigo}
+            </SheetTitle>
+          </SheetHeader>
+
+          {analyzingIA && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground text-center">
+                Analizando documentos con IA…<br />
+                <span className="text-xs">esto puede tardar hasta 1 minuto</span>
+              </p>
+            </div>
+          )}
+
+          {!analyzingIA && analisisIA && (
+            <div className="space-y-6 mt-4">
+              {/* SF current data */}
+              {analisisIA.datos_actuales_sf && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Datos actuales en SF</h3>
+                  <div className="bg-muted rounded-lg p-3 space-y-1">
+                    {Object.entries(analisisIA.datos_actuales_sf).map(([key, val]) => (
+                      <div key={key} className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">{key}</span>
+                        <span className={cn("font-mono", !val && "bg-accent/30 px-1 rounded text-accent-foreground")}>
+                          {val ? String(val) : "vacío"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Documents */}
+              {(analisisIA.documentos_analizados?.length || analisisIA.documentos_faltantes?.length) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Documentos</h3>
+                  <div className="space-y-1">
+                    {analisisIA.documentos_analizados?.map((doc, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <FileText className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-foreground">{doc}</span>
+                        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Analizado</Badge>
+                      </div>
+                    ))}
+                    {analisisIA.documentos_faltantes?.map((doc, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <FileX className="w-3.5 h-3.5 text-destructive" />
+                        <span className="text-muted-foreground">{doc}</span>
+                        <Badge variant="destructive" className="text-[10px]">Faltante</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Discrepancies */}
+              <div>
+                <h3 className="text-sm font-semibold text-foreground mb-2">
+                  Discrepancias ({analisisIA.discrepancias?.length || 0})
+                </h3>
+                {!analisisIA.discrepancias?.length ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
+                    <CheckCircle2 className="w-4 h-4 text-primary" />
+                    Sin discrepancias detectadas
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {analisisIA.discrepancias.map((disc, idx) => (
+                      <Card key={idx} className="border-l-4" style={{
+                        borderLeftColor: (disc.severidad || "").toLowerCase() === "alta"
+                          ? "hsl(var(--destructive))"
+                          : (disc.severidad || "").toLowerCase() === "media"
+                            ? "hsl(var(--accent))"
+                            : "hsl(var(--muted))"
+                      }}>
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <p className="text-xs font-semibold text-foreground">{disc.campo}</p>
+                              {disc.descripcion && <p className="text-[11px] text-muted-foreground">{disc.descripcion}</p>}
+                            </div>
+                            {disc.severidad && (
+                              <Badge className={cn("text-[10px]", severidadColor(disc.severidad))}>
+                                {disc.severidad}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-4 text-[11px]">
+                            <div>
+                              <span className="text-muted-foreground">SF: </span>
+                              <span className="font-mono">{disc.valor_actual || "vacío"}</span>
+                            </div>
+                            {disc.valor_documento && (
+                              <div>
+                                <span className="text-muted-foreground">Documento: </span>
+                                <span className="font-mono text-primary">{disc.valor_documento}</span>
+                              </div>
+                            )}
+                          </div>
+                          {disc.fuente && (
+                            <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>
+                          )}
+                          {disc.valor_documento && !disc.valor_actual && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5 text-xs h-7 mt-1"
+                              onClick={() => openFixModal(disc)}
+                            >
+                              <Wrench className="w-3 h-3" />
+                              Corregir en SF
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Historial for this inmueble */}
+              {inmuebleHistorial.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Cambios previos</h3>
+                  <div className="space-y-1">
+                    {inmuebleHistorial.map((h) => (
+                      <div key={h.id} className="flex justify-between text-[11px] py-1 border-b last:border-0">
+                        <div>
+                          <span className="font-medium">{h.campo_corregido}</span>
+                          <span className="text-muted-foreground ml-2">{h.valor_anterior} → {h.valor_nuevo}</span>
+                        </div>
+                        <span className="text-muted-foreground">
+                          {new Date(h.created_at).toLocaleDateString("es-CO", { day: "2-digit", month: "short" })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* ─── Fix Confirmation Modal ─── */}
+      <Dialog open={fixModalOpen} onOpenChange={setFixModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar corrección en Salesforce</DialogTitle>
+            <DialogDescription>
+              Se actualizará el siguiente campo en Salesforce.
+            </DialogDescription>
+          </DialogHeader>
+
+          {fixDiscrepancia && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <label className="text-xs text-muted-foreground">Campo</label>
+                  <p className="font-medium text-foreground">{fixDiscrepancia.campo}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Fuente</label>
+                  <p className="text-foreground">{fixDiscrepancia.fuente || "—"}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Valor actual (SF)</label>
+                <p className="font-mono text-sm text-muted-foreground bg-muted px-2 py-1 rounded mt-1">
+                  {fixDiscrepancia.valor_actual || "vacío"}
+                </p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Valor nuevo (editable)</label>
+                <Input
+                  value={fixValorNuevo}
+                  onChange={(e) => setFixValorNuevo(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Aprobador</label>
+                <p className="text-sm text-foreground">usuario@duppla.co</p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFixModalOpen(false)} disabled={fixingInProgress}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmFix} disabled={fixingInProgress || !fixValorNuevo}>
+              {fixingInProgress && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Confirmar corrección
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
