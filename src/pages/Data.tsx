@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
-  Wrench, Eye, History, LayoutDashboard, FileText, FileX, X
+  Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
+  ShieldAlert, ShieldCheck, Shield
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { KpiCard } from "@/components/predial/KpiCard";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,7 +81,6 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
     return map.get(i.Id)!;
   };
 
-  // Parqueadero / Depósito inconsistencies
   for (const inc of getInconsistencias(inmuebles)) {
     const p = ensure(inc.inmueble);
     for (const campo of inc.camposFaltantes) {
@@ -88,12 +88,11 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         tipo: inc.tipo === "parqueadero" ? "Parqueadero" : "Depósito",
         severidad: "media",
         campo: `${inc.tipo === "parqueadero" ? "Parqueadero" : "Depósito"} — ${campo}`,
-        descripcion: `Campo "${campo}" faltante en ${inc.tipo}. Campos con datos: ${inc.camposPresentes.join(", ")}`,
+        descripcion: `Campo "${campo}" faltante. Campos con datos: ${inc.camposPresentes.join(", ")}`,
       });
     }
   }
 
-  // CTL inconsistencies
   for (const inc of getCtlInconsistencias(inmuebles)) {
     const p = ensure(inc.inmueble);
     const bloqueLabel = inc.bloque === "inmueble" ? "Inmueble" : inc.bloque === "parqueadero" ? "Parqueadero" : "Depósito";
@@ -105,7 +104,6 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
     });
   }
 
-  // Fecha escritura missing
   for (const i of inmuebles) {
     const fecha = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
     if (!fecha) {
@@ -143,6 +141,9 @@ export default function DataPage() {
   const [procesoFilter, setProcesoFilter] = useState("all");
   const [severidadFilter, setSeveridadFilter] = useState("all");
 
+  // Detail modal (problems list)
+  const [detailInmueble, setDetailInmueble] = useState<InmuebleProblema | null>(null);
+
   // AI Analysis
   const [selectedInmueble, setSelectedInmueble] = useState<InmuebleProblema | null>(null);
   const [analisisIA, setAnalisisIA] = useState<AnalisisIA | null>(null);
@@ -179,8 +180,8 @@ export default function DataPage() {
   }, [inmuebles, rawInmuebles]);
 
   /* ─── Filters ─── */
-  const conjuntos = useMemo(() => [...new Set(inmuebles.map((i) => i.nombre_conjunto).filter(Boolean))], [inmuebles]);
-  const procesos = useMemo(() => [...new Set(inmuebles.map((i) => i.proceso).filter(Boolean))], [inmuebles]);
+  const conjuntos = useMemo(() => [...new Set(inmuebles.map((i) => i.nombre_conjunto).filter(Boolean))].sort(), [inmuebles]);
+  const procesos = useMemo(() => [...new Set(inmuebles.map((i) => i.proceso).filter(Boolean))].sort(), [inmuebles]);
 
   const filteredInmuebles = useMemo(() => {
     let result = [...inmuebles];
@@ -224,8 +225,6 @@ export default function DataPage() {
     setAnalisisIA(null);
     setAnalyzingIA(true);
     setSheetOpen(true);
-
-    // Also load historial for this inmueble
     fetchHistorial();
 
     try {
@@ -234,9 +233,7 @@ export default function DataPage() {
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
-
-      const payload = (data as any)?.payload ?? data;
-      setAnalisisIA(payload);
+      setAnalisisIA((data as any)?.payload ?? data);
     } catch (err: any) {
       toast({ title: "Error en análisis IA", description: err.message, variant: "destructive" });
       setSheetOpen(false);
@@ -255,7 +252,6 @@ export default function DataPage() {
   const handleConfirmFix = async () => {
     if (!fixDiscrepancia || !selectedInmueble) return;
     setFixingInProgress(true);
-
     try {
       const payload = {
         codigo_inmueble: selectedInmueble.codigo,
@@ -266,7 +262,6 @@ export default function DataPage() {
         fuente: fixDiscrepancia.fuente,
         aprobador: "usuario@duppla.co",
       };
-
       const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
       if (error) throw new Error(error.message);
       if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
@@ -282,14 +277,9 @@ export default function DataPage() {
       });
 
       toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
-
       if (analisisIA?.discrepancias) {
-        setAnalisisIA({
-          ...analisisIA,
-          discrepancias: analisisIA.discrepancias.filter((d) => d !== fixDiscrepancia),
-        });
+        setAnalisisIA({ ...analisisIA, discrepancias: analisisIA.discrepancias.filter((d) => d !== fixDiscrepancia) });
       }
-
       setFixModalOpen(false);
       fetchHistorial();
     } catch (err: any) {
@@ -299,13 +289,11 @@ export default function DataPage() {
     }
   };
 
-  /* ─── Historial for specific inmueble ─── */
   const inmuebleHistorial = useMemo(() => {
     if (!selectedInmueble?.codigo) return [];
     return historial.filter((h) => h.codigo_inmueble === selectedInmueble.codigo);
   }, [historial, selectedInmueble]);
 
-  /* ─── Filtered historial ─── */
   const filteredHistorial = useMemo(() => {
     let result = [...historial];
     if (historialFilterInmueble) {
@@ -319,7 +307,6 @@ export default function DataPage() {
     return result;
   }, [historial, historialFilterInmueble, historialFilterUsuario]);
 
-  /* ─── Severity badge counts ─── */
   const severityCounts = (discs: Discrepancia[]) => {
     let alta = 0, media = 0, baja = 0;
     discs.forEach((d) => {
@@ -332,311 +319,318 @@ export default function DataPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)]">
-      {/* ─── Side menu ─── */}
-      <aside className="w-52 border-r bg-card flex flex-col shrink-0">
-        <div className="p-4 border-b">
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Database className="w-4 h-4 text-primary" />
-            Data SF
-          </h2>
+    <div className="min-h-screen bg-background flex flex-col">
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-        <nav className="flex-1 p-2 space-y-1">
-          <button
-            onClick={() => setView("general")}
-            className={cn(
-              "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-              view === "general" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            Vista General
-          </button>
-          <button
-            onClick={() => setView("historial")}
-            className={cn(
-              "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-              view === "historial" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <History className="w-4 h-4" />
-            Historial de Cambios
-          </button>
-        </nav>
-      </aside>
-
-      {/* ─── Main content ─── */}
-      <main className="flex-1 overflow-y-auto">
-        {view === "general" && (
-          <div className="p-6 space-y-6">
-            <h1 className="text-xl font-bold text-foreground">Consistencia de Datos SF</h1>
-
-            {/* KPI Cards */}
-            {isLoading ? (
-              <div className="grid grid-cols-5 gap-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-24 rounded-lg" />
-                ))}
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 max-w-7xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <TrendingUp className="w-6 h-6 text-primary" /> Consistencia de Datos SF
+                </h1>
+                <p className="text-muted-foreground text-sm mt-1">Análisis de inconsistencias en Salesforce</p>
               </div>
-            ) : (
-              <div className="grid grid-cols-5 gap-4">
-                <Card>
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-muted-foreground">Analizados</p>
-                    <p className="text-2xl font-bold text-foreground">{kpis.total}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-muted-foreground">Con problemas</p>
-                    <p className="text-2xl font-bold text-foreground">{kpis.conProblemas}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-destructive/10 border-destructive/20">
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-destructive/70">Severidad Alta</p>
-                    <p className="text-2xl font-bold text-destructive">{kpis.alta}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-duppla-orange/10 border-duppla-orange/20">
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-duppla-orange/70">Severidad Media</p>
-                    <p className="text-2xl font-bold text-duppla-orange">{kpis.media}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <p className="text-xs text-muted-foreground">Severidad Baja</p>
-                    <p className="text-2xl font-bold text-muted-foreground">{kpis.baja}</p>
-                  </CardContent>
-                </Card>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={view === "general" ? "default" : "outline"}
+                  className="text-xs gap-1.5"
+                  onClick={() => setView("general")}
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  Vista General
+                </Button>
+                <Button
+                  size="sm"
+                  variant={view === "historial" ? "default" : "outline"}
+                  className="text-xs gap-1.5"
+                  onClick={() => setView("historial")}
+                >
+                  <History className="w-3.5 h-3.5" />
+                  Historial
+                </Button>
               </div>
-            )}
-
-            {/* Filters */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="relative flex-1 min-w-[200px] max-w-xs">
-                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar código, conjunto, dirección…"
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                  className="pl-8 h-9 text-xs"
-                />
-              </div>
-              <Select value={conjuntoFilter} onValueChange={setConjuntoFilter}>
-                <SelectTrigger className="w-48 h-9 text-xs">
-                  <SelectValue placeholder="Conjunto" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los conjuntos</SelectItem>
-                  {conjuntos.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={procesoFilter} onValueChange={setProcesoFilter}>
-                <SelectTrigger className="w-44 h-9 text-xs">
-                  <SelectValue placeholder="Proceso" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los procesos</SelectItem>
-                  {procesos.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={severidadFilter} onValueChange={setSeveridadFilter}>
-                <SelectTrigger className="w-40 h-9 text-xs">
-                  <SelectValue placeholder="Severidad" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="alta">Alta</SelectItem>
-                  <SelectItem value="media">Media</SelectItem>
-                  <SelectItem value="baja">Baja</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
-            {/* Table */}
-            {isLoading ? (
-              <Skeleton className="h-64 rounded-lg" />
-            ) : filteredInmuebles.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
-                  <CheckCircle2 className="w-10 h-10 text-primary" />
-                  <p className="text-sm font-medium text-foreground">Sin inconsistencias encontradas</p>
-                  <p className="text-xs text-muted-foreground">Todos los inmuebles están sincronizados.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Código</TableHead>
-                      <TableHead className="text-xs">Conjunto</TableHead>
-                      <TableHead className="text-xs">Dirección</TableHead>
-                      <TableHead className="text-xs">Proceso</TableHead>
-                      <TableHead className="text-xs text-center">Problemas</TableHead>
-                      <TableHead className="text-xs">Severidad</TableHead>
-                      <TableHead className="text-xs text-right">Acción</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredInmuebles.map((inm) => {
-                      const counts = severityCounts(inm.discrepancias);
-                      return (
-                        <TableRow key={inm.salesforce_id}>
-                          <TableCell className="text-xs font-mono font-medium">{inm.codigo}</TableCell>
-                          <TableCell className="text-xs">{inm.nombre_conjunto || "—"}</TableCell>
-                          <TableCell className="text-xs max-w-[200px] truncate">{inm.direccion || "—"}</TableCell>
-                          <TableCell className="text-xs">{inm.proceso || "—"}</TableCell>
-                          <TableCell className="text-center">
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button className="text-xs font-semibold text-primary underline decoration-dashed underline-offset-2 hover:text-primary/80 cursor-pointer">
+            {view === "general" && (
+              <div className="space-y-6">
+                {/* KPI Cards — same as Prediales */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KpiCard
+                    title="Total Inmuebles"
+                    value={kpis.total}
+                    subtitle="Analizados"
+                    icon={Database}
+                    iconBg="bg-duppla-blue-light"
+                    iconColor="text-duppla-blue"
+                  />
+                  <KpiCard
+                    title="Con Problemas"
+                    value={kpis.conProblemas}
+                    subtitle="Inmuebles con inconsistencias"
+                    icon={AlertTriangle}
+                    iconBg="bg-duppla-orange-light"
+                    iconColor="text-duppla-orange"
+                  />
+                  <KpiCard
+                    title="Severidad Alta"
+                    value={kpis.alta}
+                    subtitle="Discrepancias críticas"
+                    icon={ShieldAlert}
+                    iconBg="bg-duppla-red-light"
+                    iconColor="text-destructive"
+                  />
+                  <KpiCard
+                    title="Severidad Media"
+                    value={kpis.media}
+                    subtitle="Datos parciales"
+                    icon={Shield}
+                    iconBg="bg-duppla-orange-light"
+                    iconColor="text-duppla-orange"
+                  />
+                </div>
+
+                {/* Filters */}
+                <div className="bg-card rounded-lg border p-4">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="relative flex-1 min-w-[200px] max-w-xs">
+                      <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar código, conjunto, dirección…"
+                        value={searchFilter}
+                        onChange={(e) => setSearchFilter(e.target.value)}
+                        className="pl-8 h-9 text-xs"
+                      />
+                    </div>
+                    <Select value={conjuntoFilter} onValueChange={setConjuntoFilter}>
+                      <SelectTrigger className="w-48 h-9 text-xs">
+                        <SelectValue placeholder="Todos los conjuntos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los conjuntos</SelectItem>
+                        {conjuntos.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={procesoFilter} onValueChange={setProcesoFilter}>
+                      <SelectTrigger className="w-44 h-9 text-xs">
+                        <SelectValue placeholder="Todos los procesos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los procesos</SelectItem>
+                        {procesos.map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={severidadFilter} onValueChange={setSeveridadFilter}>
+                      <SelectTrigger className="w-40 h-9 text-xs">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="alta">Alta</SelectItem>
+                        <SelectItem value="media">Media</SelectItem>
+                        <SelectItem value="baja">Baja</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Table */}
+                {filteredInmuebles.length === 0 ? (
+                  <div className="bg-card rounded-xl border p-12 flex flex-col items-center justify-center gap-3">
+                    <CheckCircle2 className="w-10 h-10 text-primary" />
+                    <p className="text-sm font-medium text-foreground">Sin inconsistencias encontradas</p>
+                    <p className="text-xs text-muted-foreground">Todos los inmuebles están sincronizados.</p>
+                  </div>
+                ) : (
+                  <div className="bg-card rounded-xl border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30">
+                          <TableHead className="text-xs font-semibold">Código</TableHead>
+                          <TableHead className="text-xs font-semibold">Conjunto</TableHead>
+                          <TableHead className="text-xs font-semibold">Dirección</TableHead>
+                          <TableHead className="text-xs font-semibold">Proceso</TableHead>
+                          <TableHead className="text-xs font-semibold text-center">Problemas</TableHead>
+                          <TableHead className="text-xs font-semibold">Severidad</TableHead>
+                          <TableHead className="text-xs font-semibold text-right">Acción</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredInmuebles.map((inm) => {
+                          const counts = severityCounts(inm.discrepancias);
+                          return (
+                            <TableRow key={inm.salesforce_id} className="hover:bg-muted/30">
+                              <TableCell className="text-xs font-mono font-medium text-foreground">{inm.codigo}</TableCell>
+                              <TableCell className="text-xs text-foreground">{inm.nombre_conjunto || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{inm.direccion || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{inm.proceso || "—"}</TableCell>
+                              <TableCell className="text-center">
+                                <button
+                                  onClick={() => setDetailInmueble(inm)}
+                                  className="text-xs font-semibold text-primary underline decoration-dashed underline-offset-2 hover:text-primary/80"
+                                >
                                   {inm.discrepancias.length}
                                 </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-80 p-0" align="start">
-                                <div className="px-3 py-2 border-b">
-                                  <p className="text-xs font-semibold text-foreground">{inm.codigo} — {inm.discrepancias.length} problema(s)</p>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1.5">
+                                  {counts.alta > 0 && (
+                                    <span className="inline-flex items-center text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
+                                      {counts.alta} alta
+                                    </span>
+                                  )}
+                                  {counts.media > 0 && (
+                                    <span className="inline-flex items-center text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
+                                      {counts.media} media
+                                    </span>
+                                  )}
+                                  {counts.baja > 0 && (
+                                    <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                                      {counts.baja} baja
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="max-h-60 overflow-y-auto divide-y">
-                                  {inm.discrepancias.map((d, idx) => (
-                                    <div key={idx} className="px-3 py-2 space-y-0.5">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-xs font-medium text-foreground">{d.campo}</span>
-                                        <span className={cn(
-                                          "text-[10px] font-medium px-1.5 py-0 rounded",
-                                          (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                                          (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                                          (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
-                                        )}>
-                                          {d.severidad || "baja"}
-                                        </span>
-                                      </div>
-                                      {d.descripcion && (
-                                        <p className="text-[11px] text-muted-foreground leading-tight">{d.descripcion}</p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1.5">
-                              {counts.alta > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
-                                  {counts.alta} alta
-                                </span>
-                              )}
-                              {counts.media > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
-                                  {counts.media} media
-                                </span>
-                              )}
-                              {counts.baja > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                                  {counts.baja} baja
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1.5 text-xs h-7"
-                              onClick={() => handleAnalizarIA(inm)}
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              Analizar con IA
-                            </Button>
-                          </TableCell>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5 text-xs h-7"
+                                  onClick={() => handleAnalizarIA(inm)}
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  Analizar con IA
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ─── Historial View ─── */}
+            {view === "historial" && (
+              <div className="space-y-6">
+                <div className="bg-card rounded-lg border p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1 max-w-xs">
+                      <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Filtrar por inmueble…"
+                        value={historialFilterInmueble}
+                        onChange={(e) => setHistorialFilterInmueble(e.target.value)}
+                        className="pl-8 h-9 text-xs"
+                      />
+                    </div>
+                    <div className="relative flex-1 max-w-xs">
+                      <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Filtrar por usuario…"
+                        value={historialFilterUsuario}
+                        onChange={(e) => setHistorialFilterUsuario(e.target.value)}
+                        className="pl-8 h-9 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {historialLoading ? (
+                  <Skeleton className="h-64 rounded-lg" />
+                ) : filteredHistorial.length === 0 ? (
+                  <div className="bg-card rounded-xl border p-12 flex flex-col items-center justify-center gap-3">
+                    <History className="w-10 h-10 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">No hay cambios registrados aún.</p>
+                  </div>
+                ) : (
+                  <div className="bg-card rounded-xl border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30">
+                          <TableHead className="text-xs font-semibold">Fecha</TableHead>
+                          <TableHead className="text-xs font-semibold">Inmueble</TableHead>
+                          <TableHead className="text-xs font-semibold">Campo</TableHead>
+                          <TableHead className="text-xs font-semibold">Valor Anterior</TableHead>
+                          <TableHead className="text-xs font-semibold">Valor Nuevo</TableHead>
+                          <TableHead className="text-xs font-semibold">Aprobó</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredHistorial.map((h) => (
+                          <TableRow key={h.id}>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {new Date(h.created_at).toLocaleDateString("es-CO", {
+                                day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                              })}
+                            </TableCell>
+                            <TableCell className="text-xs font-mono font-medium">{h.codigo_inmueble}</TableCell>
+                            <TableCell className="text-xs font-medium">{h.campo_corregido}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{h.valor_anterior || "—"}</TableCell>
+                            <TableCell className="text-xs font-medium text-primary">{h.valor_nuevo || "—"}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{h.aprobado_por}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ─── Historial View ─── */}
-        {view === "historial" && (
-          <div className="p-6 space-y-6">
-            <h1 className="text-xl font-bold text-foreground">Historial de Cambios</h1>
-
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Filtrar por inmueble…"
-                  value={historialFilterInmueble}
-                  onChange={(e) => setHistorialFilterInmueble(e.target.value)}
-                  className="pl-8 h-9 text-xs"
-                />
-              </div>
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Filtrar por usuario…"
-                  value={historialFilterUsuario}
-                  onChange={(e) => setHistorialFilterUsuario(e.target.value)}
-                  className="pl-8 h-9 text-xs"
-                />
-              </div>
+      {/* ─── Problems Detail Modal ─── */}
+      <Dialog open={!!detailInmueble} onOpenChange={(v) => !v && setDetailInmueble(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="w-5 h-5 text-duppla-orange" />
+              Problemas — {detailInmueble?.codigo}
+            </DialogTitle>
+          </DialogHeader>
+          {detailInmueble && (
+            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+              <p className="text-xs text-muted-foreground mb-3">
+                Se encontraron <span className="font-semibold text-foreground">{detailInmueble.discrepancias.length}</span> problema(s) en este inmueble.
+              </p>
+              {detailInmueble.discrepancias.map((d, idx) => (
+                <div
+                  key={idx}
+                  className="border rounded-lg p-4 space-y-1 bg-card"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-foreground">{d.campo}</p>
+                    <span className={cn(
+                      "text-[11px] font-medium px-2 py-0.5 rounded-md",
+                      (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
+                      (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                      (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
+                    )}>
+                      {d.severidad || "baja"} — {d.tipo}
+                    </span>
+                  </div>
+                  {d.descripcion && (
+                    <p className="text-xs text-muted-foreground">{d.descripcion}</p>
+                  )}
+                </div>
+              ))}
             </div>
-
-            {historialLoading ? (
-              <Skeleton className="h-64 rounded-lg" />
-            ) : filteredHistorial.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
-                  <History className="w-10 h-10 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">No hay cambios registrados aún.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Fecha</TableHead>
-                      <TableHead className="text-xs">Inmueble</TableHead>
-                      <TableHead className="text-xs">Campo</TableHead>
-                      <TableHead className="text-xs">Valor Anterior</TableHead>
-                      <TableHead className="text-xs">Valor Nuevo</TableHead>
-                      <TableHead className="text-xs">Aprobó</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredHistorial.map((h) => (
-                      <TableRow key={h.id}>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {new Date(h.created_at).toLocaleDateString("es-CO", {
-                            day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-                          })}
-                        </TableCell>
-                        <TableCell className="text-xs font-mono">{h.codigo_inmueble}</TableCell>
-                        <TableCell className="text-xs font-medium">{h.campo_corregido}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{h.valor_anterior || "—"}</TableCell>
-                        <TableCell className="text-xs font-medium text-primary">{h.valor_nuevo || "—"}</TableCell>
-                        <TableCell className="text-xs">{h.aprobado_por}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
-            )}
-          </div>
-        )}
-      </main>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ─── AI Analysis Sheet ─── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -659,7 +653,6 @@ export default function DataPage() {
 
           {!analyzingIA && analisisIA && (
             <div className="space-y-6 mt-4">
-              {/* SF current data */}
               {analisisIA.datos_actuales_sf && (
                 <div>
                   <h3 className="text-sm font-semibold text-foreground mb-2">Datos actuales en SF</h3>
@@ -667,7 +660,7 @@ export default function DataPage() {
                     {Object.entries(analisisIA.datos_actuales_sf).map(([key, val]) => (
                       <div key={key} className="flex justify-between text-xs">
                         <span className="text-muted-foreground">{key}</span>
-                        <span className={cn("font-mono", !val && "bg-accent/30 px-1 rounded text-accent-foreground")}>
+                        <span className={cn("font-mono", !val && "bg-duppla-orange/10 px-1 rounded text-duppla-orange")}>
                           {val ? String(val) : "vacío"}
                         </span>
                       </div>
@@ -676,7 +669,6 @@ export default function DataPage() {
                 </div>
               )}
 
-              {/* Documents */}
               {(analisisIA.documentos_analizados?.length || analisisIA.documentos_faltantes?.length) ? (
                 <div>
                   <h3 className="text-sm font-semibold text-foreground mb-2">Documentos</h3>
@@ -685,21 +677,20 @@ export default function DataPage() {
                       <div key={i} className="flex items-center gap-2 text-xs">
                         <FileText className="w-3.5 h-3.5 text-primary" />
                         <span className="text-foreground">{doc}</span>
-                        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Analizado</Badge>
+                        <span className="text-[10px] text-primary bg-duppla-green-light px-1.5 py-0.5 rounded">Analizado</span>
                       </div>
                     ))}
                     {analisisIA.documentos_faltantes?.map((doc, i) => (
                       <div key={i} className="flex items-center gap-2 text-xs">
                         <FileX className="w-3.5 h-3.5 text-destructive" />
                         <span className="text-muted-foreground">{doc}</span>
-                        <Badge variant="destructive" className="text-[10px]">Faltante</Badge>
+                        <span className="text-[10px] text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">Faltante</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : null}
 
-              {/* Discrepancies from IA */}
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-2">
                   Discrepancias IA ({analisisIA.discrepancias?.length || 0})
@@ -707,76 +698,72 @@ export default function DataPage() {
                 {!analisisIA.discrepancias?.length ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    Sin discrepancias adicionales detectadas por IA
+                    Sin discrepancias adicionales detectadas
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {analisisIA.discrepancias.map((disc, idx) => (
-                      <Card key={idx} className="border-l-4" style={{
+                      <div key={idx} className="border rounded-lg p-3 space-y-2 bg-card border-l-4" style={{
                         borderLeftColor: (disc.severidad || "").toLowerCase() === "alta"
                           ? "hsl(var(--destructive))"
                           : (disc.severidad || "").toLowerCase() === "media"
-                            ? "hsl(var(--accent))"
+                            ? "hsl(var(--duppla-orange))"
                             : "hsl(var(--muted))"
                       }}>
-                        <CardContent className="p-3 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                              <p className="text-xs font-semibold text-foreground">{disc.campo}</p>
-                              {disc.descripcion && <p className="text-[11px] text-muted-foreground">{disc.descripcion}</p>}
-                            </div>
-                            {disc.severidad && (
-                              <Badge className={cn("text-[10px]", severidadColor(disc.severidad))}>
-                                {disc.severidad}
-                              </Badge>
-                            )}
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-foreground">{disc.campo}</p>
+                            {disc.descripcion && <p className="text-[11px] text-muted-foreground">{disc.descripcion}</p>}
                           </div>
-                          <div className="flex gap-4 text-[11px]">
-                            <div>
-                              <span className="text-muted-foreground">SF: </span>
-                              <span className="font-mono">{disc.valor_actual || "vacío"}</span>
-                            </div>
-                            {disc.valor_documento && (
-                              <div>
-                                <span className="text-muted-foreground">Documento: </span>
-                                <span className="font-mono text-primary">{disc.valor_documento}</span>
-                              </div>
-                            )}
-                          </div>
-                          {disc.fuente && (
-                            <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>
+                          {disc.severidad && (
+                            <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded",
+                              (disc.severidad).toLowerCase() === "alta" && "text-destructive bg-destructive/10",
+                              (disc.severidad).toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                            )}>
+                              {disc.severidad}
+                            </span>
                           )}
+                        </div>
+                        <div className="flex gap-4 text-[11px]">
+                          <div>
+                            <span className="text-muted-foreground">SF: </span>
+                            <span className="font-mono">{disc.valor_actual || "vacío"}</span>
+                          </div>
                           {disc.valor_documento && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1.5 text-xs h-7 mt-1"
-                              onClick={() => openFixModal(disc)}
-                            >
-                              <Wrench className="w-3 h-3" />
-                              Corregir en SF
-                            </Button>
+                            <div>
+                              <span className="text-muted-foreground">Documento: </span>
+                              <span className="font-mono text-primary">{disc.valor_documento}</span>
+                            </div>
                           )}
-                        </CardContent>
-                      </Card>
+                        </div>
+                        {disc.fuente && <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>}
+                        {disc.valor_documento && (
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7 mt-1" onClick={() => openFixModal(disc)}>
+                            <Wrench className="w-3 h-3" /> Corregir en SF
+                          </Button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Local discrepancies for context */}
               {selectedInmueble && (
                 <div>
                   <h3 className="text-sm font-semibold text-foreground mb-2">
-                    Problemas detectados localmente ({selectedInmueble.discrepancias.length})
+                    Problemas locales ({selectedInmueble.discrepancias.length})
                   </h3>
                   <div className="space-y-1">
                     {selectedInmueble.discrepancias.map((d, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b last:border-0">
                         <div className="flex items-center gap-2">
-                          <Badge className={cn("text-[10px] px-1.5", severidadColor(d.severidad || "baja"))}>
+                          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded",
+                            (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
+                            (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                            (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
+                          )}>
                             {d.severidad || "baja"}
-                          </Badge>
+                          </span>
                           <span className="font-medium text-foreground">{d.campo}</span>
                         </div>
                         <span className="text-muted-foreground text-[11px]">{d.tipo}</span>
@@ -786,7 +773,6 @@ export default function DataPage() {
                 </div>
               )}
 
-              {/* Historial for this inmueble */}
               {inmuebleHistorial.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-foreground mb-2">Cambios previos</h3>
@@ -815,11 +801,8 @@ export default function DataPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar corrección en Salesforce</DialogTitle>
-            <DialogDescription>
-              Se actualizará el siguiente campo en Salesforce.
-            </DialogDescription>
+            <DialogDescription>Se actualizará el siguiente campo en Salesforce.</DialogDescription>
           </DialogHeader>
-
           {fixDiscrepancia && (
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -840,11 +823,7 @@ export default function DataPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Valor nuevo (editable)</label>
-                <Input
-                  value={fixValorNuevo}
-                  onChange={(e) => setFixValorNuevo(e.target.value)}
-                  className="mt-1 text-sm"
-                />
+                <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Aprobador</label>
@@ -852,11 +831,8 @@ export default function DataPage() {
               </div>
             </div>
           )}
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFixModalOpen(false)} disabled={fixingInProgress}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setFixModalOpen(false)} disabled={fixingInProgress}>Cancelar</Button>
             <Button onClick={handleConfirmFix} disabled={fixingInProgress || !fixValorNuevo}>
               {fixingInProgress && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Confirmar corrección
