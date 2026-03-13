@@ -53,14 +53,10 @@ export default function DataPage() {
     setAnalyzing(true);
 
     try {
-      const res = await fetch(N8N_ANALISIS, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo_inmueble: inmueble.Name }),
+      const { data, error } = await supabase.functions.invoke("analisis-discrepancias", {
+        body: { codigo_inmueble: inmueble.Name },
       });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const data = await res.json();
-      setRawResponse(data);
+      if (error) throw new Error(error.message);
 
       // Normalize response: could be { discrepancias: [...] } or an array directly
       if (Array.isArray(data)) {
