@@ -6,8 +6,8 @@ export function TopNav() {
   const location = useLocation();
 
   const tabs = [
-    { path: "/", label: "Resumen", icon: BarChart3, match: (p: string) => p === "/" },
-    { path: "/data", label: "Data", icon: Database, match: (p: string) => p === "/data" },
+    { path: "/", label: "Prediales", icon: BarChart3, match: (p: string) => p === "/" },
+    { path: "/data", label: "Data SF", icon: Database, match: (p: string) => p === "/data" },
   ];
 
   return (
