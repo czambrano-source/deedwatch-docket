@@ -7,10 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import type { Inmueble } from "@/types/inmueble";
-
-const N8N_ANALISIS = "https://n8n.duppla.co/webhook/analisis-discrepancias";
-const N8N_FIX = "https://n8n.duppla.co/webhook/fix-discrepancia-sf";
 
 interface Discrepancia {
   campo: string;
@@ -55,13 +53,10 @@ export default function DataPage() {
     setAnalyzing(true);
 
     try {
-      const res = await fetch(N8N_ANALISIS, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo_inmueble: inmueble.Name }),
+      const { data, error } = await supabase.functions.invoke("analisis-discrepancias", {
+        body: { codigo_inmueble: inmueble.Name },
       });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const data = await res.json();
+      if (error) throw new Error(error.message);
       setRawResponse(data);
 
       // Normalize response: could be { discrepancias: [...] } or an array directly
@@ -90,17 +85,14 @@ export default function DataPage() {
     setFixing(key);
 
     try {
-      const res = await fetch(N8N_FIX, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", {
+        body: {
           codigo_inmueble: selectedInmueble.Name,
           salesforce_id: selectedInmueble.Id,
           ...discrepancia,
-        }),
+        },
       });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const data = await res.json();
+      if (error) throw new Error(error.message);
 
       if (data?.status === "updated") {
         toast({ title: "Corregido", description: `Campo "${discrepancia.campo}" actualizado en SF.` });
