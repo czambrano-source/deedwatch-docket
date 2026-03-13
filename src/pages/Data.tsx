@@ -7,10 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import type { Inmueble } from "@/types/inmueble";
-
-const N8N_ANALISIS = "https://n8n.duppla.co/webhook/analisis-discrepancias";
-const N8N_FIX = "https://n8n.duppla.co/webhook/fix-discrepancia-sf";
 
 interface Discrepancia {
   campo: string;
