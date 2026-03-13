@@ -56,6 +56,7 @@ export default function DataPage() {
       const { data, error } = await supabase.functions.invoke("analisis-discrepancias", {
         body: { codigo_inmueble: inmueble.Name },
       });
+      if (error) throw new Error(error.message);
       setRawResponse(data);
 
       // Normalize response: could be { discrepancias: [...] } or an array directly
