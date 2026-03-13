@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -492,7 +493,40 @@ export default function DataPage() {
                           <TableCell className="text-xs">{inm.nombre_conjunto || "—"}</TableCell>
                           <TableCell className="text-xs max-w-[200px] truncate">{inm.direccion || "—"}</TableCell>
                           <TableCell className="text-xs">{inm.proceso || "—"}</TableCell>
-                          <TableCell className="text-xs text-center font-semibold">{inm.discrepancias.length}</TableCell>
+                          <TableCell className="text-center">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="text-xs font-semibold text-primary underline decoration-dashed underline-offset-2 hover:text-primary/80 cursor-pointer">
+                                  {inm.discrepancias.length}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-0" align="start">
+                                <div className="px-3 py-2 border-b">
+                                  <p className="text-xs font-semibold text-foreground">{inm.codigo} — {inm.discrepancias.length} problema(s)</p>
+                                </div>
+                                <div className="max-h-60 overflow-y-auto divide-y">
+                                  {inm.discrepancias.map((d, idx) => (
+                                    <div key={idx} className="px-3 py-2 space-y-0.5">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium text-foreground">{d.campo}</span>
+                                        <span className={cn(
+                                          "text-[10px] font-medium px-1.5 py-0 rounded",
+                                          (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
+                                          (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                                          (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
+                                        )}>
+                                          {d.severidad || "baja"}
+                                        </span>
+                                      </div>
+                                      {d.descripcion && (
+                                        <p className="text-[11px] text-muted-foreground leading-tight">{d.descripcion}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </TableCell>
                           <TableCell>
                             <div className="flex gap-1.5">
                               {counts.alta > 0 && (
