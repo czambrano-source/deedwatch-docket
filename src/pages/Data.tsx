@@ -143,8 +143,9 @@ export default function DataPage() {
   const [procesoFilter, setProcesoFilter] = useState("all");
   const [severidadFilter, setSeveridadFilter] = useState("all");
 
-  // Expanded row
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Problemas sheet
+  const [problemasInmueble, setProblemasInmueble] = useState<InmuebleProblema | null>(null);
+  const [problemasSheetOpen, setProblemasSheetOpen] = useState(false);
 
   // AI Analysis
   const [selectedInmueble, setSelectedInmueble] = useState<InmuebleProblema | null>(null);
