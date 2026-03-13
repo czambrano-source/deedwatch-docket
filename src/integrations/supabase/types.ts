@@ -947,6 +947,7 @@ export type Database = {
           contact_id_duppla: string | null
           contact_id_externo: string
           created_at: string | null
+          desistio_por_falta_de_cuota: boolean | null
           duppla_lo_rechaza: boolean | null
           estado_finalziacion: string | null
           Estado_quien_responde: string | null
@@ -963,6 +964,7 @@ export type Database = {
           se_le_pidio_la_cedula: boolean | null
           se_nego_a_dar_cedula: boolean | null
           solicitamos_bajar_precio: boolean | null
+          solicito_calculo_cuota: boolean | null
           ultima_revision: string | null
           ultimo_paso_finalizado: string | null
         }
@@ -974,6 +976,7 @@ export type Database = {
           contact_id_duppla?: string | null
           contact_id_externo: string
           created_at?: string | null
+          desistio_por_falta_de_cuota?: boolean | null
           duppla_lo_rechaza?: boolean | null
           estado_finalziacion?: string | null
           Estado_quien_responde?: string | null
@@ -990,6 +993,7 @@ export type Database = {
           se_le_pidio_la_cedula?: boolean | null
           se_nego_a_dar_cedula?: boolean | null
           solicitamos_bajar_precio?: boolean | null
+          solicito_calculo_cuota?: boolean | null
           ultima_revision?: string | null
           ultimo_paso_finalizado?: string | null
         }
@@ -1001,6 +1005,7 @@ export type Database = {
           contact_id_duppla?: string | null
           contact_id_externo?: string
           created_at?: string | null
+          desistio_por_falta_de_cuota?: boolean | null
           duppla_lo_rechaza?: boolean | null
           estado_finalziacion?: string | null
           Estado_quien_responde?: string | null
@@ -1017,6 +1022,7 @@ export type Database = {
           se_le_pidio_la_cedula?: boolean | null
           se_nego_a_dar_cedula?: boolean | null
           solicitamos_bajar_precio?: boolean | null
+          solicito_calculo_cuota?: boolean | null
           ultima_revision?: string | null
           ultimo_paso_finalizado?: string | null
         }
