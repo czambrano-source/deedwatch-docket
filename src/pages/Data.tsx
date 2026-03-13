@@ -499,10 +499,21 @@ export default function DataPage() {
                           {/* Expanded detail */}
                           {isExpanded && (
                             <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-3">
-                              {/* Info row */}
-                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                {inm.direccion && <span>📍 {inm.direccion}</span>}
-                                {inm.proceso && <span>• {inm.proceso}</span>}
+                              {/* Info + Action row */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  {inm.direccion && <span>📍 {inm.direccion}</span>}
+                                  {inm.proceso && <span>• {inm.proceso}</span>}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="gap-1.5 text-xs h-8"
+                                  onClick={(e) => { e.stopPropagation(); handleAnalizarIA(inm); }}
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  Analizar con IA
+                                </Button>
                               </div>
                               {/* Problems list */}
                               <div className="space-y-2">
@@ -522,18 +533,6 @@ export default function DataPage() {
                                     {d.descripcion && <p className="text-[11px] text-muted-foreground">{d.descripcion}</p>}
                                   </div>
                                 ))}
-                              </div>
-                              {/* Action */}
-                              <div className="pt-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1.5 text-xs h-7"
-                                  onClick={() => handleAnalizarIA(inm)}
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  Analizar con IA
-                                </Button>
                               </div>
                             </div>
                           )}
