@@ -54,7 +54,11 @@ export default function DataPage() {
 
     try {
       const { data, error } = await supabase.functions.invoke("analisis-discrepancias", {
-        body: { codigo_inmueble: inmueble.Name },
+        body: {
+          codigo_inmueble: inmueble.Id,
+          salesforce_id: inmueble.Id,
+          nombre_inmueble: inmueble.Name,
+        },
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error en análisis");
