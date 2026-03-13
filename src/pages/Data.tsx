@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
-  ShieldAlert, ShieldCheck, Shield
+  ShieldAlert, ShieldCheck, Shield, Building2, ChevronDown, ChevronRight
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -443,7 +443,7 @@ export default function DataPage() {
                   </div>
                 </div>
 
-                {/* Table */}
+                {/* List — Prediales style */}
                 {filteredInmuebles.length === 0 ? (
                   <div className="bg-card rounded-xl border p-12 flex flex-col items-center justify-center gap-3">
                     <CheckCircle2 className="w-10 h-10 text-primary" />
@@ -451,56 +451,80 @@ export default function DataPage() {
                     <p className="text-xs text-muted-foreground">Todos los inmuebles están sincronizados.</p>
                   </div>
                 ) : (
-                  <div className="bg-card rounded-xl border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/30">
-                          <TableHead className="text-xs font-semibold">Código</TableHead>
-                          <TableHead className="text-xs font-semibold">Conjunto</TableHead>
-                          <TableHead className="text-xs font-semibold">Dirección</TableHead>
-                          <TableHead className="text-xs font-semibold">Proceso</TableHead>
-                          <TableHead className="text-xs font-semibold text-center">Problemas</TableHead>
-                          <TableHead className="text-xs font-semibold">Severidad</TableHead>
-                          <TableHead className="text-xs font-semibold text-right">Acción</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredInmuebles.map((inm) => {
-                          const counts = severityCounts(inm.discrepancias);
-                          return (
-                            <TableRow key={inm.salesforce_id} className="hover:bg-muted/30">
-                              <TableCell className="text-xs font-mono font-medium text-foreground">{inm.codigo}</TableCell>
-                              <TableCell className="text-xs text-foreground">{inm.nombre_conjunto || "—"}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{inm.direccion || "—"}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{inm.proceso || "—"}</TableCell>
-                              <TableCell className="text-center">
-                                <button
-                                  onClick={() => setDetailInmueble(inm)}
-                                  className="text-xs font-semibold text-primary underline decoration-dashed underline-offset-2 hover:text-primary/80"
-                                >
-                                  {inm.discrepancias.length}
-                                </button>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-1.5">
-                                  {counts.alta > 0 && (
-                                    <span className="inline-flex items-center text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
-                                      {counts.alta} alta
-                                    </span>
-                                  )}
-                                  {counts.media > 0 && (
-                                    <span className="inline-flex items-center text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
-                                      {counts.media} media
-                                    </span>
-                                  )}
-                                  {counts.baja > 0 && (
-                                    <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
-                                      {counts.baja} baja
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
+                  <div className="bg-card rounded-xl border overflow-hidden divide-y">
+                    {filteredInmuebles.map((inm) => {
+                      const counts = severityCounts(inm.discrepancias);
+                      const isExpanded = detailInmueble?.salesforce_id === inm.salesforce_id;
+                      return (
+                        <div key={inm.salesforce_id}>
+                          {/* Row header */}
+                          <button
+                            onClick={() => setDetailInmueble(isExpanded ? null : inm)}
+                            className={`w-full text-left p-4 transition-colors hover:bg-muted/50 flex items-center gap-3 ${
+                              isExpanded ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"
+                            }`}
+                          >
+                            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {inm.nombre_conjunto || "—"}
+                              </p>
+                            </div>
+                            {/* Severity badges */}
+                            <div className="flex gap-1.5 flex-shrink-0">
+                              {counts.alta > 0 && (
+                                <span className="inline-flex items-center text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
+                                  {counts.alta} alta
+                                </span>
+                              )}
+                              {counts.media > 0 && (
+                                <span className="inline-flex items-center text-[11px] font-medium text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded-md">
+                                  {counts.media} media
+                                </span>
+                              )}
+                              {counts.baja > 0 && (
+                                <span className="inline-flex items-center text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                                  {counts.baja} baja
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-shrink-0 text-muted-foreground">
+                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </div>
+                          </button>
+
+                          {/* Expanded detail */}
+                          {isExpanded && (
+                            <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-3">
+                              {/* Info row */}
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                {inm.direccion && <span>📍 {inm.direccion}</span>}
+                                {inm.proceso && <span>• {inm.proceso}</span>}
+                              </div>
+                              {/* Problems list */}
+                              <div className="space-y-2">
+                                {inm.discrepancias.map((d, idx) => (
+                                  <div key={idx} className="border rounded-lg p-3 bg-card space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-xs font-semibold text-foreground">{d.campo}</p>
+                                      <span className={cn(
+                                        "text-[11px] font-medium px-2 py-0.5 rounded-md",
+                                        (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
+                                        (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                                        (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
+                                      )}>
+                                        {d.severidad || "baja"} — {d.tipo}
+                                      </span>
+                                    </div>
+                                    {d.descripcion && <p className="text-[11px] text-muted-foreground">{d.descripcion}</p>}
+                                  </div>
+                                ))}
+                              </div>
+                              {/* Action */}
+                              <div className="pt-1">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -510,12 +534,12 @@ export default function DataPage() {
                                   <Eye className="w-3.5 h-3.5" />
                                   Analizar con IA
                                 </Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -591,46 +615,6 @@ export default function DataPage() {
           </div>
         </div>
       )}
-
-      {/* ─── Problems Detail Modal ─── */}
-      <Dialog open={!!detailInmueble} onOpenChange={(v) => !v && setDetailInmueble(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="w-5 h-5 text-duppla-orange" />
-              Problemas — {detailInmueble?.codigo}
-            </DialogTitle>
-          </DialogHeader>
-          {detailInmueble && (
-            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-              <p className="text-xs text-muted-foreground mb-3">
-                Se encontraron <span className="font-semibold text-foreground">{detailInmueble.discrepancias.length}</span> problema(s) en este inmueble.
-              </p>
-              {detailInmueble.discrepancias.map((d, idx) => (
-                <div
-                  key={idx}
-                  className="border rounded-lg p-4 space-y-1 bg-card"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground">{d.campo}</p>
-                    <span className={cn(
-                      "text-[11px] font-medium px-2 py-0.5 rounded-md",
-                      (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                      (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                      (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
-                    )}>
-                      {d.severidad || "baja"} — {d.tipo}
-                    </span>
-                  </div>
-                  {d.descripcion && (
-                    <p className="text-xs text-muted-foreground">{d.descripcion}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* ─── AI Analysis Sheet ─── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
