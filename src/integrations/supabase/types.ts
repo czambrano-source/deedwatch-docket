@@ -2546,6 +2546,42 @@ export type Database = {
         }
         Relationships: []
       }
+      historial_cambios_sf: {
+        Row: {
+          aprobado_por: string
+          campo_corregido: string
+          codigo_inmueble: string
+          created_at: string
+          fuente: string | null
+          id: string
+          salesforce_id: string | null
+          valor_anterior: string | null
+          valor_nuevo: string | null
+        }
+        Insert: {
+          aprobado_por: string
+          campo_corregido: string
+          codigo_inmueble: string
+          created_at?: string
+          fuente?: string | null
+          id?: string
+          salesforce_id?: string | null
+          valor_anterior?: string | null
+          valor_nuevo?: string | null
+        }
+        Update: {
+          aprobado_por?: string
+          campo_corregido?: string
+          codigo_inmueble?: string
+          created_at?: string
+          fuente?: string | null
+          id?: string
+          salesforce_id?: string | null
+          valor_anterior?: string | null
+          valor_nuevo?: string | null
+        }
+        Relationships: []
+      }
       humano_logs: {
         Row: {
           conversation_id: string
