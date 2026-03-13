@@ -73,6 +73,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       map.set(i.Id, {
         codigo: i.Name,
         salesforce_id: i.Id,
+        oportunidad: i.Opportunity__r?.Name || "",
         nombre_conjunto: i.Nombre_de_edificio_o_conjunto__c || "",
         direccion: i.Direccion__c || "",
         proceso: i.Proceso_entrega_inmueble__c || "",
