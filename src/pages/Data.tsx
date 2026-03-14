@@ -1376,6 +1376,17 @@ export default function DataPage() {
                       <SelectItem value="No">No</SelectItem>
                     </SelectContent>
                   </Select>
+                ) : isNumericFixField(resolveCampoDiscrepancia(fixDiscrepancia)) ? (
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    value={fixValorNuevo}
+                    onChange={(e) => setFixValorNuevo(e.target.value)}
+                    className="mt-1 text-sm"
+                    placeholder="Solo números"
+                  />
                 ) : (
                   <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
                 )}
