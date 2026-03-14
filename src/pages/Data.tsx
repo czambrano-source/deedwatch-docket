@@ -130,6 +130,7 @@ const severidadColor = (sev: string) => {
   const s = (sev || "").toLowerCase();
   if (s === "alta") return "bg-destructive text-destructive-foreground";
   if (s === "media") return "bg-accent text-accent-foreground";
+  if (s === "normalizacion") return "bg-blue-500/15 text-blue-600";
   return "bg-muted text-muted-foreground";
 };
 
