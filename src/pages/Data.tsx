@@ -159,10 +159,16 @@ export default function DataPage() {
   const [analyzingIA, setAnalyzingIA] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // Normalizar campos
+  const [normalizando, setNormalizando] = useState(false);
+  const [normalizarResult, setNormalizarResult] = useState<any>(null);
+  const [normalizarModalOpen, setNormalizarModalOpen] = useState(false);
+
   // Fix modal
   const [fixModalOpen, setFixModalOpen] = useState(false);
   const [fixDiscrepancia, setFixDiscrepancia] = useState<Discrepancia | null>(null);
   const [fixValorNuevo, setFixValorNuevo] = useState("");
+  const [fixAprobadorEmail, setFixAprobadorEmail] = useState("");
   const [fixingInProgress, setFixingInProgress] = useState(false);
 
   // Historial
