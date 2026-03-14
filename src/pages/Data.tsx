@@ -1029,6 +1029,7 @@ export default function DataPage() {
                                     Normalizar campos
                                   </Button>
                                 </div>
+                                </div>
                               </div>
                             );
                           })()}
