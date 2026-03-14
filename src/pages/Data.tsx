@@ -159,10 +159,16 @@ export default function DataPage() {
   const [analyzingIA, setAnalyzingIA] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // Normalizar campos
+  const [normalizando, setNormalizando] = useState(false);
+  const [normalizarResult, setNormalizarResult] = useState<any>(null);
+  const [normalizarModalOpen, setNormalizarModalOpen] = useState(false);
+
   // Fix modal
   const [fixModalOpen, setFixModalOpen] = useState(false);
   const [fixDiscrepancia, setFixDiscrepancia] = useState<Discrepancia | null>(null);
   const [fixValorNuevo, setFixValorNuevo] = useState("");
+  const [fixAprobadorEmail, setFixAprobadorEmail] = useState("");
   const [fixingInProgress, setFixingInProgress] = useState(false);
 
   // Historial
@@ -294,15 +300,53 @@ export default function DataPage() {
     }
   };
 
+  /* ─── Normalizar campos ─── */
+  const handleNormalizarCampos = async (inm: InmuebleProblema) => {
+    setSelectedInmueble(inm);
+    setNormalizando(true);
+    setNormalizarResult(null);
+    setNormalizarModalOpen(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("normalizar-campos-sf", {
+        body: { codigo_inmueble: inm.codigo, aprobado_por: "usuario@duppla.co" },
+      });
+      if (error) throw new Error(error.message);
+      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
+      const payload = (data as any)?.payload ?? data;
+      setNormalizarResult(payload);
+
+      // Save each change to historial
+      const cambios = payload?.cambios || payload?.changes || [];
+      for (const c of cambios) {
+        await supabase.from("historial_cambios_sf").insert({
+          codigo_inmueble: inm.codigo,
+          salesforce_id: inm.salesforce_id,
+          campo_corregido: c.campo || c.field || "",
+          valor_anterior: c.valor_anterior || c.old_value || null,
+          valor_nuevo: c.valor_nuevo || c.new_value || null,
+          fuente: "Normalización automática",
+          aprobado_por: "usuario@duppla.co",
+        });
+      }
+      if (cambios.length > 0) fetchHistorial();
+    } catch (err: any) {
+      toast({ title: "Error al normalizar", description: err.message, variant: "destructive" });
+      setNormalizarModalOpen(false);
+    } finally {
+      setNormalizando(false);
+    }
+  };
+
   /* ─── Fix flow ─── */
   const openFixModal = (disc: Discrepancia) => {
     setFixDiscrepancia(disc);
     setFixValorNuevo(disc.valor_documento || "");
+    setFixAprobadorEmail("");
     setFixModalOpen(true);
   };
 
   const handleConfirmFix = async () => {
-    if (!fixDiscrepancia || !selectedInmueble) return;
+    if (!fixDiscrepancia || !selectedInmueble || !fixAprobadorEmail) return;
     setFixingInProgress(true);
     try {
       const payload = {
@@ -312,7 +356,7 @@ export default function DataPage() {
         valor_actual: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
-        aprobador: "usuario@duppla.co",
+        aprobador: fixAprobadorEmail,
       };
       const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
       if (error) throw new Error(error.message);
@@ -325,7 +369,7 @@ export default function DataPage() {
         valor_anterior: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
-        aprobado_por: payload.aprobador,
+        aprobado_por: fixAprobadorEmail,
       });
 
       toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
@@ -693,14 +737,25 @@ export default function DataPage() {
                                   );
                                 })()}
 
-                                <Button
-                                  size="sm"
-                                  className="gap-1.5 text-xs h-8 mt-2"
-                                  onClick={() => handleAnalizarIA(inm)}
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  Analizar con IA
-                                </Button>
+                                <div className="flex gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    className="gap-1.5 text-xs h-8"
+                                    onClick={() => handleAnalizarIA(inm)}
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    Analizar con IA
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 text-xs h-8"
+                                    onClick={() => handleNormalizarCampos(inm)}
+                                  >
+                                    <Wrench className="w-3.5 h-3.5" />
+                                    Normalizar campos
+                                  </Button>
+                                </div>
                               </div>
                             );
                           })()}
@@ -1041,17 +1096,87 @@ export default function DataPage() {
                 <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Aprobador</label>
-                <p className="text-sm text-foreground">usuario@duppla.co</p>
+                <label className="text-xs text-muted-foreground">Email del aprobador</label>
+                <Input
+                  type="email"
+                  placeholder="correo@duppla.co"
+                  value={fixAprobadorEmail}
+                  onChange={(e) => setFixAprobadorEmail(e.target.value)}
+                  className="mt-1 text-sm"
+                />
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setFixModalOpen(false)} disabled={fixingInProgress}>Cancelar</Button>
-            <Button onClick={handleConfirmFix} disabled={fixingInProgress || !fixValorNuevo}>
+            <Button onClick={handleConfirmFix} disabled={fixingInProgress || !fixValorNuevo || !fixAprobadorEmail}>
               {fixingInProgress && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Confirmar corrección
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Normalizar Campos Modal ─── */}
+      <Dialog open={normalizarModalOpen} onOpenChange={setNormalizarModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-primary" />
+              Normalizar campos — {selectedInmueble?.codigo}
+            </DialogTitle>
+            <DialogDescription>Limpieza automática de valores basura en Salesforce.</DialogDescription>
+          </DialogHeader>
+
+          {normalizando && (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground text-center">
+                Normalizando campos en SF…<br />
+                <span className="text-xs">Esto puede tardar unos segundos</span>
+              </p>
+            </div>
+          )}
+
+          {!normalizando && normalizarResult && (() => {
+            const cambios = normalizarResult?.cambios || normalizarResult?.changes || [];
+            return (
+              <div className="space-y-4 py-2">
+                {cambios.length === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                    No se encontraron campos para normalizar. Todo está limpio.
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Se normalizaron <span className="font-semibold text-foreground">{cambios.length}</span> campo(s):
+                    </p>
+                    <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+                      {cambios.map((c: any, idx: number) => (
+                        <div key={idx} className="border rounded-lg p-3 bg-muted/30 space-y-1">
+                          <p className="text-xs font-semibold text-foreground">{c.campo || c.field}</p>
+                          <div className="flex gap-4 text-[11px]">
+                            <div>
+                              <span className="text-muted-foreground">Antes: </span>
+                              <span className="font-mono text-destructive">{c.valor_anterior || c.old_value || "vacío"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Ahora: </span>
+                              <span className="font-mono text-primary">{c.valor_nuevo || c.new_value || "—"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNormalizarModalOpen(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
