@@ -579,25 +579,8 @@ export default function DataPage() {
         aprobado_por: fixAprobadorEmail,
       });
 
-      toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado en SF.` });
-      // Remove only the fixed discrepancy, keep the rest
-      if (analisisIA?.discrepancias) {
-        setAnalisisIA({ ...analisisIA, discrepancias: analisisIA.discrepancias.filter((d) => d !== fixDiscrepancia) });
-      }
+      toast({ title: "✅ Corregido", description: `Campo "${campoCorregido}" actualizado a "${fixValorNuevo}". Presiona "Analizar con IA" para ver el estado actualizado.` });
       setFixModalOpen(false);
-      // Refresh inmuebles data in background without closing the panel
-      const currentSelectedId = selectedInmueble?.salesforce_id;
-      await queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
-      // Re-select the inmueble after data refresh to keep panel open
-      if (currentSelectedId) {
-        const refreshedData = queryClient.getQueryData<any[]>(["inmuebles"]);
-        if (refreshedData) {
-          const refreshedInm = refreshedData.find((i: any) => (i.salesforce_id || i.Id) === currentSelectedId);
-          if (refreshedInm && selectedInmueble) {
-            setSelectedInmueble({ ...selectedInmueble, raw: refreshedInm });
-          }
-        }
-      }
       fetchHistorial();
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
