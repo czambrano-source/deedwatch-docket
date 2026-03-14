@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, cache-control, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-};
 
 const PRIMARY_URL =
   Deno.env.get("N8N_ANALISIS_DISCREPANCIAS_URL") ??
