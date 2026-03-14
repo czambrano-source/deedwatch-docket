@@ -564,8 +564,32 @@ export default function DataPage() {
     if (/__c$/i.test(rawCampo)) return rawCampo;
 
     const normalized = normalizeFixText(disc);
+
+    // Depósito booleano (Si/No)
     if (normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip")) {
       return "Deposito__c";
+    }
+
+    // Mapeo por palabras clave en campo + descripción
+    const keywordMap: [string[], string][] = [
+      [["numero", "parqueadero"], "numero_del_parqueadero__c"],
+      [["chip", "parqueadero"], "chip_parqueadero__c"],
+      [["matricula", "parqueadero"], "No_Matricula_Inmo_Parqueadero__c"],
+      [["chip", "deposito"], "chip_deposito__c"],
+      [["matricula", "deposito"], "No_Matricula_Inmo_Deposito__c"],
+      [["chip", "apartamento"], "chip_apartamento__c"],
+      [["matricula", "apartamento"], "Numero_matricula_inmobiliaria__c"],
+      [["matricula", "inmobiliaria"], "Numero_matricula_inmobiliaria__c"],
+      [["fecha", "escritura"], "Fecha_firma_escritura__c"],
+      [["direccion"], "Direccion__c"],
+      [["fiduciaria"], "Fiduciaria__c"],
+      [["municipio"], "Municipio__c"],
+      [["torre"], "Torre__c"],
+      [["numero", "apartamento"], "Numero_de_apartamento__c"],
+    ];
+
+    for (const [keywords, sfField] of keywordMap) {
+      if (keywords.every((kw) => normalized.includes(kw))) return sfField;
     }
 
     return rawCampo || undefined;
