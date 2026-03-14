@@ -1013,6 +1013,7 @@ export default function DataPage() {
                                           )}
                                         </div>
                                       )}
+                                      </div>{/* end scrollable wrapper */}
                                     </div>
                                   )}
                                 </div>
