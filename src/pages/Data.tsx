@@ -785,7 +785,7 @@ export default function DataPage() {
                                 {(() => {
                                   const depIsNo = !sel.Deposito__c || ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
                                   return (
-                                    <div className="bg-card rounded-xl border p-4 space-y-3">
+                                    <div className="bg-card rounded-xl border p-5 space-y-4">
                                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                         <Package className="w-4 h-4 text-primary" /> Información Depósito
                                       </h3>
