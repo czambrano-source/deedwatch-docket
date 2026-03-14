@@ -35,6 +35,12 @@ const CAMPO_ALIASES: Record<string, string[]> = {
   Nombre_de_edificio_o_conjunto__c: ["Nombre_de_edificio_o_conjunto__c", "nombre_de_edificio_o_conjunto__c"],
 };
 
+const NUMERIC_FIELDS = new Set([
+  "Numero_del_parqueadero__c",
+  "numero_del_parqueadero__c",
+  "Parqueadero__c",
+]);
+
 const ALIAS_TO_CANONICAL = Object.entries(CAMPO_ALIASES).reduce<Record<string, string>>((acc, [canonical, aliases]) => {
   for (const alias of aliases) {
     acc[alias.trim().toLowerCase()] = canonical;
