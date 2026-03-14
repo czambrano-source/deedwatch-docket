@@ -658,7 +658,7 @@ export default function DataPage() {
 
                                 {/* Depósito Block */}
                                 {(() => {
-                                  const depIsNo = !!sel.Deposito__c && ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
+                                  const depIsNo = !sel.Deposito__c || ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
                                   return (
                                     <div className="bg-card rounded-xl border p-4 space-y-3">
                                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
@@ -669,15 +669,9 @@ export default function DataPage() {
                                       ) : (
                                         <>
                                           <div className="space-y-1.5">
-                                            {sel.Deposito__c && (
-                                              <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
-                                            )}
-                                            {isValidField(sel.No_Matricula_Inmo_Deposito__c) && (
-                                              <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
-                                            )}
-                                            {isValidField(sel.chip_deposito__c) && (
-                                              <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
-                                            )}
+                                            <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
+                                            <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
+                                            <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
                                           </div>
                                           {showCtlDep && (
                                             <div className="border-t border-border/40 pt-3 mt-1">
