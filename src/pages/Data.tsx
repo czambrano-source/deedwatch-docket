@@ -508,6 +508,7 @@ export default function DataPage() {
       });
 
       toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
+      queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
       if (analisisIA?.discrepancias) {
         setAnalisisIA({ ...analisisIA, discrepancias: analisisIA.discrepancias.filter((d) => d !== fixDiscrepancia) });
       }
