@@ -91,20 +91,27 @@ export function InmuebleDetail({ inmueble, pago, onRegistrarPago }: InmuebleDeta
           <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <DetailItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
-          <DetailItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
-          <DetailItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
-          <DetailItem label="Ciudad Inmueble" value={sel.Ciudad_Inmueble__c} icon={MapPin} />
-          <div />
-          <DetailItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
-          <DetailItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
-          <DetailItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
-          <DetailItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
-          <DetailItem label="Torre" value={sel.Torre__c} icon={Layers} />
-          <div />
-          <DetailItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
-          <DetailItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
-          <DetailItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+          {/* Col 1 */}
+          <div className="space-y-3">
+            <DetailItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
+            <DetailItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
+            <DetailItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
+            <DetailItem label="Ciudad Inmueble" value={sel.Ciudad_Inmueble__c} icon={MapPin} />
+            <DetailItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
+          </div>
+          {/* Col 2 */}
+          <div className="space-y-3">
+            <DetailItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+            <DetailItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
+            <DetailItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
+            <DetailItem label="Torre" value={sel.Torre__c} icon={Layers} />
+          </div>
+          {/* Col 3 */}
+          <div className="space-y-3">
+            <DetailItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={Calendar} />
+            <DetailItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
+            <DetailItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+          </div>
         </div>
         {showCtlInm && (
           <div className="border-t border-border/40 pt-3 mt-1">
