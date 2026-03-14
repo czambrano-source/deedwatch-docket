@@ -955,8 +955,9 @@ export default function DataPage() {
                                                         <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ml-2",
                                                           (disc.severidad).toLowerCase() === "alta" && "text-destructive bg-destructive/10",
                                                           (disc.severidad).toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                                                          (disc.severidad).toLowerCase() === "normalizacion" && "text-blue-600 bg-blue-500/10",
                                                         )}>
-                                                          {disc.severidad}
+                                                          {disc.severidad === "normalizacion" ? "Normalización" : disc.severidad}
                                                         </span>
                                                       )}
                                                     </div>
