@@ -698,7 +698,7 @@ export default function DataPage() {
                             const showCtlDep = isValidField(sel.No_Matricula_Inmo_Deposito__c) || isValidField(sel.chip_deposito__c);
 
                             return (
-                              <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-4">
+                              <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
                                 {/* Inmueble Block */}
                                 <div className="bg-card rounded-xl border p-4 space-y-3">
                                   <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
