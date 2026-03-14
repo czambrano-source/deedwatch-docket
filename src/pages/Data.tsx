@@ -620,7 +620,7 @@ export default function DataPage() {
 
                                 {/* Parqueadero Block */}
                                 {(() => {
-                                  const parqIsNo = sel.Parqueadero__c != null && sel.Parqueadero__c === 0;
+                                  const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
                                     <div className="bg-card rounded-xl border p-4 space-y-3">
                                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
@@ -631,16 +631,10 @@ export default function DataPage() {
                                       ) : (
                                         <>
                                           <div className="space-y-1.5">
-                                            <DItem label="Parqueadero" value={sel.Parqueadero__c != null ? `Sí (${sel.Parqueadero__c})` : undefined} icon={Car} />
-                                            {isValidField(sel.numero_del_parqueadero__c) && (
-                                              <DItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} />
-                                            )}
-                                            {isValidField(sel.No_Matricula_Inmo_Parqueadero__c) && (
-                                              <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
-                                            )}
-                                            {isValidField(sel.chip_parqueadero__c) && (
-                                              <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} />
-                                            )}
+                                            <DItem label="Parqueadero" value={`Sí (${sel.Parqueadero__c})`} icon={Car} />
+                                            <DItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} />
+                                            <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
+                                            <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} />
                                           </div>
                                           {showCtlParq && (
                                             <div className="border-t border-border/40 pt-3 mt-1">
