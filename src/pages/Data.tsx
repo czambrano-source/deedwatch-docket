@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
