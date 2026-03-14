@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const PRIMARY_URL =
   Deno.env.get("N8N_ANALISIS_DISCREPANCIAS_URL") ??
-  "https://n8n.duppla.co/webhook/analisis-discrepancias";
+  "https://n8n.duppla.co/webhook/analisis-discrepancias-ia";
 
 const FALLBACK_URL = PRIMARY_URL.includes("/webhook/")
   ? PRIMARY_URL.replace("/webhook/", "/webhook-test/")
