@@ -985,16 +985,12 @@ export default function DataPage() {
       </Dialog>
 
       {/* ─── AI Analysis Sheet ─── */}
-      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) return; setSheetOpen(open); }} modal={false}>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen} modal={false}>
         <SheetContent className="sm:max-w-xl overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
-          <SheetHeader className="flex flex-row items-center justify-between">
+          <SheetHeader>
             <SheetTitle className="text-base">
               Análisis IA — {selectedInmueble?.codigo}
             </SheetTitle>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSheetOpen(false)}>
-              <span className="sr-only">Cerrar</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </Button>
           </SheetHeader>
 
           {analyzingIA && (
@@ -1104,30 +1100,6 @@ export default function DataPage() {
                 )}
               </div>
 
-              {selectedInmueble && (
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-2">
-                    Problemas locales ({selectedInmueble.discrepancias.length})
-                  </h3>
-                  <div className="space-y-1">
-                    {selectedInmueble.discrepancias.map((d, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b last:border-0">
-                        <div className="flex items-center gap-2">
-                          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded",
-                            (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                            (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                            (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
-                          )}>
-                            {d.severidad || "baja"}
-                          </span>
-                          <span className="font-medium text-foreground">{d.campo}</span>
-                        </div>
-                        <span className="text-muted-foreground text-[11px]">{d.tipo}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {inmuebleHistorial.length > 0 && (
                 <div>
