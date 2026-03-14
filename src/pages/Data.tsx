@@ -950,18 +950,24 @@ export default function DataPage() {
                                             </div>
                                           ) : null}
 
+                                          {(() => {
+                                            const sfId = selectedInmueble?.salesforce_id || "";
+                                            const visibleDiscs = (analisisIA.discrepancias || []).filter(
+                                              d => !dismissedKeys.has(`${sfId}::${d.campo}`)
+                                            );
+                                            return (
                                           <div>
                                             <h4 className="text-xs font-semibold text-foreground mb-2">
-                                              Discrepancias IA ({analisisIA.discrepancias?.length || 0})
+                                              Discrepancias IA ({visibleDiscs.length})
                                             </h4>
-                                            {!analisisIA.discrepancias?.length ? (
+                                            {!visibleDiscs.length ? (
                                               <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
                                                 <CheckCircle2 className="w-4 h-4 text-primary" />
                                                 Sin discrepancias detectadas
                                               </div>
                                             ) : (
                                               <div className="space-y-2">
-                                                {analisisIA.discrepancias.map((disc, idx) => (
+                                                {visibleDiscs.map((disc, idx) => (
                                                   <div key={idx} className="border rounded-lg p-3 space-y-2 bg-background border-l-4" style={{
                                                     borderLeftColor: (disc.severidad || "").toLowerCase() === "alta"
                                                       ? "hsl(var(--destructive))"
@@ -999,16 +1005,24 @@ export default function DataPage() {
                                                       )}
                                                     </div>
                                                     {disc.fuente && <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>}
-                                                    {disc.valor_documento && (
-                                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7 mt-1" onClick={() => openFixModal(disc)}>
-                                                        <Wrench className="w-3 h-3" /> Corregir en SF
+                                                    <div className="flex gap-2 mt-1">
+                                                      {disc.valor_documento && (
+                                                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal(disc)}>
+                                                          <Wrench className="w-3 h-3" /> Corregir en SF
+                                                        </Button>
+                                                      )}
+                                                      <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, disc.campo || `disc-${idx}`)}>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                                        Omitir
                                                       </Button>
-                                                    )}
+                                                    </div>
                                                   </div>
                                                 ))}
                                               </div>
                                             )}
                                           </div>
+                                            );
+                                          })()}
 
                                           {inmuebleHistorial.length > 0 && (
                                             <div>
