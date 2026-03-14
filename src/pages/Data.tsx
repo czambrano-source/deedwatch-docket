@@ -698,15 +698,15 @@ export default function DataPage() {
                             const showCtlDep = isValidField(sel.No_Matricula_Inmo_Deposito__c) || isValidField(sel.chip_deposito__c);
 
                             return (
-                              <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-4 space-y-4">
+                              <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
                                 {/* Inmueble Block */}
-                                <div className="bg-card rounded-xl border p-4 space-y-3">
+                                <div className="bg-card rounded-xl border p-5 space-y-4">
                                   <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                     <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
                                   </h3>
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {/* Col 1 */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                       <DItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
                                       <DItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
                                       <DItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
@@ -714,14 +714,14 @@ export default function DataPage() {
                                       <DItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
                                     </div>
                                     {/* Col 2 */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                       <DItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
                                       <DItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
                                       <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
                                       <DItem label="Torre" value={sel.Torre__c} icon={Layers} />
                                     </div>
                                     {/* Col 3 */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                       <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
                                       <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
                                       <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
@@ -747,7 +747,7 @@ export default function DataPage() {
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
-                                    <div className="bg-card rounded-xl border p-4 space-y-3">
+                                    <div className="bg-card rounded-xl border p-5 space-y-4">
                                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                         <Car className="w-4 h-4 text-primary" /> Información Parqueadero
                                       </h3>
@@ -785,7 +785,7 @@ export default function DataPage() {
                                 {(() => {
                                   const depIsNo = !sel.Deposito__c || ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
                                   return (
-                                    <div className="bg-card rounded-xl border p-4 space-y-3">
+                                    <div className="bg-card rounded-xl border p-5 space-y-4">
                                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                         <Package className="w-4 h-4 text-primary" /> Información Depósito
                                       </h3>
