@@ -27,13 +27,16 @@ function getCtlInconsistencias(inmuebles: Inmueble[]): CtlInconsistencia[] {
       result.push({ inmueble: i, bloque: "inmueble", descripcion: "CTL Inmueble vacío con Matrícula/Chip existente" });
     }
 
-    // Parqueadero
-    if ((isValidField(i.No_Matricula_Inmo_Parqueadero__c) || isValidField(i.chip_parqueadero__c)) && (!i.nombre_ctl_parqueadero__c || !i.nit_ctl_parqueadero__c)) {
+    // Parqueadero — only check CTL if parking exists (>=1)
+    const hasParq = i.Parqueadero__c != null && i.Parqueadero__c >= 1;
+    if (hasParq && (isValidField(i.No_Matricula_Inmo_Parqueadero__c) || isValidField(i.chip_parqueadero__c)) && (!i.nombre_ctl_parqueadero__c || !i.nit_ctl_parqueadero__c)) {
       result.push({ inmueble: i, bloque: "parqueadero", descripcion: "CTL Parqueadero vacío con Matrícula/Chip existente" });
     }
 
-    // Depósito
-    if ((isValidField(i.No_Matricula_Inmo_Deposito__c) || isValidField(i.chip_deposito__c)) && (!i.nombre_ctl_bodega__c || !i.nit_ctl_bodega__c)) {
+    // Depósito — only check CTL if deposit exists
+    const depVal = i.Deposito__c;
+    const hasDep = !!depVal && !["no", "0"].includes(depVal.trim().toLowerCase());
+    if (hasDep && (isValidField(i.No_Matricula_Inmo_Deposito__c) || isValidField(i.chip_deposito__c)) && (!i.nombre_ctl_bodega__c || !i.nit_ctl_bodega__c)) {
       result.push({ inmueble: i, bloque: "deposito", descripcion: "CTL Bodega vacío con Matrícula/Chip existente" });
     }
   }

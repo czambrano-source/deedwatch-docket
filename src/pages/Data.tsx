@@ -229,6 +229,23 @@ export default function DataPage() {
     if (view === "historial") fetchHistorial();
   }, [view]);
 
+  /* ─── Filter AI discrepancias: remove parking/deposit field errors when unit doesn't exist ─── */
+  const filterIrrelevantDiscrepancias = (discrepancias: Discrepancia[], raw: Inmueble): Discrepancia[] => {
+    const noParqueadero = raw.Parqueadero__c == null || raw.Parqueadero__c === 0;
+    const depVal = raw.Deposito__c;
+    const noDeposito = !depVal || ["no", "0"].includes(depVal.trim().toLowerCase());
+
+    const camposParqueadero = ["chip_parqueadero__c", "no_matricula_inmo_parqueadero__c", "numero_del_parqueadero__c"];
+    const camposDeposito = ["chip_deposito__c", "no_matricula_inmo_deposito__c"];
+
+    return discrepancias.filter((d) => {
+      const campo = (d.campo || "").toLowerCase().replace(/\s+/g, "_");
+      if (noParqueadero && camposParqueadero.some((c) => campo.includes(c.replace(/__c$/, "").replace(/^no_/, "")))) return false;
+      if (noDeposito && camposDeposito.some((c) => campo.includes(c.replace(/__c$/, "").replace(/^no_/, "")))) return false;
+      return true;
+    });
+  };
+
   /* ─── AI Analysis ─── */
   const handleAnalizarIA = async (inm: InmuebleProblema) => {
     setSelectedInmueble(inm);
@@ -243,7 +260,32 @@ export default function DataPage() {
       });
       if (error) throw new Error(error.message);
       if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
-      setAnalisisIA((data as any)?.payload ?? data);
+      const payload = (data as any)?.payload ?? data;
+
+      // Filter out irrelevant discrepancias for properties without parking/deposit
+      if (payload?.discrepancias) {
+        payload.discrepancias = filterIrrelevantDiscrepancias(payload.discrepancias, inm.raw);
+
+        // If AI confirms parking >= 1 and numero_del_parqueadero is missing, suggest finding it
+        if (inm.raw.Parqueadero__c != null && inm.raw.Parqueadero__c >= 1 && !inm.raw.numero_del_parqueadero__c) {
+          const alreadyHasNumero = payload.discrepancias.some((d: Discrepancia) =>
+            (d.campo || "").toLowerCase().includes("numero") && (d.campo || "").toLowerCase().includes("parqueadero")
+          );
+          if (!alreadyHasNumero) {
+            payload.discrepancias.push({
+              tipo: "Parqueadero",
+              severidad: "media",
+              campo: "numero_del_parqueadero__c",
+              descripcion: `El inmueble tiene ${inm.raw.Parqueadero__c} parqueadero(s) pero no tiene número asignado. Revise la escritura o documentos para identificar el número.`,
+              valor_actual: "vacío",
+              valor_documento: null,
+              fuente: "Análisis automático",
+            });
+          }
+        }
+      }
+
+      setAnalisisIA(payload);
     } catch (err: any) {
       toast({ title: "Error en análisis IA", description: err.message, variant: "destructive" });
       setSheetOpen(false);
