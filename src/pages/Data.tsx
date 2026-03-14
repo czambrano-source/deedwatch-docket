@@ -976,11 +976,15 @@ export default function DataPage() {
 
       {/* ─── AI Analysis Sheet ─── */}
       <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) return; setSheetOpen(open); }} modal={false}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
-          <SheetHeader>
+        <SheetContent className="sm:max-w-xl overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+          <SheetHeader className="flex flex-row items-center justify-between">
             <SheetTitle className="text-base">
               Análisis IA — {selectedInmueble?.codigo}
             </SheetTitle>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSheetOpen(false)}>
+              <span className="sr-only">Cerrar</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </Button>
           </SheetHeader>
 
           {analyzingIA && (
