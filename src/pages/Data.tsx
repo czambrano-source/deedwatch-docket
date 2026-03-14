@@ -1096,17 +1096,87 @@ export default function DataPage() {
                 <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Aprobador</label>
-                <p className="text-sm text-foreground">usuario@duppla.co</p>
+                <label className="text-xs text-muted-foreground">Email del aprobador</label>
+                <Input
+                  type="email"
+                  placeholder="correo@duppla.co"
+                  value={fixAprobadorEmail}
+                  onChange={(e) => setFixAprobadorEmail(e.target.value)}
+                  className="mt-1 text-sm"
+                />
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setFixModalOpen(false)} disabled={fixingInProgress}>Cancelar</Button>
-            <Button onClick={handleConfirmFix} disabled={fixingInProgress || !fixValorNuevo}>
+            <Button onClick={handleConfirmFix} disabled={fixingInProgress || !fixValorNuevo || !fixAprobadorEmail}>
               {fixingInProgress && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Confirmar corrección
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Normalizar Campos Modal ─── */}
+      <Dialog open={normalizarModalOpen} onOpenChange={setNormalizarModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-primary" />
+              Normalizar campos — {selectedInmueble?.codigo}
+            </DialogTitle>
+            <DialogDescription>Limpieza automática de valores basura en Salesforce.</DialogDescription>
+          </DialogHeader>
+
+          {normalizando && (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground text-center">
+                Normalizando campos en SF…<br />
+                <span className="text-xs">Esto puede tardar unos segundos</span>
+              </p>
+            </div>
+          )}
+
+          {!normalizando && normalizarResult && (() => {
+            const cambios = normalizarResult?.cambios || normalizarResult?.changes || [];
+            return (
+              <div className="space-y-4 py-2">
+                {cambios.length === 0 ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                    No se encontraron campos para normalizar. Todo está limpio.
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Se normalizaron <span className="font-semibold text-foreground">{cambios.length}</span> campo(s):
+                    </p>
+                    <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+                      {cambios.map((c: any, idx: number) => (
+                        <div key={idx} className="border rounded-lg p-3 bg-muted/30 space-y-1">
+                          <p className="text-xs font-semibold text-foreground">{c.campo || c.field}</p>
+                          <div className="flex gap-4 text-[11px]">
+                            <div>
+                              <span className="text-muted-foreground">Antes: </span>
+                              <span className="font-mono text-destructive">{c.valor_anterior || c.old_value || "vacío"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Ahora: </span>
+                              <span className="font-mono text-primary">{c.valor_nuevo || c.new_value || "—"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNormalizarModalOpen(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
