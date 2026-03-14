@@ -748,7 +748,8 @@ export default function DataPage() {
 
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
-                                <div className="space-y-5">
+                                <div className={cn("flex gap-5", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row" : "")}>
+                                  <div className={cn("space-y-5 min-w-0", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "xl:flex-1" : "flex-1")}>
                                 {/* Inmueble Block */}
                                 <div className="bg-card rounded-xl border p-5 space-y-4">
                                   <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
@@ -790,7 +791,7 @@ export default function DataPage() {
                                   )}
                                 </div>
 
-                                <div className={cn("grid gap-4", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 sm:grid-cols-2")}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
@@ -863,9 +864,12 @@ export default function DataPage() {
                                     </div>
                                   );
                                 })()}
-                                {/* IA Analysis inline panel — same grid as parking/deposit */}
-                                {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
-                                    <div className="bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh]">
+                                </div>
+                                </div>
+
+                                  {/* Right: IA Analysis panel */}
+                                  {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
+                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh] self-stretch">
                                       <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                                           <Eye className="w-4 h-4 text-primary" /> Análisis IA
@@ -1006,7 +1010,7 @@ export default function DataPage() {
                                         </div>
                                       )}
                                     </div>
-                                )}
+                                  )}
                                 </div>
                                 <div className="flex gap-2 mt-2">
                                   <Button
@@ -1031,7 +1035,6 @@ export default function DataPage() {
                                     <Wrench className="w-3.5 h-3.5" />
                                     Normalizar campos
                                   </Button>
-                                </div>
                                 </div>
                               </div>
                             );
