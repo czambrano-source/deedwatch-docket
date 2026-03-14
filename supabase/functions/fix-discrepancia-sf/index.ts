@@ -144,11 +144,24 @@ serve(async (req) => {
       );
     }
 
+    let valorNormalizado: unknown;
+    try {
+      valorNormalizado = normalizeValorNuevo(camposToTry[0], body.valor_nuevo);
+    } catch (validationError) {
+      return new Response(
+        JSON.stringify({ ok: false, error: validationError instanceof Error ? validationError.message : "Valor inválido" }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     let lastAttempt: Awaited<ReturnType<typeof callWithFallback>> | null = null;
     let lastCampo = rawCampo;
 
     for (const campo of camposToTry) {
-      const payload = { ...body, campo };
+      const payload = { ...body, campo, valor_nuevo: valorNormalizado };
       const attempt = await callWithFallback(payload);
 
       if (attempt.response.ok) {
