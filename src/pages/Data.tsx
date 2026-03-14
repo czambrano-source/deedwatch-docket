@@ -872,9 +872,8 @@ export default function DataPage() {
 
                                   {/* Right: IA Analysis panel */}
                                   {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
-                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 space-y-5 overflow-y-auto xl:max-h-none flex flex-col">
-                                      <div className="flex-1 overflow-y-auto -mr-2 pr-2">
-                                      <div className="flex items-center justify-between">
+                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 flex flex-col overflow-hidden">
+                                      <div className="flex items-center justify-between flex-shrink-0 mb-4">
                                         <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                                           <Eye className="w-4 h-4 text-primary" /> Análisis IA
                                         </h3>
@@ -882,6 +881,7 @@ export default function DataPage() {
                                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                         </Button>
                                       </div>
+                                      <div className="flex-1 overflow-y-auto -mr-2 pr-2 space-y-5">
 
                                       {analyzingIA && (
                                         <div className="flex flex-col items-center justify-center py-16 gap-4">
