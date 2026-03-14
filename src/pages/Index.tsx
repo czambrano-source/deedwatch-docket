@@ -82,8 +82,9 @@ const Index = () => {
   };
 
   // Helper: check if a field has valid alphanumeric data (not N/A, No tiene, empty, -, SIN_CHIP)
-  const isValidField = (val?: string | null): boolean => {
-    if (!val) return false;
+  const isValidField = (val?: string | number | null): boolean => {
+    if (val == null) return false;
+    if (typeof val !== 'string') return false;
     const normalized = val.trim().toLowerCase();
     return normalized !== "" && normalized !== "n/a" && normalized !== "no tiene" && normalized !== "-" && normalized !== "sin_chip" && normalized !== "sin_matricula";
   };
