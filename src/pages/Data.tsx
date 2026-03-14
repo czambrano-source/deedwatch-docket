@@ -215,8 +215,16 @@ export default function DataPage() {
   }, [inmuebles, rawInmuebles]);
 
   /* ─── Filters ─── */
-  const conjuntos = useMemo(() => [...new Set(inmuebles.map((i) => i.nombre_conjunto).filter(Boolean))].sort(), [inmuebles]);
-  const procesos = useMemo(() => [...new Set(inmuebles.map((i) => i.proceso).filter(Boolean))].sort(), [inmuebles]);
+  const filterCounts = useMemo(() => {
+    const conParqueadero = inmuebles.filter(i => i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0).length;
+    const sinParqueadero = inmuebles.length - conParqueadero;
+    const conDeposito = inmuebles.filter(i => {
+      const d = i.raw.Deposito__c;
+      return d != null && String(d).toLowerCase() !== "no" && String(d) !== "0";
+    }).length;
+    const sinDeposito = inmuebles.length - conDeposito;
+    return { conParqueadero, sinParqueadero, conDeposito, sinDeposito };
+  }, [inmuebles]);
 
   const filteredInmuebles = useMemo(() => {
     let result = [...inmuebles];
@@ -230,15 +238,26 @@ export default function DataPage() {
           i.direccion.toLowerCase().includes(q)
       );
     }
-    if (conjuntoFilter !== "all") result = result.filter((i) => i.nombre_conjunto === conjuntoFilter);
-    if (procesoFilter !== "all") result = result.filter((i) => i.proceso === procesoFilter);
     if (severidadFilter !== "all") {
       result = result.filter((i) =>
         i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
       );
     }
+    if (parqueaderoFilter !== "all") {
+      result = result.filter((i) => {
+        const tiene = i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0;
+        return parqueaderoFilter === "si" ? tiene : !tiene;
+      });
+    }
+    if (depositoFilter !== "all") {
+      result = result.filter((i) => {
+        const d = i.raw.Deposito__c;
+        const tiene = d != null && String(d).toLowerCase() !== "no" && String(d) !== "0";
+        return depositoFilter === "si" ? tiene : !tiene;
+      });
+    }
     return result.sort((a, b) => b.discrepancias.length - a.discrepancias.length);
-  }, [inmuebles, searchFilter, conjuntoFilter, procesoFilter, severidadFilter]);
+  }, [inmuebles, searchFilter, severidadFilter, parqueaderoFilter, depositoFilter]);
 
   /* ─── Load historial ─── */
   const fetchHistorial = async () => {
