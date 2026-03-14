@@ -872,7 +872,7 @@ export default function DataPage() {
 
                                   {/* Right: IA Analysis panel */}
                                   {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
-                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 flex flex-col overflow-hidden">
+                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 flex flex-col overflow-hidden xl:max-h-[calc(100vh-140px)] xl:sticky xl:top-[80px]">
                                       <div className="flex items-center justify-between flex-shrink-0 mb-4">
                                         <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                                           <Eye className="w-4 h-4 text-primary" /> Análisis IA
