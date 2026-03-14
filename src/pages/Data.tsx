@@ -362,6 +362,66 @@ export default function DataPage() {
             });
           }
         }
+
+        // NORMALIZACION: parking/deposit shares chip/matricula with apartment → mark as SIN_CHIP / SIN_MATRICULA
+        const chipApto = (inm.raw.chip_apartamento__c || "").trim();
+        const matApto = (inm.raw.Numero_matricula_inmobiliaria__c || "").trim();
+
+        if (inm.raw.Parqueadero__c != null && inm.raw.Parqueadero__c >= 1) {
+          const chipParq = (inm.raw.chip_parqueadero__c || "").trim();
+          const matParq = (inm.raw.No_Matricula_Inmo_Parqueadero__c || "").trim();
+          if (chipParq && chipApto && chipParq === chipApto && chipParq.toUpperCase() !== "SIN_CHIP") {
+            payload.discrepancias.push({
+              tipo: "Normalización",
+              severidad: "normalizacion",
+              campo: "chip_parqueadero__c",
+              descripcion: "El chip del parqueadero es el mismo que el del apartamento. Esto indica que es compartido y debe marcarse como SIN_CHIP.",
+              valor_actual: chipParq,
+              valor_documento: "SIN_CHIP",
+              fuente: "Validación automática",
+            });
+          }
+          if (matParq && matApto && matParq === matApto && matParq.toUpperCase() !== "SIN_MATRICULA") {
+            payload.discrepancias.push({
+              tipo: "Normalización",
+              severidad: "normalizacion",
+              campo: "No_Matricula_Inmo_Parqueadero__c",
+              descripcion: "La matrícula del parqueadero es la misma que la del apartamento. Esto indica que es compartida y debe marcarse como SIN_MATRICULA.",
+              valor_actual: matParq,
+              valor_documento: "SIN_MATRICULA",
+              fuente: "Validación automática",
+            });
+          }
+        }
+
+        const depVal2 = inm.raw.Deposito__c;
+        const hasDeposit = depVal2 && !["no", "0"].includes(depVal2.trim().toLowerCase());
+        if (hasDeposit) {
+          const chipDep = (inm.raw.chip_deposito__c || "").trim();
+          const matDep = (inm.raw.No_Matricula_Inmo_Deposito__c || "").trim();
+          if (chipDep && chipApto && chipDep === chipApto && chipDep.toUpperCase() !== "SIN_CHIP") {
+            payload.discrepancias.push({
+              tipo: "Normalización",
+              severidad: "normalizacion",
+              campo: "chip_deposito__c",
+              descripcion: "El chip del depósito es el mismo que el del apartamento. Esto indica que es compartido y debe marcarse como SIN_CHIP.",
+              valor_actual: chipDep,
+              valor_documento: "SIN_CHIP",
+              fuente: "Validación automática",
+            });
+          }
+          if (matDep && matApto && matDep === matApto && matDep.toUpperCase() !== "SIN_MATRICULA") {
+            payload.discrepancias.push({
+              tipo: "Normalización",
+              severidad: "normalizacion",
+              campo: "No_Matricula_Inmo_Deposito__c",
+              descripcion: "La matrícula del depósito es la misma que la del apartamento. Esto indica que es compartida y debe marcarse como SIN_MATRICULA.",
+              valor_actual: matDep,
+              valor_documento: "SIN_MATRICULA",
+              fuente: "Validación automática",
+            });
+          }
+        }
       }
 
       setAnalisisIA(payload);
