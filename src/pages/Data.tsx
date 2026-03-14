@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
@@ -137,6 +138,7 @@ const severidadColor = (sev: string) => {
 /* ─── Main Component ─── */
 export default function DataPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: rawInmuebles = [], isLoading } = useInmuebles();
 
   const [view, setView] = useState<"general" | "historial">("general");
@@ -506,6 +508,7 @@ export default function DataPage() {
       });
 
       toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
+      queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
       if (analisisIA?.discrepancias) {
         setAnalisisIA({ ...analisisIA, discrepancias: analisisIA.discrepancias.filter((d) => d !== fixDiscrepancia) });
       }
