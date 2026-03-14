@@ -1238,7 +1238,19 @@ export default function DataPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Valor nuevo (editable)</label>
-                <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
+                {fixDiscrepancia?.campo?.toLowerCase().includes("deposito") && !fixDiscrepancia?.campo?.toLowerCase().includes("matricula") && !fixDiscrepancia?.campo?.toLowerCase().includes("chip") ? (
+                  <Select value={fixValorNuevo} onValueChange={setFixValorNuevo}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Si">Si</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
+                )}
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Email del aprobador</label>
