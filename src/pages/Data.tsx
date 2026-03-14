@@ -320,13 +320,19 @@ export default function DataPage() {
         try {
           const res = await fetch("https://nekswrhqiqzsqlwbsups.supabase.co/functions/v1/analisis-discrepancias", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache, no-store",
+            },
             body: JSON.stringify({ codigo_inmueble: codigo }),
             signal: controller.signal,
+            cache: "no-store",
           });
 
           const json = await res.json().catch(() => null);
-          if (!res.ok) {
+
+          // Check both HTTP status and the ok field from the edge function proxy
+          if (!res.ok || json?.ok === false) {
             const msg = json?.error || json?.message || `n8n respondió ${res.status}`;
             lastError = new Error(msg);
             continue;
