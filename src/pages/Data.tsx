@@ -634,33 +634,21 @@ export default function DataPage() {
                               <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
                               <p className="text-xs text-muted-foreground truncate">{inm.oportunidad || "—"}</p>
                             </div>
-                            {/* Severity badges — clickable to open modal */}
-                            <div className="flex gap-2 flex-shrink-0 items-center">
-                              {counts.alta > 0 && (
-                                <button
-                                  onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }}
-                                  className="inline-flex items-center text-xs font-bold text-destructive bg-destructive/10 px-2.5 py-1 rounded-md hover:bg-destructive/20 transition-colors cursor-pointer"
-                                >
-                                  {counts.alta} alta
-                                </button>
+                            {/* Total problems badge — click to open modal */}
+                            <button
+                              onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md transition-colors cursor-pointer",
+                                counts.alta > 0
+                                  ? "text-destructive bg-destructive/10 hover:bg-destructive/20"
+                                  : counts.media > 0
+                                    ? "text-duppla-orange bg-duppla-orange/10 hover:bg-duppla-orange/20"
+                                    : "text-muted-foreground bg-muted hover:bg-muted/80"
                               )}
-                              {counts.media > 0 && (
-                                <button
-                                  onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }}
-                                  className="inline-flex items-center text-xs font-bold text-duppla-orange bg-duppla-orange/10 px-2.5 py-1 rounded-md hover:bg-duppla-orange/20 transition-colors cursor-pointer"
-                                >
-                                  {counts.media} media
-                                </button>
-                              )}
-                              {counts.baja > 0 && (
-                                <button
-                                  onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }}
-                                  className="inline-flex items-center text-xs font-bold text-muted-foreground bg-muted px-2.5 py-1 rounded-md hover:bg-muted/80 transition-colors cursor-pointer"
-                                >
-                                  {counts.baja} baja
-                                </button>
-                              )}
-                            </div>
+                            >
+                              <AlertTriangle className="w-3 h-3" />
+                              {totalProblems} {totalProblems === 1 ? "problema" : "problemas"}
+                            </button>
                             {/* Chevron to expand inmueble details */}
                             <button
                               onClick={() => setExpandedId(isExpanded ? null : inm.salesforce_id)}
