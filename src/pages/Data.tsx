@@ -789,7 +789,9 @@ export default function DataPage() {
                                   )}
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Parking + Deposit + IA row */}
+                                <div className={cn("flex gap-4 items-start", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row" : "")}>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 min-w-0">
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
@@ -826,7 +828,6 @@ export default function DataPage() {
                                     </div>
                                   );
                                 })()}
-
                                 {(() => {
                                   const depIsNo = !sel.Deposito__c || ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
                                   return (
@@ -862,8 +863,7 @@ export default function DataPage() {
                                     </div>
                                   );
                                 })()}
-                                </div>
-                                </div>
+                                  </div>
 
                                   {/* Right: IA Analysis panel */}
                                   {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
