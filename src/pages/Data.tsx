@@ -700,7 +700,7 @@ export default function DataPage() {
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
                                 {/* Inmueble Block */}
-                                <div className="bg-card rounded-xl border p-4 space-y-3">
+                                <div className="bg-card rounded-xl border p-5 space-y-4">
                                   <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                     <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
                                   </h3>
