@@ -721,7 +721,7 @@ export default function DataPage() {
                                       <DItem label="Torre" value={sel.Torre__c} icon={Layers} />
                                     </div>
                                     {/* Col 3 */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                       <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
                                       <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
                                       <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
