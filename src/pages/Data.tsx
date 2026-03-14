@@ -412,6 +412,9 @@ export default function DataPage() {
           return !v || ["n/a", "no tiene", "-", "sin_chip", "sin_matricula", "0"].includes(v);
         };
 
+        const chipApto = (inm.raw.chip_apartamento__c || "").trim();
+        const matApto = (inm.raw.Numero_matricula_inmobiliaria__c || "").trim();
+
         // PARQUEADERO: detect missing chip/matricula
         if (inm.raw.Parqueadero__c != null && inm.raw.Parqueadero__c >= 1) {
           const chipParq = (inm.raw.chip_parqueadero__c || "").trim();
