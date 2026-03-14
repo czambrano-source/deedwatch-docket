@@ -1238,7 +1238,7 @@ export default function DataPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Valor nuevo (editable)</label>
-                {fixDiscrepancia?.campo?.toLowerCase().includes("deposito") && !fixDiscrepancia?.campo?.toLowerCase().includes("matricula") && !fixDiscrepancia?.campo?.toLowerCase().includes("chip") ? (
+                {fixDiscrepancia?.campo && /dep[oó]sito/i.test(fixDiscrepancia.campo) && !/matricula|chip/i.test(fixDiscrepancia.campo) ? (
                   <Select value={fixValorNuevo} onValueChange={setFixValorNuevo}>
                     <SelectTrigger className="mt-1 text-sm">
                       <SelectValue placeholder="Seleccionar" />
