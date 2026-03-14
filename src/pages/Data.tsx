@@ -300,15 +300,53 @@ export default function DataPage() {
     }
   };
 
+  /* ─── Normalizar campos ─── */
+  const handleNormalizarCampos = async (inm: InmuebleProblema) => {
+    setSelectedInmueble(inm);
+    setNormalizando(true);
+    setNormalizarResult(null);
+    setNormalizarModalOpen(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("normalizar-campos-sf", {
+        body: { codigo_inmueble: inm.codigo, aprobado_por: "usuario@duppla.co" },
+      });
+      if (error) throw new Error(error.message);
+      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
+      const payload = (data as any)?.payload ?? data;
+      setNormalizarResult(payload);
+
+      // Save each change to historial
+      const cambios = payload?.cambios || payload?.changes || [];
+      for (const c of cambios) {
+        await supabase.from("historial_cambios_sf").insert({
+          codigo_inmueble: inm.codigo,
+          salesforce_id: inm.salesforce_id,
+          campo_corregido: c.campo || c.field || "",
+          valor_anterior: c.valor_anterior || c.old_value || null,
+          valor_nuevo: c.valor_nuevo || c.new_value || null,
+          fuente: "Normalización automática",
+          aprobado_por: "usuario@duppla.co",
+        });
+      }
+      if (cambios.length > 0) fetchHistorial();
+    } catch (err: any) {
+      toast({ title: "Error al normalizar", description: err.message, variant: "destructive" });
+      setNormalizarModalOpen(false);
+    } finally {
+      setNormalizando(false);
+    }
+  };
+
   /* ─── Fix flow ─── */
   const openFixModal = (disc: Discrepancia) => {
     setFixDiscrepancia(disc);
     setFixValorNuevo(disc.valor_documento || "");
+    setFixAprobadorEmail("");
     setFixModalOpen(true);
   };
 
   const handleConfirmFix = async () => {
-    if (!fixDiscrepancia || !selectedInmueble) return;
+    if (!fixDiscrepancia || !selectedInmueble || !fixAprobadorEmail) return;
     setFixingInProgress(true);
     try {
       const payload = {
@@ -318,7 +356,7 @@ export default function DataPage() {
         valor_actual: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
-        aprobador: "usuario@duppla.co",
+        aprobador: fixAprobadorEmail,
       };
       const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
       if (error) throw new Error(error.message);
@@ -331,7 +369,7 @@ export default function DataPage() {
         valor_anterior: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
-        aprobado_por: payload.aprobador,
+        aprobado_por: fixAprobadorEmail,
       });
 
       toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
