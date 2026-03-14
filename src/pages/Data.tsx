@@ -318,7 +318,7 @@ export default function DataPage() {
         const timeoutId = setTimeout(() => controller.abort(), 120_000);
 
         try {
-          const res = await fetch("https://n8n.duppla.co/webhook/analisis-discrepancias-ia", {
+          const res = await fetch("https://nekswrhqiqzsqlwbsups.supabase.co/functions/v1/analisis-discrepancias", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ codigo_inmueble: codigo }),
