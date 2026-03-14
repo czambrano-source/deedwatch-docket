@@ -748,6 +748,9 @@ export default function DataPage() {
 
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
+                                <div className={cn("flex gap-5", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row" : "")}>
+                                  {/* Left column: all property info */}
+                                  <div className={cn("space-y-5 min-w-0", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "xl:flex-1" : "flex-1")}>
                                 {/* Inmueble Block */}
                                 <div className="bg-card rounded-xl border p-5 space-y-4">
                                   <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
@@ -789,9 +792,7 @@ export default function DataPage() {
                                   )}
                                 </div>
 
-                                {/* Parking + Deposit + IA row */}
-                                <div className={cn("flex gap-4 items-stretch", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row" : "")}>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 min-w-0">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
@@ -863,6 +864,7 @@ export default function DataPage() {
                                     </div>
                                   );
                                 })()}
+                                  </div>
                                   </div>
 
                                   {/* Right: IA Analysis panel */}
