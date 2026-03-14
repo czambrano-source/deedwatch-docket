@@ -912,23 +912,10 @@ export default function DataPage() {
       <Dialog open={problemasSheetOpen} onOpenChange={(v) => !v && setProblemasSheetOpen(false)}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="w-5 h-5 text-duppla-orange" />
-                Reporte de Problemas — {problemasInmueble?.codigo}
-              </DialogTitle>
-              <Button
-                size="sm"
-                className="gap-1.5 text-xs"
-                onClick={() => {
-                  setProblemasSheetOpen(false);
-                  if (problemasInmueble) handleAnalizarIA(problemasInmueble);
-                }}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                Analizar con IA
-              </Button>
-            </div>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="w-5 h-5 text-duppla-orange" />
+              Reporte de Problemas — {problemasInmueble?.codigo}
+            </DialogTitle>
           </DialogHeader>
 
           {problemasInmueble && (
