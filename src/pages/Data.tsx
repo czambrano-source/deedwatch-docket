@@ -509,9 +509,26 @@ export default function DataPage() {
   };
 
   /* ─── Fix flow ─── */
+  const isDepositoBooleanDiscrepancia = (disc?: Discrepancia | null) => {
+    const normalized = `${disc?.campo || ""} ${disc?.descripcion || ""}`
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip");
+  };
+
   const openFixModal = (disc: Discrepancia) => {
     setFixDiscrepancia(disc);
-    setFixValorNuevo(disc.valor_documento || "");
+
+    if (isDepositoBooleanDiscrepancia(disc)) {
+      const docValue = (disc.valor_documento || "").trim().toLowerCase();
+      const initial = docValue === "si" ? "Si" : docValue === "no" ? "No" : "";
+      setFixValorNuevo(initial);
+    } else {
+      setFixValorNuevo(disc.valor_documento || "");
+    }
+
     setFixAprobadorEmail("");
     setFixModalOpen(true);
   };
