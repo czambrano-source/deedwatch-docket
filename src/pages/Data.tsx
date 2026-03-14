@@ -550,7 +550,6 @@ export default function DataPage() {
   /* ─── Fix flow ─── */
   const NUMERIC_FIX_FIELDS = new Set([
     "numero_del_parqueadero__c",
-    "numero_del_parqueadero__c",
     "parqueadero__c",
   ]);
 
