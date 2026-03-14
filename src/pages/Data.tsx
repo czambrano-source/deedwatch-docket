@@ -130,6 +130,7 @@ const severidadColor = (sev: string) => {
   const s = (sev || "").toLowerCase();
   if (s === "alta") return "bg-destructive text-destructive-foreground";
   if (s === "media") return "bg-accent text-accent-foreground";
+  if (s === "normalizacion") return "bg-blue-500/15 text-blue-600";
   return "bg-muted text-muted-foreground";
 };
 
@@ -358,6 +359,66 @@ export default function DataPage() {
               valor_actual: "vacío",
               valor_documento: null,
               fuente: "Análisis automático",
+            });
+          }
+        }
+
+        // NORMALIZACION: parking/deposit shares chip/matricula with apartment → mark as SIN_CHIP / SIN_MATRICULA
+        const chipApto = (inm.raw.chip_apartamento__c || "").trim();
+        const matApto = (inm.raw.Numero_matricula_inmobiliaria__c || "").trim();
+
+        if (inm.raw.Parqueadero__c != null && inm.raw.Parqueadero__c >= 1) {
+          const chipParq = (inm.raw.chip_parqueadero__c || "").trim();
+          const matParq = (inm.raw.No_Matricula_Inmo_Parqueadero__c || "").trim();
+          if (chipParq && chipApto && chipParq === chipApto && chipParq.toUpperCase() !== "SIN_CHIP") {
+            payload.discrepancias.push({
+              tipo: "Normalización",
+              severidad: "normalizacion",
+              campo: "chip_parqueadero__c",
+              descripcion: "El chip del parqueadero es el mismo que el del apartamento. Esto indica que es compartido y debe marcarse como SIN_CHIP.",
+              valor_actual: chipParq,
+              valor_documento: "SIN_CHIP",
+              fuente: "Validación automática",
+            });
+          }
+          if (matParq && matApto && matParq === matApto && matParq.toUpperCase() !== "SIN_MATRICULA") {
+            payload.discrepancias.push({
+              tipo: "Normalización",
+              severidad: "normalizacion",
+              campo: "No_Matricula_Inmo_Parqueadero__c",
+              descripcion: "La matrícula del parqueadero es la misma que la del apartamento. Esto indica que es compartida y debe marcarse como SIN_MATRICULA.",
+              valor_actual: matParq,
+              valor_documento: "SIN_MATRICULA",
+              fuente: "Validación automática",
+            });
+          }
+        }
+
+        const depVal2 = inm.raw.Deposito__c;
+        const hasDeposit = depVal2 && !["no", "0"].includes(depVal2.trim().toLowerCase());
+        if (hasDeposit) {
+          const chipDep = (inm.raw.chip_deposito__c || "").trim();
+          const matDep = (inm.raw.No_Matricula_Inmo_Deposito__c || "").trim();
+          if (chipDep && chipApto && chipDep === chipApto && chipDep.toUpperCase() !== "SIN_CHIP") {
+            payload.discrepancias.push({
+              tipo: "Normalización",
+              severidad: "normalizacion",
+              campo: "chip_deposito__c",
+              descripcion: "El chip del depósito es el mismo que el del apartamento. Esto indica que es compartido y debe marcarse como SIN_CHIP.",
+              valor_actual: chipDep,
+              valor_documento: "SIN_CHIP",
+              fuente: "Validación automática",
+            });
+          }
+          if (matDep && matApto && matDep === matApto && matDep.toUpperCase() !== "SIN_MATRICULA") {
+            payload.discrepancias.push({
+              tipo: "Normalización",
+              severidad: "normalizacion",
+              campo: "No_Matricula_Inmo_Deposito__c",
+              descripcion: "La matrícula del depósito es la misma que la del apartamento. Esto indica que es compartida y debe marcarse como SIN_MATRICULA.",
+              valor_actual: matDep,
+              valor_documento: "SIN_MATRICULA",
+              fuente: "Validación automática",
             });
           }
         }
@@ -687,9 +748,7 @@ export default function DataPage() {
 
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
-                                <div className={cn("flex gap-5", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row" : "")}>
-                                  {/* Left: Inmueble detail */}
-                                  <div className={cn("space-y-5 min-w-0", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "xl:flex-1" : "flex-1")}>
+                                <div className="space-y-5">
                                 {/* Inmueble Block */}
                                 <div className="bg-card rounded-xl border p-5 space-y-4">
                                   <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
@@ -731,7 +790,7 @@ export default function DataPage() {
                                   )}
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className={cn("grid gap-4", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 sm:grid-cols-2")}>
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
@@ -804,36 +863,9 @@ export default function DataPage() {
                                     </div>
                                   );
                                 })()}
-                                </div>
-                                <div className="flex gap-2 mt-2">
-                                  <Button
-                                    size="sm"
-                                    className="gap-1.5 text-xs h-8"
-                                    onClick={() => handleAnalizarIA(inm)}
-                                    disabled={analyzingIA}
-                                  >
-                                    {analyzingIA && selectedInmueble?.salesforce_id === inm.salesforce_id ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                      <Eye className="w-3.5 h-3.5" />
-                                    )}
-                                    Analizar con IA
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1.5 text-xs h-8"
-                                    onClick={() => handleNormalizarCampos(inm)}
-                                  >
-                                    <Wrench className="w-3.5 h-3.5" />
-                                    Normalizar campos
-                                  </Button>
-                                </div>
-                                  </div>
-
-                                  {/* Right: IA Analysis inline panel */}
-                                  {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
-                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh] sticky top-4">
+                                {/* IA Analysis inline panel — same grid as parking/deposit */}
+                                {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
+                                    <div className="bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh]">
                                       <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                                           <Eye className="w-4 h-4 text-primary" /> Análisis IA
@@ -910,7 +942,9 @@ export default function DataPage() {
                                                       ? "hsl(var(--destructive))"
                                                       : (disc.severidad || "").toLowerCase() === "media"
                                                         ? "hsl(var(--duppla-orange))"
-                                                        : "hsl(var(--muted))"
+                                                        : (disc.severidad || "").toLowerCase() === "normalizacion"
+                                                          ? "#3b82f6"
+                                                          : "hsl(var(--muted))"
                                                   }}>
                                                     <div className="flex items-start justify-between">
                                                       <div className="space-y-1 min-w-0">
@@ -921,8 +955,9 @@ export default function DataPage() {
                                                         <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ml-2",
                                                           (disc.severidad).toLowerCase() === "alta" && "text-destructive bg-destructive/10",
                                                           (disc.severidad).toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                                                          (disc.severidad).toLowerCase() === "normalizacion" && "text-blue-600 bg-blue-500/10",
                                                         )}>
-                                                          {disc.severidad}
+                                                          {disc.severidad === "normalizacion" ? "Normalización" : disc.severidad}
                                                         </span>
                                                       )}
                                                     </div>
@@ -971,7 +1006,32 @@ export default function DataPage() {
                                         </div>
                                       )}
                                     </div>
-                                  )}
+                                )}
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    className="gap-1.5 text-xs h-8"
+                                    onClick={() => handleAnalizarIA(inm)}
+                                    disabled={analyzingIA}
+                                  >
+                                    {analyzingIA && selectedInmueble?.salesforce_id === inm.salesforce_id ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
+                                    Analizar con IA
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 text-xs h-8"
+                                    onClick={() => handleNormalizarCampos(inm)}
+                                  >
+                                    <Wrench className="w-3.5 h-3.5" />
+                                    Normalizar campos
+                                  </Button>
+                                </div>
                                 </div>
                               </div>
                             );
