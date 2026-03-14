@@ -90,7 +90,7 @@ export function InmuebleDetail({ inmueble, pago, onRegistrarPago }: InmuebleDeta
         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
           <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Col 1 */}
           <div className="space-y-3">
             <DetailItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
