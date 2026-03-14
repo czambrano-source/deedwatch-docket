@@ -315,7 +315,7 @@ export default function DataPage() {
 
       for (const codigo of candidateCodigos) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120_000);
+        const timeoutId = setTimeout(() => controller.abort(), 180_000);
 
         try {
           const res = await fetch("https://nekswrhqiqzsqlwbsups.supabase.co/functions/v1/analisis-discrepancias", {
