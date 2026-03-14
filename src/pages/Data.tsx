@@ -145,9 +145,9 @@ export default function DataPage() {
 
   // Filters
   const [searchFilter, setSearchFilter] = useState("");
-  const [conjuntoFilter, setConjuntoFilter] = useState("all");
-  const [procesoFilter, setProcesoFilter] = useState("all");
   const [severidadFilter, setSeveridadFilter] = useState("all");
+  const [parqueaderoFilter, setParqueaderoFilter] = useState<"all" | "si" | "no">("all");
+  const [depositoFilter, setDepositoFilter] = useState<"all" | "si" | "no">("all");
 
   // Problemas sheet
   const [problemasInmueble, setProblemasInmueble] = useState<InmuebleProblema | null>(null);
