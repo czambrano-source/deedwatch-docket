@@ -509,13 +509,27 @@ export default function DataPage() {
   };
 
   /* ─── Fix flow ─── */
-  const isDepositoBooleanDiscrepancia = (disc?: Discrepancia | null) => {
-    const normalized = `${disc?.campo || ""} ${disc?.descripcion || ""}`
+  const normalizeFixText = (disc?: Discrepancia | null) =>
+    `${disc?.campo || ""} ${disc?.descripcion || ""}`
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
 
+  const isDepositoBooleanDiscrepancia = (disc?: Discrepancia | null) => {
+    const normalized = normalizeFixText(disc);
     return normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip");
+  };
+
+  const resolveCampoDiscrepancia = (disc?: Discrepancia | null) => {
+    const rawCampo = (disc?.campo || "").trim();
+    if (/__c$/i.test(rawCampo)) return rawCampo;
+
+    const normalized = normalizeFixText(disc);
+    if (normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip")) {
+      return "Deposito__c";
+    }
+
+    return rawCampo || undefined;
   };
 
   const openFixModal = (disc: Discrepancia) => {
@@ -535,12 +549,19 @@ export default function DataPage() {
 
   const handleConfirmFix = async () => {
     if (!fixDiscrepancia || !selectedInmueble || !fixAprobadorEmail) return;
+
+    const campoCorregido = resolveCampoDiscrepancia(fixDiscrepancia);
+    if (!campoCorregido) {
+      toast({ title: "Error al corregir", description: "No se pudo identificar el campo de Salesforce.", variant: "destructive" });
+      return;
+    }
+
     setFixingInProgress(true);
     try {
       const payload = {
         codigo_inmueble: selectedInmueble.codigo,
         salesforce_id: selectedInmueble.salesforce_id,
-        campo: fixDiscrepancia.campo,
+        campo: campoCorregido,
         valor_actual: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
