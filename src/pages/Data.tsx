@@ -265,7 +265,6 @@ export default function DataPage() {
         inm.raw?.Codigo_inmueble__c,
         inm.raw?.codigo_inmueble,
         inm.raw?.Codigo_Inmueble__c,
-        inm.salesforce_id,
         inm.codigo,
       ]
         .map((v) => (typeof v === "string" ? v.trim() : ""))
@@ -294,7 +293,43 @@ export default function DataPage() {
             continue;
           }
 
-          payload = (json ?? {}) as AnalisisIA;
+          const base = (json?.payload ?? json) as Record<string, any> | null;
+          const baseIsObject = !!base && typeof base === "object";
+          const rawOnlyEmpty =
+            baseIsObject &&
+            Object.keys(base).length === 1 &&
+            Object.prototype.hasOwnProperty.call(base, "raw") &&
+            String(base.raw ?? "").trim() === "";
+
+          if (!baseIsObject || rawOnlyEmpty) {
+            lastError = new Error(`Respuesta vacía del análisis IA para ${codigo}`);
+            continue;
+          }
+
+          payload = {
+            ...base,
+            discrepancias: Array.isArray(base.discrepancias)
+              ? base.discrepancias
+              : Array.isArray(base.resultado?.discrepancias)
+                ? base.resultado.discrepancias
+                : Array.isArray(base.data?.discrepancias)
+                  ? base.data.discrepancias
+                  : [],
+            documentos_analizados: Array.isArray(base.documentos_analizados)
+              ? base.documentos_analizados
+              : Array.isArray(base.resultado?.documentos_analizados)
+                ? base.resultado.documentos_analizados
+                : Array.isArray(base.data?.documentos_analizados)
+                  ? base.data.documentos_analizados
+                  : [],
+            documentos_faltantes: Array.isArray(base.documentos_faltantes)
+              ? base.documentos_faltantes
+              : Array.isArray(base.resultado?.documentos_faltantes)
+                ? base.resultado.documentos_faltantes
+                : Array.isArray(base.data?.documentos_faltantes)
+                  ? base.data.documentos_faltantes
+                  : [],
+          };
           break;
         } finally {
           clearTimeout(timeoutId);
