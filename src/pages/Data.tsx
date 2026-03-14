@@ -737,14 +737,25 @@ export default function DataPage() {
                                   );
                                 })()}
 
-                                <Button
-                                  size="sm"
-                                  className="gap-1.5 text-xs h-8 mt-2"
-                                  onClick={() => handleAnalizarIA(inm)}
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  Analizar con IA
-                                </Button>
+                                <div className="flex gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    className="gap-1.5 text-xs h-8"
+                                    onClick={() => handleAnalizarIA(inm)}
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    Analizar con IA
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 text-xs h-8"
+                                    onClick={() => handleNormalizarCampos(inm)}
+                                  >
+                                    <Wrench className="w-3.5 h-3.5" />
+                                    Normalizar campos
+                                  </Button>
+                                </div>
                               </div>
                             );
                           })()}
