@@ -651,10 +651,13 @@ export default function DataPage() {
 
     setFixingInProgress(true);
     try {
+      const valorNormalizado = normalizeFixValor(campoCorregido, fixValorNuevo);
+      const valorNormalizadoTexto = String(valorNormalizado);
+
       const payload = {
         inmueble_id: selectedInmueble.salesforce_id,
         campo: campoCorregido,
-        valor_nuevo: fixValorNuevo,
+        valor_nuevo: valorNormalizado,
         fuente: fixDiscrepancia.fuente || "Escritura",
         aprobado_por: fixAprobadorEmail,
       };
@@ -667,12 +670,12 @@ export default function DataPage() {
         salesforce_id: selectedInmueble.salesforce_id,
         campo_corregido: campoCorregido,
         valor_anterior: fixDiscrepancia.valor_actual,
-        valor_nuevo: fixValorNuevo,
+        valor_nuevo: valorNormalizadoTexto,
         fuente: fixDiscrepancia.fuente,
         aprobado_por: fixAprobadorEmail,
       });
 
-      toast({ title: "✅ Corregido", description: `Campo "${campoCorregido}" actualizado a "${fixValorNuevo}". Presiona "Analizar con IA" para ver el estado actualizado.` });
+      toast({ title: "✅ Corregido", description: `Campo "${campoCorregido}" actualizado a "${valorNormalizadoTexto}". Presiona "Analizar con IA" para ver el estado actualizado.` });
       setFixModalOpen(false);
       fetchHistorial();
     } catch (err: any) {
