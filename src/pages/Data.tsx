@@ -706,17 +706,19 @@ export default function DataPage() {
                                   </h3>
                                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
                                     <DItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
-                                    <DItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
                                     <DItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
-                                    <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
                                     <DItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
-                                    <DItem label="Torre" value={sel.Torre__c} icon={Layers} />
                                     <DItem label="Ciudad Inmueble" value={sel.Ciudad_Inmueble__c} icon={MapPin} />
-                                    <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
+                                    <div />
                                     <DItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
-                                    <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
                                     <DItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+                                    <DItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
+                                    <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
+                                    <DItem label="Torre" value={sel.Torre__c} icon={Layers} />
+                                    <div />
                                     <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
+                                    <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
+                                    <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
                                   </div>
                                   {showCtlInm && (
                                     <div className="border-t border-border/40 pt-3 mt-1">
