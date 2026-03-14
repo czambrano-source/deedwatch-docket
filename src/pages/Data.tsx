@@ -675,37 +675,35 @@ export default function DataPage() {
                         className="pl-8 h-9 text-xs"
                       />
                     </div>
-                    <Select value={conjuntoFilter} onValueChange={setConjuntoFilter}>
-                      <SelectTrigger className="w-48 h-9 text-xs">
-                        <SelectValue placeholder="Todos los conjuntos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los conjuntos</SelectItem>
-                        {conjuntos.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={procesoFilter} onValueChange={setProcesoFilter}>
-                      <SelectTrigger className="w-44 h-9 text-xs">
-                        <SelectValue placeholder="Todos los procesos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los procesos</SelectItem>
-                        {procesos.map((p) => (
-                          <SelectItem key={p} value={p}>{p}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Select value={severidadFilter} onValueChange={setSeveridadFilter}>
                       <SelectTrigger className="w-40 h-9 text-xs">
-                        <SelectValue placeholder="Todas" />
+                        <SelectValue placeholder="Prioridad" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="all">Prioridad</SelectItem>
                         <SelectItem value="alta">Alta</SelectItem>
                         <SelectItem value="media">Media</SelectItem>
                         <SelectItem value="baja">Baja</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={parqueaderoFilter} onValueChange={(v) => setParqueaderoFilter(v as any)}>
+                      <SelectTrigger className="w-52 h-9 text-xs">
+                        <SelectValue placeholder="Parqueadero" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Parqueadero — Todos</SelectItem>
+                        <SelectItem value="si">Con parqueadero ({filterCounts.conParqueadero})</SelectItem>
+                        <SelectItem value="no">Sin parqueadero ({filterCounts.sinParqueadero})</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={depositoFilter} onValueChange={(v) => setDepositoFilter(v as any)}>
+                      <SelectTrigger className="w-48 h-9 text-xs">
+                        <SelectValue placeholder="Depósito" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Depósito — Todos</SelectItem>
+                        <SelectItem value="si">Con depósito ({filterCounts.conDeposito})</SelectItem>
+                        <SelectItem value="no">Sin depósito ({filterCounts.sinDeposito})</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
