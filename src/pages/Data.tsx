@@ -743,6 +743,7 @@ export default function DataPage() {
                                   )}
                                 </div>
 
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Parqueadero Block */}
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
@@ -817,7 +818,7 @@ export default function DataPage() {
                                     </div>
                                   );
                                 })()}
-
+                                </div>
                                 <div className="flex gap-2 mt-2">
                                   <Button
                                     size="sm"
