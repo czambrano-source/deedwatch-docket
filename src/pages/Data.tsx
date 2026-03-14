@@ -864,9 +864,12 @@ export default function DataPage() {
                                     </div>
                                   );
                                 })()}
-                                {/* IA Analysis inline panel — same grid as parking/deposit */}
-                                {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
-                                    <div className="bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh]">
+                                </div>
+                                </div>
+
+                                  {/* Right: IA Analysis panel */}
+                                  {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
+                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh] self-stretch">
                                       <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                                           <Eye className="w-4 h-4 text-primary" /> Análisis IA
