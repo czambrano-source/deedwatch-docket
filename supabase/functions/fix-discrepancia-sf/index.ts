@@ -69,6 +69,19 @@ function resolveCampoCandidates(rawCampo: string): string[] {
   return [];
 }
 
+function normalizeValorNuevo(campo: string, valorNuevo: unknown) {
+  if (!NUMERIC_FIELDS.has(campo)) {
+    return valorNuevo;
+  }
+
+  const raw = String(valorNuevo ?? "").trim();
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(`El campo "${campo}" solo acepta números (ej: 56).`);
+  }
+
+  return Number(raw);
+}
+
 async function callN8n(url: string, payload: unknown) {
   const response = await fetch(url, {
     method: "POST",
