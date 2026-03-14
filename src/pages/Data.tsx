@@ -790,7 +790,7 @@ export default function DataPage() {
                                 </div>
 
                                 {/* Parking + Deposit + IA row */}
-                                <div className={cn("flex gap-4 items-start", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row" : "")}>
+                                <div className={cn("flex gap-4 items-stretch", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row" : "")}>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 min-w-0">
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
