@@ -264,7 +264,7 @@ export default function DataPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120_000);
 
-      const res = await fetch("https://n8n.duppla.co/webhook/Check-Escritura-Antecendente", {
+      const res = await fetch("https://n8n.duppla.co/webhook/analisis-discrepancias-ia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ codigo_inmueble: inm.codigo }),
