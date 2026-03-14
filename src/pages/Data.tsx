@@ -747,7 +747,7 @@ export default function DataPage() {
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
-                                    <div className="bg-card rounded-xl border p-4 space-y-3">
+                                    <div className="bg-card rounded-xl border p-5 space-y-4">
                                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                         <Car className="w-4 h-4 text-primary" /> Información Parqueadero
                                       </h3>
