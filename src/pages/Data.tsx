@@ -559,13 +559,11 @@ export default function DataPage() {
     setFixingInProgress(true);
     try {
       const payload = {
-        codigo_inmueble: selectedInmueble.codigo,
-        salesforce_id: selectedInmueble.salesforce_id,
+        inmueble_id: selectedInmueble.salesforce_id,
         campo: campoCorregido,
-        valor_actual: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
-        fuente: fixDiscrepancia.fuente,
-        aprobador: fixAprobadorEmail,
+        fuente: fixDiscrepancia.fuente || "Escritura",
+        aprobado_por: fixAprobadorEmail,
       };
       const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
       if (error) throw new Error(error.message);
