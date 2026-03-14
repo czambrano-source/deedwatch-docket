@@ -505,7 +505,7 @@ const Index = () => {
                         <DItem label="Parqueadero" value="No" icon={Car} />
                       ) : (
                         <>
-                          <div className="flex gap-4 items-center">
+                          <div className="flex gap-4 items-start">
                             <div className="flex-1 space-y-1.5">
                               <DItem label="Parqueadero" value={`Sí (${selected.Parqueadero__c})`} icon={Car} />
                               <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
