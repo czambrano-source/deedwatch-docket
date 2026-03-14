@@ -865,36 +865,9 @@ export default function DataPage() {
                                     </div>
                                   );
                                 })()}
-                                </div>
-                                <div className="flex gap-2 mt-2">
-                                  <Button
-                                    size="sm"
-                                    className="gap-1.5 text-xs h-8"
-                                    onClick={() => handleAnalizarIA(inm)}
-                                    disabled={analyzingIA}
-                                  >
-                                    {analyzingIA && selectedInmueble?.salesforce_id === inm.salesforce_id ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                      <Eye className="w-3.5 h-3.5" />
-                                    )}
-                                    Analizar con IA
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1.5 text-xs h-8"
-                                    onClick={() => handleNormalizarCampos(inm)}
-                                  >
-                                    <Wrench className="w-3.5 h-3.5" />
-                                    Normalizar campos
-                                  </Button>
-                                </div>
-                                  </div>
-
-                                  {/* Right: IA Analysis inline panel */}
-                                  {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
-                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh] sticky top-4">
+                                {/* IA Analysis inline panel — same grid as parking/deposit */}
+                                {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
+                                    <div className="bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh]">
                                       <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                                           <Eye className="w-4 h-4 text-primary" /> Análisis IA
