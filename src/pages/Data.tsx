@@ -145,9 +145,9 @@ export default function DataPage() {
 
   // Filters
   const [searchFilter, setSearchFilter] = useState("");
-  const [conjuntoFilter, setConjuntoFilter] = useState("all");
-  const [procesoFilter, setProcesoFilter] = useState("all");
   const [severidadFilter, setSeveridadFilter] = useState("all");
+  const [parqueaderoFilter, setParqueaderoFilter] = useState<"all" | "si" | "no">("all");
+  const [depositoFilter, setDepositoFilter] = useState<"all" | "si" | "no">("all");
 
   // Problemas sheet
   const [problemasInmueble, setProblemasInmueble] = useState<InmuebleProblema | null>(null);
@@ -215,8 +215,16 @@ export default function DataPage() {
   }, [inmuebles, rawInmuebles]);
 
   /* ─── Filters ─── */
-  const conjuntos = useMemo(() => [...new Set(inmuebles.map((i) => i.nombre_conjunto).filter(Boolean))].sort(), [inmuebles]);
-  const procesos = useMemo(() => [...new Set(inmuebles.map((i) => i.proceso).filter(Boolean))].sort(), [inmuebles]);
+  const filterCounts = useMemo(() => {
+    const conParqueadero = inmuebles.filter(i => i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0).length;
+    const sinParqueadero = inmuebles.length - conParqueadero;
+    const conDeposito = inmuebles.filter(i => {
+      const d = i.raw.Deposito__c;
+      return d != null && String(d).toLowerCase() !== "no" && String(d) !== "0";
+    }).length;
+    const sinDeposito = inmuebles.length - conDeposito;
+    return { conParqueadero, sinParqueadero, conDeposito, sinDeposito };
+  }, [inmuebles]);
 
   const filteredInmuebles = useMemo(() => {
     let result = [...inmuebles];
@@ -230,15 +238,26 @@ export default function DataPage() {
           i.direccion.toLowerCase().includes(q)
       );
     }
-    if (conjuntoFilter !== "all") result = result.filter((i) => i.nombre_conjunto === conjuntoFilter);
-    if (procesoFilter !== "all") result = result.filter((i) => i.proceso === procesoFilter);
     if (severidadFilter !== "all") {
       result = result.filter((i) =>
         i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
       );
     }
+    if (parqueaderoFilter !== "all") {
+      result = result.filter((i) => {
+        const tiene = i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0;
+        return parqueaderoFilter === "si" ? tiene : !tiene;
+      });
+    }
+    if (depositoFilter !== "all") {
+      result = result.filter((i) => {
+        const d = i.raw.Deposito__c;
+        const tiene = d != null && String(d).toLowerCase() !== "no" && String(d) !== "0";
+        return depositoFilter === "si" ? tiene : !tiene;
+      });
+    }
     return result.sort((a, b) => b.discrepancias.length - a.discrepancias.length);
-  }, [inmuebles, searchFilter, conjuntoFilter, procesoFilter, severidadFilter]);
+  }, [inmuebles, searchFilter, severidadFilter, parqueaderoFilter, depositoFilter]);
 
   /* ─── Load historial ─── */
   const fetchHistorial = async () => {
@@ -656,37 +675,35 @@ export default function DataPage() {
                         className="pl-8 h-9 text-xs"
                       />
                     </div>
-                    <Select value={conjuntoFilter} onValueChange={setConjuntoFilter}>
-                      <SelectTrigger className="w-48 h-9 text-xs">
-                        <SelectValue placeholder="Todos los conjuntos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los conjuntos</SelectItem>
-                        {conjuntos.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={procesoFilter} onValueChange={setProcesoFilter}>
-                      <SelectTrigger className="w-44 h-9 text-xs">
-                        <SelectValue placeholder="Todos los procesos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los procesos</SelectItem>
-                        {procesos.map((p) => (
-                          <SelectItem key={p} value={p}>{p}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Select value={severidadFilter} onValueChange={setSeveridadFilter}>
                       <SelectTrigger className="w-40 h-9 text-xs">
-                        <SelectValue placeholder="Todas" />
+                        <SelectValue placeholder="Prioridad" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
+                        <SelectItem value="all">Prioridad</SelectItem>
                         <SelectItem value="alta">Alta</SelectItem>
                         <SelectItem value="media">Media</SelectItem>
                         <SelectItem value="baja">Baja</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={parqueaderoFilter} onValueChange={(v) => setParqueaderoFilter(v as any)}>
+                      <SelectTrigger className="w-52 h-9 text-xs">
+                        <SelectValue placeholder="Parqueadero" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Parqueadero — Todos</SelectItem>
+                        <SelectItem value="si">Con parqueadero ({filterCounts.conParqueadero})</SelectItem>
+                        <SelectItem value="no">Sin parqueadero ({filterCounts.sinParqueadero})</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={depositoFilter} onValueChange={(v) => setDepositoFilter(v as any)}>
+                      <SelectTrigger className="w-48 h-9 text-xs">
+                        <SelectValue placeholder="Depósito" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Depósito — Todos</SelectItem>
+                        <SelectItem value="si">Con depósito ({filterCounts.conDeposito})</SelectItem>
+                        <SelectItem value="no">Sin depósito ({filterCounts.sinDeposito})</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1061,15 +1078,6 @@ export default function DataPage() {
                                       <Eye className="w-3.5 h-3.5" />
                                     )}
                                     Analizar con IA
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1.5 text-xs h-8"
-                                    onClick={() => handleNormalizarCampos(inm)}
-                                  >
-                                    <Wrench className="w-3.5 h-3.5" />
-                                    Normalizar campos
                                   </Button>
                                 </div>
                               </div>
