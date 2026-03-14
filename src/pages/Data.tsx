@@ -509,9 +509,26 @@ export default function DataPage() {
   };
 
   /* ─── Fix flow ─── */
+  const isDepositoBooleanDiscrepancia = (disc?: Discrepancia | null) => {
+    const normalized = `${disc?.campo || ""} ${disc?.descripcion || ""}`
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip");
+  };
+
   const openFixModal = (disc: Discrepancia) => {
     setFixDiscrepancia(disc);
-    setFixValorNuevo(disc.valor_documento || "");
+
+    if (isDepositoBooleanDiscrepancia(disc)) {
+      const docValue = (disc.valor_documento || "").trim().toLowerCase();
+      const initial = docValue === "si" ? "Si" : docValue === "no" ? "No" : "";
+      setFixValorNuevo(initial);
+    } else {
+      setFixValorNuevo(disc.valor_documento || "");
+    }
+
     setFixAprobadorEmail("");
     setFixModalOpen(true);
   };
@@ -1223,7 +1240,7 @@ export default function DataPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <label className="text-xs text-muted-foreground">Campo</label>
-                  <p className="font-medium text-foreground">{fixDiscrepancia.campo}</p>
+                  <p className="font-medium text-foreground">{fixDiscrepancia.campo || fixDiscrepancia.descripcion || "—"}</p>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Fuente</label>
@@ -1238,7 +1255,7 @@ export default function DataPage() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Valor nuevo (editable)</label>
-                {fixDiscrepancia?.campo && /dep[oó]sito/i.test(fixDiscrepancia.campo) && !/matricula|chip/i.test(fixDiscrepancia.campo) ? (
+                {isDepositoBooleanDiscrepancia(fixDiscrepancia) ? (
                   <Select value={fixValorNuevo} onValueChange={setFixValorNuevo}>
                     <SelectTrigger className="mt-1 text-sm">
                       <SelectValue placeholder="Seleccionar" />
