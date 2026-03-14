@@ -1261,7 +1261,7 @@ export default function DataPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <label className="text-xs text-muted-foreground">Campo</label>
-                  <p className="font-medium text-foreground">{fixDiscrepancia.campo || fixDiscrepancia.descripcion || "—"}</p>
+                  <p className="font-medium text-foreground">{resolveCampoDiscrepancia(fixDiscrepancia) || fixDiscrepancia.campo || fixDiscrepancia.descripcion || "—"}</p>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Fuente</label>
