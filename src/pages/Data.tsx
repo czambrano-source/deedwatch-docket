@@ -706,7 +706,7 @@ export default function DataPage() {
                                   </h3>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {/* Col 1 */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                       <DItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
                                       <DItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
                                       <DItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
