@@ -583,7 +583,7 @@ const Index = () => {
                         <DItem label="Depósito" value="No" icon={Package} />
                       ) : (
                         <>
-                          <div className="flex gap-4 items-center">
+                          <div className="flex gap-4 items-start">
                             <div className="flex-1 space-y-1.5">
                               <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
                               <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
