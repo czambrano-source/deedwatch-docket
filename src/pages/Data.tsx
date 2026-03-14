@@ -975,7 +975,7 @@ export default function DataPage() {
       </Dialog>
 
       {/* ─── AI Analysis Sheet ─── */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) return; setSheetOpen(open); }} modal={false}>
         <SheetContent className="sm:max-w-xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="text-base">
