@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PRIMARY_URL = "https://n8n.duppla.co/webhook/Check-Escritura-Antecendente";
+const PRIMARY_URL = "https://n8n.duppla.co/webhook/analisis-discrepancias-ia";
 const FALLBACK_URL = PRIMARY_URL.replace("/webhook/", "/webhook-test/");
 
 async function callN8n(url: string, payload: unknown) {
