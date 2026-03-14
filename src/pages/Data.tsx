@@ -1010,7 +1010,7 @@ export default function DataPage() {
                                         </div>
                                       )}
                                     </div>
-                                )}
+                                  )}
                                 </div>
                                 <div className="flex gap-2 mt-2">
                                   <Button
@@ -1035,7 +1035,6 @@ export default function DataPage() {
                                     <Wrench className="w-3.5 h-3.5" />
                                     Normalizar campos
                                   </Button>
-                                </div>
                                 </div>
                               </div>
                             );
