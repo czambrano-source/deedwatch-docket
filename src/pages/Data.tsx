@@ -548,6 +548,12 @@ export default function DataPage() {
   };
 
   /* ─── Fix flow ─── */
+  const NUMERIC_FIX_FIELDS = new Set([
+    "numero_del_parqueadero__c",
+    "numero_del_parqueadero__c",
+    "parqueadero__c",
+  ]);
+
   const normalizeFixText = (disc?: Discrepancia | null) =>
     `${disc?.campo || ""} ${disc?.descripcion || ""}`
       .toLowerCase()
@@ -557,6 +563,11 @@ export default function DataPage() {
   const isDepositoBooleanDiscrepancia = (disc?: Discrepancia | null) => {
     const normalized = normalizeFixText(disc);
     return normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip");
+  };
+
+  const isNumericFixField = (campo?: string) => {
+    const c = (campo || "").trim().toLowerCase();
+    return NUMERIC_FIX_FIELDS.has(c);
   };
 
   const resolveCampoDiscrepancia = (disc?: Discrepancia | null) => {
@@ -595,12 +606,31 @@ export default function DataPage() {
     return rawCampo || undefined;
   };
 
+  const normalizeFixValor = (campo: string, valor: string) => {
+    const trimmed = (valor || "").trim();
+
+    if (isNumericFixField(campo)) {
+      if (!/^\d+$/.test(trimmed)) {
+        throw new Error(`El campo "${campo}" solo acepta números (ej: 56).`);
+      }
+      return Number(trimmed);
+    }
+
+    return trimmed;
+  };
+
   const openFixModal = (disc: Discrepancia) => {
     setFixDiscrepancia(disc);
+
+    const resolvedCampo = resolveCampoDiscrepancia(disc);
 
     if (isDepositoBooleanDiscrepancia(disc)) {
       const docValue = (disc.valor_documento || "").trim().toLowerCase();
       const initial = docValue === "si" ? "Si" : docValue === "no" ? "No" : "";
+      setFixValorNuevo(initial);
+    } else if (isNumericFixField(resolvedCampo)) {
+      const sourceValue = disc.valor_documento ?? disc.valor_actual ?? "";
+      const initial = String(sourceValue).replace(/[^0-9]/g, "");
       setFixValorNuevo(initial);
     } else {
       setFixValorNuevo(disc.valor_documento || "");
