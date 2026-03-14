@@ -1005,7 +1005,31 @@ export default function DataPage() {
                                         </div>
                                       )}
                                     </div>
-                                  )}
+                                )}
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    className="gap-1.5 text-xs h-8"
+                                    onClick={() => handleAnalizarIA(inm)}
+                                    disabled={analyzingIA}
+                                  >
+                                    {analyzingIA && selectedInmueble?.salesforce_id === inm.salesforce_id ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
+                                    Analizar con IA
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 text-xs h-8"
+                                    onClick={() => handleNormalizarCampos(inm)}
+                                  >
+                                    <Wrench className="w-3.5 h-3.5" />
+                                    Normalizar campos
+                                  </Button>
                                 </div>
                               </div>
                             );
