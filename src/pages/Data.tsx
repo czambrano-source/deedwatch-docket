@@ -261,19 +261,49 @@ export default function DataPage() {
     fetchHistorial();
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120_000);
+      const candidateCodigos = [
+        inm.raw?.Codigo_inmueble__c,
+        inm.raw?.codigo_inmueble,
+        inm.raw?.Codigo_Inmueble__c,
+        inm.salesforce_id,
+        inm.codigo,
+      ]
+        .map((v) => (typeof v === "string" ? v.trim() : ""))
+        .filter(Boolean)
+        .filter((v, idx, arr) => arr.indexOf(v) === idx);
 
-      const res = await fetch("https://n8n.duppla.co/webhook/analisis-discrepancias-ia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo_inmueble: inm.codigo }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      let payload: AnalisisIA | null = null;
+      let lastError: Error | null = null;
 
-      if (!res.ok) throw new Error(`n8n respondió ${res.status}`);
-      const payload = await res.json();
+      for (const codigo of candidateCodigos) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+        try {
+          const res = await fetch("https://n8n.duppla.co/webhook/analisis-discrepancias-ia", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ codigo_inmueble: codigo }),
+            signal: controller.signal,
+          });
+
+          const json = await res.json().catch(() => null);
+          if (!res.ok) {
+            const msg = json?.error || json?.message || `n8n respondió ${res.status}`;
+            lastError = new Error(msg);
+            continue;
+          }
+
+          payload = (json ?? {}) as AnalisisIA;
+          break;
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+
+      if (!payload) {
+        throw lastError ?? new Error("No se pudo obtener respuesta válida del análisis IA");
+      }
 
       // Filter out irrelevant discrepancias for properties without parking/deposit
       if (payload?.discrepancias) {
