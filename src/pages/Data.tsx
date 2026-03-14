@@ -942,7 +942,9 @@ export default function DataPage() {
                                                       ? "hsl(var(--destructive))"
                                                       : (disc.severidad || "").toLowerCase() === "media"
                                                         ? "hsl(var(--duppla-orange))"
-                                                        : "hsl(var(--muted))"
+                                                        : (disc.severidad || "").toLowerCase() === "normalizacion"
+                                                          ? "#3b82f6"
+                                                          : "hsl(var(--muted))"
                                                   }}>
                                                     <div className="flex items-start justify-between">
                                                       <div className="space-y-1 min-w-0">
