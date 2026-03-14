@@ -1100,30 +1100,6 @@ export default function DataPage() {
                 )}
               </div>
 
-              {selectedInmueble && (
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-2">
-                    Problemas locales ({selectedInmueble.discrepancias.length})
-                  </h3>
-                  <div className="space-y-1">
-                    {selectedInmueble.discrepancias.map((d, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b last:border-0">
-                        <div className="flex items-center gap-2">
-                          <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded",
-                            (d.severidad || "").toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                            (d.severidad || "").toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                            (d.severidad || "").toLowerCase() !== "alta" && (d.severidad || "").toLowerCase() !== "media" && "text-muted-foreground bg-muted",
-                          )}>
-                            {d.severidad || "baja"}
-                          </span>
-                          <span className="font-medium text-foreground">{d.campo}</span>
-                        </div>
-                        <span className="text-muted-foreground text-[11px]">{d.tipo}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {inmuebleHistorial.length > 0 && (
                 <div>
