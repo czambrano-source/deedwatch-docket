@@ -687,13 +687,15 @@ export default function DataPage() {
 
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
+                                <div className={cn("flex gap-5", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row" : "")}>
+                                  {/* Left: Inmueble detail */}
+                                  <div className={cn("space-y-5 min-w-0", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "xl:flex-1" : "flex-1")}>
                                 {/* Inmueble Block */}
                                 <div className="bg-card rounded-xl border p-5 space-y-4">
                                   <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                     <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
                                   </h3>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {/* Col 1 */}
                                     <div className="space-y-3">
                                       <DItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
                                       <DItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
@@ -701,14 +703,12 @@ export default function DataPage() {
                                       <DItem label="Ciudad Inmueble" value={sel.Ciudad_Inmueble__c} icon={MapPin} />
                                       <DItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
                                     </div>
-                                    {/* Col 2 */}
                                     <div className="space-y-3">
                                       <DItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
                                       <DItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
                                       <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
                                       <DItem label="Torre" value={sel.Torre__c} icon={Layers} />
                                     </div>
-                                    {/* Col 3 */}
                                     <div className="space-y-3">
                                       <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
                                       <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
@@ -732,7 +732,6 @@ export default function DataPage() {
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Parqueadero Block */}
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
@@ -770,7 +769,6 @@ export default function DataPage() {
                                   );
                                 })()}
 
-                                {/* Depósito Block */}
                                 {(() => {
                                   const depIsNo = !sel.Deposito__c || ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
                                   return (
@@ -812,8 +810,13 @@ export default function DataPage() {
                                     size="sm"
                                     className="gap-1.5 text-xs h-8"
                                     onClick={() => handleAnalizarIA(inm)}
+                                    disabled={analyzingIA}
                                   >
-                                    <Eye className="w-3.5 h-3.5" />
+                                    {analyzingIA && selectedInmueble?.salesforce_id === inm.salesforce_id ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
                                     Analizar con IA
                                   </Button>
                                   <Button
@@ -825,6 +828,150 @@ export default function DataPage() {
                                     <Wrench className="w-3.5 h-3.5" />
                                     Normalizar campos
                                   </Button>
+                                </div>
+                                  </div>
+
+                                  {/* Right: IA Analysis inline panel */}
+                                  {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
+                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 space-y-5 overflow-y-auto max-h-[80vh] sticky top-4">
+                                      <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                                          <Eye className="w-4 h-4 text-primary" /> Análisis IA
+                                        </h3>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSheetOpen(false)}>
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                        </Button>
+                                      </div>
+
+                                      {analyzingIA && (
+                                        <div className="flex flex-col items-center justify-center py-16 gap-4">
+                                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                          <p className="text-sm text-muted-foreground text-center">
+                                            Analizando documentos…<br />
+                                            <span className="text-xs">esto puede tardar hasta 1 minuto</span>
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      {!analyzingIA && analisisIA && (
+                                        <div className="space-y-5">
+                                          {analisisIA.datos_actuales_sf && (
+                                            <div>
+                                              <h4 className="text-xs font-semibold text-foreground mb-2">Datos actuales en SF</h4>
+                                              <div className="bg-muted rounded-lg p-3 space-y-1">
+                                                {Object.entries(analisisIA.datos_actuales_sf).map(([key, val]) => (
+                                                  <div key={key} className="flex justify-between text-xs">
+                                                    <span className="text-muted-foreground">{key}</span>
+                                                    <span className={cn("font-mono", !val && "bg-duppla-orange/10 px-1 rounded text-duppla-orange")}>
+                                                      {val ? String(val) : "vacío"}
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {(analisisIA.documentos_analizados?.length || analisisIA.documentos_faltantes?.length) ? (
+                                            <div>
+                                              <h4 className="text-xs font-semibold text-foreground mb-2">Documentos</h4>
+                                              <div className="space-y-1">
+                                                {analisisIA.documentos_analizados?.map((doc, i) => (
+                                                  <div key={i} className="flex items-center gap-2 text-xs">
+                                                    <FileText className="w-3.5 h-3.5 text-primary" />
+                                                    <span className="text-foreground">{doc}</span>
+                                                    <span className="text-[10px] text-primary bg-duppla-green-light px-1.5 py-0.5 rounded">Analizado</span>
+                                                  </div>
+                                                ))}
+                                                {analisisIA.documentos_faltantes?.map((doc, i) => (
+                                                  <div key={i} className="flex items-center gap-2 text-xs">
+                                                    <FileX className="w-3.5 h-3.5 text-destructive" />
+                                                    <span className="text-muted-foreground">{doc}</span>
+                                                    <span className="text-[10px] text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">Faltante</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          ) : null}
+
+                                          <div>
+                                            <h4 className="text-xs font-semibold text-foreground mb-2">
+                                              Discrepancias IA ({analisisIA.discrepancias?.length || 0})
+                                            </h4>
+                                            {!analisisIA.discrepancias?.length ? (
+                                              <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
+                                                <CheckCircle2 className="w-4 h-4 text-primary" />
+                                                Sin discrepancias detectadas
+                                              </div>
+                                            ) : (
+                                              <div className="space-y-2">
+                                                {analisisIA.discrepancias.map((disc, idx) => (
+                                                  <div key={idx} className="border rounded-lg p-3 space-y-2 bg-background border-l-4" style={{
+                                                    borderLeftColor: (disc.severidad || "").toLowerCase() === "alta"
+                                                      ? "hsl(var(--destructive))"
+                                                      : (disc.severidad || "").toLowerCase() === "media"
+                                                        ? "hsl(var(--duppla-orange))"
+                                                        : "hsl(var(--muted))"
+                                                  }}>
+                                                    <div className="flex items-start justify-between">
+                                                      <div className="space-y-1 min-w-0">
+                                                        <p className="text-xs font-semibold text-foreground">{disc.campo}</p>
+                                                        {disc.descripcion && <p className="text-[11px] text-muted-foreground">{disc.descripcion}</p>}
+                                                      </div>
+                                                      {disc.severidad && (
+                                                        <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ml-2",
+                                                          (disc.severidad).toLowerCase() === "alta" && "text-destructive bg-destructive/10",
+                                                          (disc.severidad).toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
+                                                        )}>
+                                                          {disc.severidad}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    <div className="flex gap-4 text-[11px]">
+                                                      <div>
+                                                        <span className="text-muted-foreground">SF: </span>
+                                                        <span className="font-mono">{disc.valor_actual || "vacío"}</span>
+                                                      </div>
+                                                      {disc.valor_documento && (
+                                                        <div>
+                                                          <span className="text-muted-foreground">Doc: </span>
+                                                          <span className="font-mono text-primary">{disc.valor_documento}</span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                    {disc.fuente && <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>}
+                                                    {disc.valor_documento && (
+                                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7 mt-1" onClick={() => openFixModal(disc)}>
+                                                        <Wrench className="w-3 h-3" /> Corregir en SF
+                                                      </Button>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {inmuebleHistorial.length > 0 && (
+                                            <div>
+                                              <h4 className="text-xs font-semibold text-foreground mb-2">Cambios previos</h4>
+                                              <div className="space-y-1">
+                                                {inmuebleHistorial.map((h) => (
+                                                  <div key={h.id} className="flex justify-between text-[11px] py-1 border-b last:border-0">
+                                                    <div>
+                                                      <span className="font-medium">{h.campo_corregido}</span>
+                                                      <span className="text-muted-foreground ml-2">{h.valor_anterior} → {h.valor_nuevo}</span>
+                                                    </div>
+                                                    <span className="text-muted-foreground">
+                                                      {new Date(h.created_at).toLocaleDateString("es-CO", { day: "2-digit", month: "short" })}
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );
