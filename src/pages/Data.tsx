@@ -1079,15 +1079,6 @@ export default function DataPage() {
                                     )}
                                     Analizar con IA
                                   </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1.5 text-xs h-8"
-                                    onClick={() => handleNormalizarCampos(inm)}
-                                  >
-                                    <Wrench className="w-3.5 h-3.5" />
-                                    Normalizar campos
-                                  </Button>
                                 </div>
                               </div>
                             );
