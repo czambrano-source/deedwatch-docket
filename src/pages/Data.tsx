@@ -509,13 +509,27 @@ export default function DataPage() {
   };
 
   /* ─── Fix flow ─── */
-  const isDepositoBooleanDiscrepancia = (disc?: Discrepancia | null) => {
-    const normalized = `${disc?.campo || ""} ${disc?.descripcion || ""}`
+  const normalizeFixText = (disc?: Discrepancia | null) =>
+    `${disc?.campo || ""} ${disc?.descripcion || ""}`
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
 
+  const isDepositoBooleanDiscrepancia = (disc?: Discrepancia | null) => {
+    const normalized = normalizeFixText(disc);
     return normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip");
+  };
+
+  const resolveCampoDiscrepancia = (disc?: Discrepancia | null) => {
+    const rawCampo = (disc?.campo || "").trim();
+    if (/__c$/i.test(rawCampo)) return rawCampo;
+
+    const normalized = normalizeFixText(disc);
+    if (normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip")) {
+      return "Deposito__c";
+    }
+
+    return rawCampo || undefined;
   };
 
   const openFixModal = (disc: Discrepancia) => {
@@ -535,12 +549,19 @@ export default function DataPage() {
 
   const handleConfirmFix = async () => {
     if (!fixDiscrepancia || !selectedInmueble || !fixAprobadorEmail) return;
+
+    const campoCorregido = resolveCampoDiscrepancia(fixDiscrepancia);
+    if (!campoCorregido) {
+      toast({ title: "Error al corregir", description: "No se pudo identificar el campo de Salesforce.", variant: "destructive" });
+      return;
+    }
+
     setFixingInProgress(true);
     try {
       const payload = {
         codigo_inmueble: selectedInmueble.codigo,
         salesforce_id: selectedInmueble.salesforce_id,
-        campo: fixDiscrepancia.campo,
+        campo: campoCorregido,
         valor_actual: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
@@ -553,14 +574,14 @@ export default function DataPage() {
       await supabase.from("historial_cambios_sf").insert({
         codigo_inmueble: selectedInmueble.codigo,
         salesforce_id: selectedInmueble.salesforce_id,
-        campo_corregido: fixDiscrepancia.campo || "",
+        campo_corregido: campoCorregido,
         valor_anterior: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
         aprobado_por: fixAprobadorEmail,
       });
 
-      toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
+      toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado en SF.` });
       queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
       if (analisisIA?.discrepancias) {
         setAnalisisIA({ ...analisisIA, discrepancias: analisisIA.discrepancias.filter((d) => d !== fixDiscrepancia) });
@@ -1240,7 +1261,7 @@ export default function DataPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <label className="text-xs text-muted-foreground">Campo</label>
-                  <p className="font-medium text-foreground">{fixDiscrepancia.campo || fixDiscrepancia.descripcion || "—"}</p>
+                  <p className="font-medium text-foreground">{resolveCampoDiscrepancia(fixDiscrepancia) || fixDiscrepancia.campo || fixDiscrepancia.descripcion || "—"}</p>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Fuente</label>
