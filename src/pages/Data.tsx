@@ -161,6 +161,23 @@ export default function DataPage() {
   const [analisisIA, setAnalisisIA] = useState<AnalisisIA | null>(null);
   const [analyzingIA, setAnalyzingIA] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("dismissed_discrepancias");
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const dismissDiscrepancia = useCallback((sfId: string, campo: string) => {
+    const key = `${sfId}::${campo}`;
+    setDismissedKeys(prev => {
+      const next = new Set(prev);
+      next.add(key);
+      localStorage.setItem("dismissed_discrepancias", JSON.stringify([...next]));
+      return next;
+    });
+    toast({ title: "Omitido", description: `"${campo}" no se mostrará de nuevo para este inmueble.` });
+  }, [toast]);
 
   // Normalizar campos
   const [normalizando, setNormalizando] = useState(false);
