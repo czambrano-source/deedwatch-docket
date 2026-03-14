@@ -574,14 +574,14 @@ export default function DataPage() {
       await supabase.from("historial_cambios_sf").insert({
         codigo_inmueble: selectedInmueble.codigo,
         salesforce_id: selectedInmueble.salesforce_id,
-        campo_corregido: fixDiscrepancia.campo || "",
+        campo_corregido: campoCorregido,
         valor_anterior: fixDiscrepancia.valor_actual,
         valor_nuevo: fixValorNuevo,
         fuente: fixDiscrepancia.fuente,
         aprobado_por: fixAprobadorEmail,
       });
 
-      toast({ title: "Corregido", description: `Campo "${fixDiscrepancia.campo}" actualizado en SF.` });
+      toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado en SF.` });
       queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
       if (analisisIA?.discrepancias) {
         setAnalisisIA({ ...analisisIA, discrepancias: analisisIA.discrepancias.filter((d) => d !== fixDiscrepancia) });
