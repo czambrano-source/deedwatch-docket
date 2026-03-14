@@ -138,6 +138,7 @@ const severidadColor = (sev: string) => {
 /* ─── Main Component ─── */
 export default function DataPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: rawInmuebles = [], isLoading } = useInmuebles();
 
   const [view, setView] = useState<"general" | "historial">("general");
