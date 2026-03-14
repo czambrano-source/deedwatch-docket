@@ -865,6 +865,7 @@ export default function DataPage() {
                                   );
                                 })()}
                                   </div>
+                                  </div>
 
                                   {/* Right: IA Analysis panel */}
                                   {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
