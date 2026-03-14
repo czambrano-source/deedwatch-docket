@@ -261,12 +261,19 @@ export default function DataPage() {
     fetchHistorial();
 
     try {
-      const { data, error } = await supabase.functions.invoke("check-escritura-antecedente", {
-        body: { codigo_inmueble: inm.codigo, salesforce_id: inm.salesforce_id },
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+      const res = await fetch("https://n8n.duppla.co/webhook/Check-Escritura-Antecendente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo_inmueble: inm.codigo }),
+        signal: controller.signal,
       });
-      if (error) throw new Error(error.message);
-      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
-      const payload = (data as any)?.payload ?? data;
+      clearTimeout(timeoutId);
+
+      if (!res.ok) throw new Error(`n8n respondió ${res.status}`);
+      const payload = await res.json();
 
       // Filter out irrelevant discrepancias for properties without parking/deposit
       if (payload?.discrepancias) {
