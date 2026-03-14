@@ -714,7 +714,7 @@ export default function DataPage() {
                                       <DItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
                                     </div>
                                     {/* Col 2 */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                       <DItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
                                       <DItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
                                       <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
