@@ -972,6 +972,26 @@ export default function DataPage() {
                                             const visibleDiscs = (analisisIA.discrepancias || []).filter(
                                               d => !dismissedKeys.has(`${sfId}::${d.campo}`)
                                             );
+
+                                            // Group related discrepancies
+                                            const groupKey = (campo: string) => {
+                                              const c = (campo || "").toLowerCase();
+                                              if (/parqueadero/.test(c)) return "parqueadero";
+                                              if (/dep[oó]sito/.test(c)) return "deposito";
+                                              return campo; // ungrouped = own key
+                                            };
+                                            const grouped: { key: string; label: string; discs: typeof visibleDiscs }[] = [];
+                                            const groupMap = new Map<string, typeof visibleDiscs>();
+                                            visibleDiscs.forEach(d => {
+                                              const gk = groupKey(d.campo || "");
+                                              if (!groupMap.has(gk)) groupMap.set(gk, []);
+                                              groupMap.get(gk)!.push(d);
+                                            });
+                                            groupMap.forEach((discs, key) => {
+                                              const label = key === "parqueadero" ? "Parqueadero" : key === "deposito" ? "Depósito" : discs[0]?.campo || key;
+                                              grouped.push({ key, label, discs });
+                                            });
+
                                             return (
                                           <div>
                                             <h4 className="text-xs font-semibold text-foreground mb-2">
@@ -984,55 +1004,76 @@ export default function DataPage() {
                                               </div>
                                             ) : (
                                               <div className="space-y-2">
-                                                {visibleDiscs.map((disc, idx) => (
-                                                  <div key={idx} className="border rounded-lg p-3 space-y-2 bg-background border-l-4" style={{
-                                                    borderLeftColor: (disc.severidad || "").toLowerCase() === "alta"
-                                                      ? "hsl(var(--destructive))"
-                                                      : (disc.severidad || "").toLowerCase() === "media"
-                                                        ? "hsl(var(--duppla-orange))"
-                                                        : (disc.severidad || "").toLowerCase() === "normalizacion"
-                                                          ? "#3b82f6"
-                                                          : "hsl(var(--muted))"
-                                                  }}>
+                                                {grouped.map((group) => {
+                                                  const topSeverity = group.discs.reduce((max, d) => {
+                                                    const s = (d.severidad || "").toLowerCase();
+                                                    if (s === "alta") return "alta";
+                                                    if (s === "media" && max !== "alta") return "media";
+                                                    if (s === "normalizacion" && max !== "alta" && max !== "media") return "normalizacion";
+                                                    return max;
+                                                  }, "" as string);
+                                                  const borderColor = topSeverity === "alta"
+                                                    ? "hsl(var(--destructive))"
+                                                    : topSeverity === "media"
+                                                      ? "hsl(var(--duppla-orange))"
+                                                      : topSeverity === "normalizacion"
+                                                        ? "#3b82f6"
+                                                        : "hsl(var(--muted))";
+
+                                                  return (
+                                                  <div key={group.key} className="border rounded-lg p-3 space-y-2 bg-background border-l-4" style={{ borderLeftColor: borderColor }}>
+                                                    {/* Group header */}
                                                     <div className="flex items-start justify-between">
-                                                      <div className="space-y-1 min-w-0">
-                                                        <p className="text-xs font-semibold text-foreground">{disc.campo}</p>
-                                                        {disc.descripcion && <p className="text-[11px] text-muted-foreground">{disc.descripcion}</p>}
-                                                      </div>
-                                                      {disc.severidad && (
+                                                      <p className="text-xs font-semibold text-foreground">{group.discs.length > 1 ? `📦 ${group.label}` : group.discs[0]?.campo}</p>
+                                                      {topSeverity && (
                                                         <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ml-2",
-                                                          (disc.severidad).toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                                                          (disc.severidad).toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                                                          (disc.severidad).toLowerCase() === "normalizacion" && "text-blue-600 bg-blue-500/10",
+                                                          topSeverity === "alta" && "text-destructive bg-destructive/10",
+                                                          topSeverity === "media" && "text-duppla-orange bg-duppla-orange/10",
+                                                          topSeverity === "normalizacion" && "text-blue-600 bg-blue-500/10",
                                                         )}>
-                                                          {disc.severidad === "normalizacion" ? "Normalización" : disc.severidad}
+                                                          {topSeverity === "normalizacion" ? "Normalización" : topSeverity}
                                                         </span>
                                                       )}
                                                     </div>
-                                                    <div className="flex gap-4 text-[11px]">
-                                                      <div>
-                                                        <span className="text-muted-foreground">SF: </span>
-                                                        <span className="font-mono">{disc.valor_actual || "vacío"}</span>
-                                                      </div>
-                                                      {disc.valor_documento && (
-                                                        <div>
-                                                          <span className="text-muted-foreground">Doc: </span>
-                                                          <span className="font-mono text-primary">{disc.valor_documento}</span>
+
+                                                    {/* Individual items inside group */}
+                                                    {group.discs.map((disc, idx) => (
+                                                      <div key={idx} className={cn("space-y-1", group.discs.length > 1 && "pl-3 border-l-2 border-muted ml-1")}>
+                                                        {group.discs.length > 1 && <p className="text-[11px] font-medium text-foreground">{disc.campo}</p>}
+                                                        {disc.descripcion && <p className="text-[11px] text-muted-foreground">{disc.descripcion}</p>}
+                                                        <div className="flex gap-4 text-[11px]">
+                                                          <div>
+                                                            <span className="text-muted-foreground">SF: </span>
+                                                            <span className="font-mono">{disc.valor_actual || "vacío"}</span>
+                                                          </div>
+                                                          {disc.valor_documento && (
+                                                            <div>
+                                                              <span className="text-muted-foreground">Doc: </span>
+                                                              <span className="font-mono text-primary">{disc.valor_documento}</span>
+                                                            </div>
+                                                          )}
                                                         </div>
-                                                      )}
-                                                    </div>
-                                                    {disc.fuente && <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>}
-                                                    <div className="flex gap-2 mt-1">
-                                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal(disc)}>
-                                                        <Wrench className="w-3 h-3" /> Corregir en SF
-                                                      </Button>
-                                                      <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, disc.campo || `disc-${idx}`)}>
+                                                        {disc.fuente && <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>}
+                                                      </div>
+                                                    ))}
+
+                                                    {/* Actions for the whole group */}
+                                                    <div className="flex flex-wrap gap-2 mt-1 pt-1 border-t border-muted">
+                                                      {group.discs.map((disc, idx) => (
+                                                        <Button key={idx} size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal(disc)}>
+                                                          <Wrench className="w-3 h-3" /> {group.discs.length > 1 ? `Corregir ${disc.campo?.replace(/__c$/i, "")}` : "Corregir en SF"}
+                                                        </Button>
+                                                      ))}
+                                                      <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => {
+                                                        group.discs.forEach(d => dismissDiscrepancia(sfId, d.campo || `disc-${group.key}`));
+                                                      }}>
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                                                        Omitir
+                                                        Omitir {group.discs.length > 1 ? "grupo" : ""}
                                                       </Button>
                                                     </div>
                                                   </div>
-                                                ))}
+                                                  );
+                                                })}
                                               </div>
                                             )}
                                           </div>
