@@ -291,7 +291,7 @@ export default function DataPage() {
     });
   };
 
-  /* ─── AI Analysis ─── */
+  /* ─── AI Analysis (async: POST → poll Supabase) ─── */
   const handleAnalizarIA = async (inm: InmuebleProblema) => {
     setSelectedInmueble(inm);
     setAnalisisIA(null);
@@ -314,31 +314,67 @@ export default function DataPage() {
       let lastError: Error | null = null;
 
       for (const codigo of candidateCodigos) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180_000);
-
         try {
-          const res = await fetch("https://nekswrhqiqzsqlwbsups.supabase.co/functions/v1/analisis-discrepancias", {
+          // Step 1: POST to n8n webhook (returns ~instantly with job_id)
+          const postRes = await fetch("https://n8n.duppla.co/webhook/analisis-discrepancias-ia", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Cache-Control": "no-cache, no-store",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ codigo_inmueble: codigo }),
-            signal: controller.signal,
-            cache: "no-store",
           });
 
-          const json = await res.json().catch(() => null);
+          const postJson = await postRes.json().catch(() => null);
 
-          // Check both HTTP status and the ok field from the edge function proxy
-          if (!res.ok || json?.ok === false) {
-            const msg = json?.error || json?.message || `n8n respondió ${res.status}`;
-            lastError = new Error(msg);
+          if (!postRes.ok || !postJson?.job_id) {
+            lastError = new Error(postJson?.error || postJson?.message || `Error al iniciar análisis (${postRes.status})`);
             continue;
           }
 
-          const base = (json?.payload ?? json) as Record<string, any> | null;
+          const jobId = postJson.job_id;
+
+          // Step 2: Poll Supabase every 4s, max 90s
+          const POLL_INTERVAL = 4000;
+          const MAX_POLL_TIME = 90000;
+          const startTime = Date.now();
+
+          let jobResult: any = null;
+
+          while (Date.now() - startTime < MAX_POLL_TIME) {
+            await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+
+            const { data: rows, error: pollError } = await supabase
+              .from("analisis_discrepancias_jobs")
+              .select("*")
+              .eq("id", jobId);
+
+            if (pollError) {
+              lastError = new Error(`Error consultando estado: ${pollError.message}`);
+              break;
+            }
+
+            const job = rows?.[0];
+            if (!job) continue;
+
+            if (job.status === "processing") continue;
+
+            if (job.status === "error") {
+              lastError = new Error(job.error_msg || "Error en el análisis IA");
+              break;
+            }
+
+            if (job.status === "completed") {
+              jobResult = job.resultado;
+              break;
+            }
+          }
+
+          if (!jobResult && !lastError) {
+            lastError = new Error("El análisis está tardando más de lo esperado. Intenta de nuevo.");
+          }
+
+          if (!jobResult) continue;
+
+          // Parse resultado — same structure as before
+          const base = (typeof jobResult === "string" ? JSON.parse(jobResult) : jobResult) as Record<string, any>;
           const baseIsObject = !!base && typeof base === "object";
           const rawOnlyEmpty =
             baseIsObject &&
@@ -376,8 +412,9 @@ export default function DataPage() {
                   : [],
           };
           break;
-        } finally {
-          clearTimeout(timeoutId);
+        } catch (err: any) {
+          lastError = err;
+          continue;
         }
       }
 
@@ -408,7 +445,7 @@ export default function DataPage() {
         }
 
         // Helper: check if a discrepancy for a campo already exists
-        const hasDisc = (campo: string) => payload.discrepancias.some((d: Discrepancia) =>
+        const hasDisc = (campo: string) => payload!.discrepancias!.some((d: Discrepancia) =>
           (d.campo || "").toLowerCase() === campo.toLowerCase()
         );
 
@@ -426,7 +463,6 @@ export default function DataPage() {
           const chipParq = (inm.raw.chip_parqueadero__c || "").trim();
           const matParq = (inm.raw.No_Matricula_Inmo_Parqueadero__c || "").trim();
 
-          // Normalization: same as apartment
           if (chipParq && chipApto && chipParq === chipApto && chipParq.toUpperCase() !== "SIN_CHIP") {
             if (!hasDisc("chip_parqueadero__c")) {
               payload.discrepancias.push({
