@@ -436,6 +436,36 @@ export type Database = {
         }
         Relationships: []
       }
+      analisis_discrepancias_jobs: {
+        Row: {
+          codigo_inmueble: string
+          created_at: string | null
+          error_msg: string | null
+          id: string
+          resultado: Json | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          codigo_inmueble: string
+          created_at?: string | null
+          error_msg?: string | null
+          id?: string
+          resultado?: Json | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          codigo_inmueble?: string
+          created_at?: string | null
+          error_msg?: string | null
+          id?: string
+          resultado?: Json | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           canceled_reason: string | null
