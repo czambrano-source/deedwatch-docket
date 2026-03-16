@@ -1085,7 +1085,7 @@ export default function DataPage() {
                                           <Loader2 className="w-8 h-8 animate-spin text-primary" />
                                           <p className="text-sm text-muted-foreground text-center">
                                             Analizando documentos…<br />
-                                            <span className="text-xs">esto puede tardar hasta 1 minuto</span>
+                                            <span className="text-xs">consultando resultados del análisis…</span>
                                           </p>
                                         </div>
                                       )}
