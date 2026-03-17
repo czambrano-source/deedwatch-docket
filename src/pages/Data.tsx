@@ -590,7 +590,10 @@ export default function DataPage() {
           aprobado_por: "usuario@duppla.co",
         });
       }
-      if (cambios.length > 0) fetchHistorial();
+      if (cambios.length > 0) {
+        fetchHistorial();
+        queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
+      }
     } catch (err: any) {
       toast({ title: "Error al normalizar", description: err.message, variant: "destructive" });
       setNormalizarModalOpen(false);
@@ -739,6 +742,8 @@ export default function DataPage() {
         };
       });
       fetchHistorial();
+      // Refresh inmuebles data from SF so the detail view updates immediately
+      queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
     } finally {
