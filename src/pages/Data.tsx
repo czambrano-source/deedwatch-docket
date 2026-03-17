@@ -168,6 +168,8 @@ export default function DataPage() {
     } catch { return new Set(); }
   });
 
+  const getDiscKey = (d: Discrepancia, idx?: number) => d.campo || d.campo_sf || d.descripcion || `disc-${idx ?? 0}`;
+
   const dismissDiscrepancia = useCallback((sfId: string, campo: string) => {
     const key = `${sfId}::${campo}`;
     setDismissedKeys(prev => {
@@ -181,10 +183,10 @@ export default function DataPage() {
       if (!prev) return prev;
       return {
         ...prev,
-        discrepancias: (prev.discrepancias || []).filter(d => (d.campo || d.campo_sf) !== campo),
+        discrepancias: (prev.discrepancias || []).filter(d => getDiscKey(d) !== campo),
       };
     });
-    toast({ title: "Omitido", description: `"${campo}" no se mostrará de nuevo para este inmueble.` });
+    toast({ title: "Omitido", description: `"${campo}" omitido para este inmueble.` });
   }, [toast]);
 
   // Normalizar campos
@@ -1157,7 +1159,7 @@ export default function DataPage() {
                                           {(() => {
                                             const sfId = selectedInmueble?.salesforce_id || "";
                                             const visibleDiscs = (analisisIA.discrepancias || []).filter(
-                                              d => !dismissedKeys.has(`${sfId}::${d.campo}`)
+                                              (d, i) => !dismissedKeys.has(`${sfId}::${getDiscKey(d, i)}`)
                                             );
                                             return (
                                           <div>
@@ -1213,7 +1215,7 @@ export default function DataPage() {
                                                       <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal(disc)}>
                                                         <Wrench className="w-3 h-3" /> Corregir en SF
                                                       </Button>
-                                                      <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, disc.campo || `disc-${idx}`)}>
+                                                      <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, disc.campo || disc.campo_sf || disc.descripcion || `disc-${idx}`)}>
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                                         Omitir
                                                       </Button>
