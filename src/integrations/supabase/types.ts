@@ -850,6 +850,7 @@ export type Database = {
       }
       compromisos_diarios: {
         Row: {
+          accion: string | null
           Accion: string | null
           avanzo: boolean | null
           comercial: string
@@ -866,6 +867,7 @@ export type Database = {
           slack_user_id: string
         }
         Insert: {
+          accion?: string | null
           Accion?: string | null
           avanzo?: boolean | null
           comercial: string
@@ -882,6 +884,7 @@ export type Database = {
           slack_user_id: string
         }
         Update: {
+          accion?: string | null
           Accion?: string | null
           avanzo?: boolean | null
           comercial?: string

@@ -315,17 +315,13 @@ export default function DataPage() {
 
       for (const codigo of candidateCodigos) {
         try {
-          // Step 1: POST to n8n webhook (returns ~instantly with job_id)
-          const postRes = await fetch("https://n8n.duppla.co/webhook/analisis-discrepancias-ia", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ codigo_inmueble: codigo }),
+          // Step 1: POST via Edge Function proxy (avoids CORS)
+          const { data: postJson, error: invokeError } = await supabase.functions.invoke("analisis-discrepancias", {
+            body: { codigo_inmueble: codigo },
           });
 
-          const postJson = await postRes.json().catch(() => null);
-
-          if (!postRes.ok || !postJson?.job_id) {
-            lastError = new Error(postJson?.error || postJson?.message || `Error al iniciar análisis (${postRes.status})`);
+          if (invokeError || !postJson?.job_id) {
+            lastError = new Error(postJson?.error || invokeError?.message || "Error al iniciar análisis");
             continue;
           }
 
