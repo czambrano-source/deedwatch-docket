@@ -1217,9 +1217,11 @@ export default function DataPage() {
                                                     </div>
                                                     {disc.fuente && <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>}
                                                     <div className="flex gap-2 mt-1">
-                                                      <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal(disc)}>
-                                                        <Wrench className="w-3 h-3" /> Corregir en SF
-                                                      </Button>
+                                                      {disc.tipo !== 'INFO_DOCUMENTO' && disc.tipo !== 'ERROR_DOCUMENTO' && (
+                                                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal(disc)}>
+                                                          <Wrench className="w-3 h-3" /> Corregir en SF
+                                                        </Button>
+                                                      )}
                                                       <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, disc.campo || disc.campo_sf || disc.descripcion || `disc-${idx}`)}>
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                                         Omitir
