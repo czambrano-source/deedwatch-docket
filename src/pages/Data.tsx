@@ -1161,77 +1161,124 @@ export default function DataPage() {
                                             </div>
                                           ) : null}
 
+                                          {/* Alertas generales */}
+                                          {analisisIA.alertas?.length > 0 && (
+                                            <div className="space-y-1">
+                                              {(analisisIA.alertas as string[]).map((alerta: string, i: number) => (
+                                                <div key={i} className="flex items-center gap-2 text-xs bg-duppla-orange/10 text-duppla-orange rounded px-2 py-1.5">
+                                                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                                                  <span>{alerta}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+
+                                          {/* Tabla comparativa por campos */}
                                           {(() => {
-                                            const sfId = selectedInmueble?.salesforce_id || "";
-                                            const visibleDiscs = (analisisIA.discrepancias || []).filter(
-                                              (d, i) => !dismissedKeys.has(`${sfId}::${getDiscKey(d, i)}`)
-                                            );
-                                            return (
-                                          <div>
-                                            <h4 className="text-xs font-semibold text-foreground mb-2">
-                                              Discrepancias IA ({visibleDiscs.length})
-                                            </h4>
-                                            {!visibleDiscs.length ? (
+                                            const campos = analisisIA.campos || analisisIA.discrepancias || [];
+                                            if (!campos.length) return (
                                               <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
                                                 <CheckCircle2 className="w-4 h-4 text-primary" />
-                                                Sin discrepancias detectadas
+                                                Sin datos para comparar
                                               </div>
-                                            ) : (
-                                              <div className="space-y-2">
-                                                {visibleDiscs.map((disc, idx) => (
-                                                  <div key={idx} className="border rounded-lg p-3 space-y-2 bg-background border-l-4" style={{
-                                                    borderLeftColor: (disc.severidad || "").toLowerCase() === "alta"
-                                                      ? "hsl(var(--destructive))"
-                                                      : (disc.severidad || "").toLowerCase() === "media"
-                                                        ? "hsl(var(--duppla-orange))"
-                                                        : (disc.severidad || "").toLowerCase() === "normalizacion"
-                                                          ? "#3b82f6"
-                                                          : "hsl(var(--muted))"
-                                                  }}>
-                                                    <div className="flex items-start justify-between">
-                                                      <div className="space-y-1 min-w-0">
-                                                        <p className="text-xs font-semibold text-foreground">{disc.campo}</p>
-                                                        {disc.descripcion && <p className="text-[11px] text-muted-foreground">{disc.descripcion}</p>}
-                                                      </div>
-                                                      {disc.severidad && (
-                                                        <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ml-2",
-                                                          (disc.severidad).toLowerCase() === "alta" && "text-destructive bg-destructive/10",
-                                                          (disc.severidad).toLowerCase() === "media" && "text-duppla-orange bg-duppla-orange/10",
-                                                          (disc.severidad).toLowerCase() === "normalizacion" && "text-blue-600 bg-blue-500/10",
-                                                        )}>
-                                                          {disc.severidad === "normalizacion" ? "Normalización" : disc.severidad}
-                                                        </span>
-                                                      )}
-                                                    </div>
-                                                    <div className="flex gap-4 text-[11px]">
-                                                      <div>
-                                                        <span className="text-muted-foreground">SF: </span>
-                                                        <span className="font-mono">{disc.valor_actual || "vacío"}</span>
-                                                      </div>
-                                                      {disc.valor_documento && (
-                                                        <div>
-                                                          <span className="text-muted-foreground">Doc: </span>
-                                                          <span className="font-mono text-primary">{disc.valor_documento}</span>
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                    {disc.fuente && <p className="text-[10px] text-muted-foreground">Fuente: {disc.fuente}</p>}
-                                                    <div className="flex gap-2 mt-1">
-                                                      {disc.tipo !== 'INFO_DOCUMENTO' && disc.tipo !== 'ERROR_DOCUMENTO' && (
-                                                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal(disc)}>
-                                                          <Wrench className="w-3 h-3" /> Corregir en SF
-                                                        </Button>
-                                                      )}
-                                                      <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, disc.campo || disc.campo_sf || disc.descripcion || `disc-${idx}`)}>
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                                                        Omitir
-                                                      </Button>
+                                            );
+
+                                            const sfId = selectedInmueble?.salesforce_id || "";
+                                            const sections = [...new Set(campos.map((c: any) => c.seccion || 'General'))];
+
+                                            const renderSource = (src: any) => {
+                                              if (!src) return <span className="text-muted-foreground">—</span>;
+                                              if (src.status === 'ok' && src.value) return <span className="font-mono text-primary">{src.value}</span>;
+                                              if (src.status === 'vacio') return <span className="text-muted-foreground italic">{src.label || 'No encontrado'}</span>;
+                                              if (src.status === 'no_existe') return <span className="text-destructive/60 italic text-[10px]">No existe documento</span>;
+                                              if (src.status === 'error') return <span className="text-destructive italic text-[10px]">{src.label || 'No se pudo leer'}</span>;
+                                              if (src.status === 'info') return <span className="text-muted-foreground">—</span>;
+                                              return <span className="text-muted-foreground">—</span>;
+                                            };
+
+                                            const getBestValue = (campo: any) => {
+                                              for (const src of [campo.escritura, campo.ctl_fiducia, campo.ctl_compra]) {
+                                                if (src?.status === 'ok' && src.value) return src.value;
+                                              }
+                                              return null;
+                                            };
+
+                                            const hasDifference = (campo: any) => {
+                                              if (campo.no_aplica || campo.solo_info) return false;
+                                              const best = getBestValue(campo);
+                                              if (!campo.sf && best) return true;
+                                              if (campo.sf && best && campo.sf.toLowerCase() !== best.toLowerCase()) return true;
+                                              return false;
+                                            };
+
+                                            return (
+                                              <div className="space-y-4">
+                                                {sections.map((section: string) => (
+                                                  <div key={section}>
+                                                    <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                                                      {section.includes('Apartamento') && <Building2 className="w-3.5 h-3.5 text-primary" />}
+                                                      {section.includes('Parqueadero') && <Car className="w-3.5 h-3.5 text-primary" />}
+                                                      {section.includes('Deposito') && <Package className="w-3.5 h-3.5 text-primary" />}
+                                                      {section}
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                      {campos.filter((c: any) => (c.seccion || 'General') === section).map((campo: any, idx: number) => {
+                                                        const dismissed = dismissedKeys.has(`${sfId}::${campo.campo_sf}`);
+                                                        if (dismissed) return null;
+                                                        const diff = hasDifference(campo);
+                                                        const bestVal = getBestValue(campo);
+
+                                                        return (
+                                                          <div key={idx} className={cn("border rounded-lg p-3 bg-background", diff ? "border-l-4 border-l-destructive" : campo.no_aplica ? "opacity-50" : "")}>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                              <p className="text-xs font-semibold text-foreground">{campo.label}</p>
+                                                              {diff && !campo.no_aplica && (
+                                                                <span className="text-[10px] font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">Diferencia</span>
+                                                              )}
+                                                              {!diff && !campo.no_aplica && bestVal && campo.sf && (
+                                                                <span className="text-[10px] font-medium text-primary bg-duppla-green-light px-1.5 py-0.5 rounded">Coincide</span>
+                                                              )}
+                                                            </div>
+                                                            {!campo.no_aplica && (
+                                                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                                                                <div>
+                                                                  <span className="text-muted-foreground">SF: </span>
+                                                                  <span className={cn("font-mono", !campo.sf && "text-duppla-orange")}>{campo.sf || 'vacío'}</span>
+                                                                </div>
+                                                                <div>
+                                                                  <span className="text-muted-foreground">Escritura: </span>
+                                                                  {renderSource(campo.escritura)}
+                                                                </div>
+                                                                <div>
+                                                                  <span className="text-muted-foreground">CTL Compra: </span>
+                                                                  {renderSource(campo.ctl_compra)}
+                                                                </div>
+                                                                <div>
+                                                                  <span className="text-muted-foreground">CTL Fiducia: </span>
+                                                                  {renderSource(campo.ctl_fiducia)}
+                                                                </div>
+                                                              </div>
+                                                            )}
+                                                            {!campo.no_aplica && (
+                                                              <div className="flex gap-2 mt-2">
+                                                                {diff && !campo.solo_info && bestVal && (
+                                                                  <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal({ campo: campo.campo_sf, campo_sf: campo.campo_sf, valor_actual: campo.sf, valor_documento: bestVal, fuente: 'Análisis IA' })}>
+                                                                    <Wrench className="w-3 h-3" /> Corregir: {bestVal}
+                                                                  </Button>
+                                                                )}
+                                                                <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, campo.campo_sf)}>
+                                                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                                                  Omitir
+                                                                </Button>
+                                                              </div>
+                                                            )}
+                                                          </div>
+                                                        );
+                                                      })}
                                                     </div>
                                                   </div>
                                                 ))}
                                               </div>
-                                            )}
-                                          </div>
                                             );
                                           })()}
 
