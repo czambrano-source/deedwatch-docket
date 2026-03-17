@@ -339,7 +339,7 @@ export default function DataPage() {
 
           // Step 2: Poll Supabase every 4s, max 90s
           const POLL_INTERVAL = 4000;
-          const MAX_POLL_TIME = 90000;
+          const MAX_POLL_TIME = 180000;
           const startTime = Date.now();
 
           let jobResult: any = null;
