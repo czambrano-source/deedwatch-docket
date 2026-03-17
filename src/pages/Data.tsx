@@ -176,6 +176,14 @@ export default function DataPage() {
       localStorage.setItem("dismissed_discrepancias", JSON.stringify([...next]));
       return next;
     });
+    // Remove from IA panel immediately
+    setAnalisisIA(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        discrepancias: (prev.discrepancias || []).filter(d => (d.campo || d.campo_sf) !== campo),
+      };
+    });
     toast({ title: "Omitido", description: `"${campo}" no se mostrará de nuevo para este inmueble.` });
   }, [toast]);
 
@@ -383,15 +391,25 @@ export default function DataPage() {
             continue;
           }
 
+          // Extract raw discrepancias
+          const rawDiscs = Array.isArray(base.discrepancias)
+            ? base.discrepancias
+            : Array.isArray(base.resultado?.discrepancias)
+              ? base.resultado.discrepancias
+              : Array.isArray(base.data?.discrepancias)
+                ? base.data.discrepancias
+                : [];
+
+          // MAP n8n field names (campo_sf, valor_sf) to component field names (campo, valor_actual)
+          const mappedDiscs = rawDiscs.map((d: any) => ({
+            ...d,
+            campo: d.campo || d.campo_sf,
+            valor_actual: d.valor_actual || d.valor_sf,
+          }));
+
           payload = {
             ...base,
-            discrepancias: Array.isArray(base.discrepancias)
-              ? base.discrepancias
-              : Array.isArray(base.resultado?.discrepancias)
-                ? base.resultado.discrepancias
-                : Array.isArray(base.data?.discrepancias)
-                  ? base.data.discrepancias
-                  : [],
+            discrepancias: mappedDiscs,
             documentos_analizados: Array.isArray(base.documentos_analizados)
               ? base.documentos_analizados
               : Array.isArray(base.resultado?.documentos_analizados)
@@ -706,8 +724,18 @@ export default function DataPage() {
         aprobado_por: fixAprobadorEmail,
       });
 
-      toast({ title: "✅ Corregido", description: `Campo "${campoCorregido}" actualizado a "${valorNormalizadoTexto}". Presiona "Analizar con IA" para ver el estado actualizado.` });
+      toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado a "${valorNormalizadoTexto}".` });
       setFixModalOpen(false);
+      // Remove the fixed discrepancy from the IA panel immediately
+      setAnalisisIA(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          discrepancias: (prev.discrepancias || []).filter(d =>
+            (d.campo || d.campo_sf) !== campoCorregido
+          ),
+        };
+      });
       fetchHistorial();
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
