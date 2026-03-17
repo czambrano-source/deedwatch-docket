@@ -1240,21 +1240,21 @@ export default function DataPage() {
                                                               )}
                                                             </div>
                                                             {!campo.no_aplica && (
-                                                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-                                                                <div>
-                                                                  <span className="text-muted-foreground">SF: </span>
-                                                                  <span className={cn("font-mono", !campo.sf && "text-duppla-orange")}>{campo.sf || 'vacío'}</span>
+                                                              <div className="space-y-1 text-[11px]">
+                                                                <div className="flex items-center gap-1">
+                                                                  <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">SF:</span>
+                                                                  <span className={cn("font-mono", !campo.sf ? "text-duppla-orange" : "text-foreground")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
-                                                                <div>
-                                                                  <span className="text-muted-foreground">Escritura: </span>
+                                                                <div className="flex items-center gap-1">
+                                                                  <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">Escritura:</span>
                                                                   {renderSource(campo.escritura)}
                                                                 </div>
-                                                                <div>
-                                                                  <span className="text-muted-foreground">CTL Compra: </span>
+                                                                <div className="flex items-center gap-1">
+                                                                  <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">CTL Compra:</span>
                                                                   {renderSource(campo.ctl_compra)}
                                                                 </div>
-                                                                <div>
-                                                                  <span className="text-muted-foreground">CTL Fiducia: </span>
+                                                                <div className="flex items-center gap-1">
+                                                                  <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">CTL Fiducia:</span>
                                                                   {renderSource(campo.ctl_fiducia)}
                                                                 </div>
                                                               </div>
