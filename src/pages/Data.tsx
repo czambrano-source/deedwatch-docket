@@ -556,7 +556,7 @@ export default function DataPage() {
       setAnalisisIA(payload);
     } catch (err: any) {
       toast({ title: "Error en análisis IA", description: err.message, variant: "destructive" });
-      setSheetOpen(false);
+      // Don't close the panel on error - let user retry or close manually
     } finally {
       setAnalyzingIA(false);
     }
