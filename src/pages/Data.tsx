@@ -1161,10 +1161,10 @@ export default function DataPage() {
                                             </div>
                                           ) : null}
 
-                                          {/* Alertas generales */}
-                                          {analisisIA.alertas?.length > 0 && (
+                                          {/* Alertas: solo cantidad de parqueaderos/depositos, no errores de PDF */}
+                                          {analisisIA.alertas?.filter((a: string) => !a.includes('pudo leer')).length > 0 && (
                                             <div className="space-y-1">
-                                              {(analisisIA.alertas as string[]).map((alerta: string, i: number) => (
+                                              {(analisisIA.alertas as string[]).filter((a: string) => !a.includes('pudo leer')).map((alerta: string, i: number) => (
                                                 <div key={i} className="flex items-center gap-2 text-xs bg-duppla-orange/10 text-duppla-orange rounded px-2 py-1.5">
                                                   <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                                                   <span>{alerta}</span>
@@ -1263,7 +1263,7 @@ export default function DataPage() {
                                                               <div className="flex gap-2 mt-2">
                                                                 {diff && !campo.solo_info && bestVal && (
                                                                   <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal({ campo: campo.campo_sf, campo_sf: campo.campo_sf, valor_actual: campo.sf, valor_documento: bestVal, fuente: 'Análisis IA' })}>
-                                                                    <Wrench className="w-3 h-3" /> Corregir: {bestVal}
+                                                                    <Wrench className="w-3 h-3" /> Corregir
                                                                   </Button>
                                                                 )}
                                                                 <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, campo.campo_sf)}>
