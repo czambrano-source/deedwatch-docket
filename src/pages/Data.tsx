@@ -1249,7 +1249,15 @@ export default function DataPage() {
                                                                 <span className="text-xs font-semibold text-primary bg-duppla-green-light px-2 py-0.5 rounded">Coincide</span>
                                                               )}
                                                             </div>
-                                                            {!campo.no_aplica && (
+                                                            {!campo.no_aplica && campo.solo_info && (
+                                                              <div className="text-xs">
+                                                                <div className="flex items-center gap-2">
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Escritura:</span>
+                                                                  {renderSource(campo.escritura)}
+                                                                </div>
+                                                              </div>
+                                                            )}
+                                                            {!campo.no_aplica && !campo.solo_info && (
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
