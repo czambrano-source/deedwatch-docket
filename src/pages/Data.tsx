@@ -1073,6 +1073,7 @@ export default function DataPage() {
                                         <>
                                           <div className="space-y-1.5">
                                             <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
+                                            <DItem label="Número del depósito" value={(sel as any).numero_del_deposito__c || "—"} icon={Hash} />
                                             <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
                                             <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
                                           </div>
