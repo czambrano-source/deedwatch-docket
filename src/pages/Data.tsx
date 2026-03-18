@@ -1188,10 +1188,10 @@ export default function DataPage() {
 
                                             const renderSource = (src: any) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
-                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground">{src.value}</span>;
-                                              if (src.status === 'vacio') return <span className="font-medium text-duppla-orange">No encontrado</span>;
-                                              if (src.status === 'no_existe') return <span className="font-medium text-destructive">No existe documento</span>;
-                                              if (src.status === 'error') return <span className="font-medium text-destructive">{src.label || 'No se pudo leer'}</span>;
+                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground bg-duppla-green-light px-2 py-0.5 rounded">{src.value}</span>;
+                                              if (src.status === 'vacio') return <span className="font-medium text-foreground bg-duppla-orange/15 px-2 py-0.5 rounded">No encontrado</span>;
+                                              if (src.status === 'no_existe') return <span className="font-medium text-foreground bg-destructive/15 px-2 py-0.5 rounded">No existe documento</span>;
+                                              if (src.status === 'error') return <span className="font-medium text-foreground bg-destructive/15 px-2 py-0.5 rounded">{src.label || 'No se pudo leer'}</span>;
                                               if (src.status === 'info') return <span className="text-foreground">—</span>;
                                               return <span className="text-foreground">—</span>;
                                             };
@@ -1252,7 +1252,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                  <span className={cn("font-medium", !campo.sf ? "text-duppla-orange" : "text-foreground")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Escritura:</span>
