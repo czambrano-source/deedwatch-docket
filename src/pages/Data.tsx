@@ -1188,12 +1188,12 @@ export default function DataPage() {
 
                                             const renderSource = (src: any) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
-                                              if (src.status === 'ok' && src.value) return <span className="font-mono font-semibold text-foreground bg-duppla-green-light px-1.5 py-0.5 rounded">{src.value}</span>;
-                                              if (src.status === 'vacio') return <span className="text-foreground/60 italic bg-muted px-1.5 py-0.5 rounded">{src.label || 'No encontrado'}</span>;
-                                              if (src.status === 'no_existe') return <span className="text-foreground/50 italic bg-destructive/10 px-1.5 py-0.5 rounded">No existe documento</span>;
-                                              if (src.status === 'error') return <span className="text-foreground/60 italic bg-duppla-orange/10 px-1.5 py-0.5 rounded">{src.label || 'No se pudo leer'}</span>;
-                                              if (src.status === 'info') return <span className="text-muted-foreground">—</span>;
-                                              return <span className="text-muted-foreground">—</span>;
+                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground">{src.value}</span>;
+                                              if (src.status === 'vacio') return <span className="font-medium text-duppla-orange">No encontrado</span>;
+                                              if (src.status === 'no_existe') return <span className="font-medium text-destructive">No existe documento</span>;
+                                              if (src.status === 'error') return <span className="font-medium text-destructive">{src.label || 'No se pudo leer'}</span>;
+                                              if (src.status === 'info') return <span className="text-foreground">—</span>;
+                                              return <span className="text-foreground">—</span>;
                                             };
 
                                             const getBestValue = (campo: any) => {
@@ -1251,19 +1251,19 @@ export default function DataPage() {
                                                             {!campo.no_aplica && (
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
-                                                                  <span className="text-foreground/70 w-[80px] flex-shrink-0 text-right font-semibold">SF:</span>
-                                                                  <span className={cn("font-mono font-semibold px-1.5 py-0.5 rounded", !campo.sf ? "text-foreground/60 bg-duppla-orange/15" : "text-foreground bg-muted")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
+                                                                  <span className={cn("font-medium", !campo.sf ? "text-duppla-orange" : "text-foreground")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
-                                                                  <span className="text-foreground/70 w-[80px] flex-shrink-0 text-right font-semibold">Escritura:</span>
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Escritura:</span>
                                                                   {renderSource(campo.escritura)}
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
-                                                                  <span className="text-foreground/70 w-[80px] flex-shrink-0 text-right font-semibold">CTL Compra:</span>
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">CTL Compra:</span>
                                                                   {renderSource(campo.ctl_compra)}
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
-                                                                  <span className="text-foreground/70 w-[80px] flex-shrink-0 text-right font-semibold">CTL Fiducia:</span>
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">CTL Fiducia:</span>
                                                                   {renderSource(campo.ctl_fiducia)}
                                                                 </div>
                                                               </div>
