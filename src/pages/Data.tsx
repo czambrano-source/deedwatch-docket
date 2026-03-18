@@ -1188,10 +1188,10 @@ export default function DataPage() {
 
                                             const renderSource = (src: any) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
-                                              if (src.status === 'ok' && src.value) return <span className="font-mono text-primary">{src.value}</span>;
+                                              if (src.status === 'ok' && src.value) return <span className="font-mono font-medium text-primary">{src.value}</span>;
                                               if (src.status === 'vacio') return <span className="text-muted-foreground italic">{src.label || 'No encontrado'}</span>;
-                                              if (src.status === 'no_existe') return <span className="text-destructive/60 italic text-[10px]">No existe documento</span>;
-                                              if (src.status === 'error') return <span className="text-destructive italic text-[10px]">{src.label || 'No se pudo leer'}</span>;
+                                              if (src.status === 'no_existe') return <span className="text-destructive/60 italic">No existe documento</span>;
+                                              if (src.status === 'error') return <span className="text-destructive italic">{src.label || 'No se pudo leer'}</span>;
                                               if (src.status === 'info') return <span className="text-muted-foreground">—</span>;
                                               return <span className="text-muted-foreground">—</span>;
                                             };
@@ -1231,30 +1231,30 @@ export default function DataPage() {
                                                         return (
                                                           <div key={idx} className={cn("border rounded-lg p-3 bg-background", diff ? "border-l-4 border-l-destructive" : campo.no_aplica ? "opacity-50" : "")}>
                                                             <div className="flex items-center justify-between mb-2">
-                                                              <p className="text-xs font-semibold text-foreground">{campo.label}</p>
+                                                              <p className="text-sm font-semibold text-foreground">{campo.label}</p>
                                                               {diff && !campo.no_aplica && (
-                                                                <span className="text-[10px] font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded">Diferencia</span>
+                                                                <span className="text-xs font-semibold text-destructive bg-destructive/10 px-2 py-0.5 rounded">Diferencia</span>
                                                               )}
                                                               {!diff && !campo.no_aplica && bestVal && campo.sf && (
-                                                                <span className="text-[10px] font-medium text-primary bg-duppla-green-light px-1.5 py-0.5 rounded">Coincide</span>
+                                                                <span className="text-xs font-semibold text-primary bg-duppla-green-light px-2 py-0.5 rounded">Coincide</span>
                                                               )}
                                                             </div>
                                                             {!campo.no_aplica && (
-                                                              <div className="space-y-1 text-[11px]">
-                                                                <div className="flex items-center gap-1">
-                                                                  <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">SF:</span>
-                                                                  <span className={cn("font-mono", !campo.sf ? "text-duppla-orange" : "text-foreground")}>{campo.sf || 'vacío'}</span>
+                                                              <div className="space-y-1.5 text-xs">
+                                                                <div className="flex items-center gap-2">
+                                                                  <span className="text-muted-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
+                                                                  <span className={cn("font-mono font-medium", !campo.sf ? "text-duppla-orange" : "text-foreground")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
-                                                                <div className="flex items-center gap-1">
-                                                                  <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">Escritura:</span>
+                                                                <div className="flex items-center gap-2">
+                                                                  <span className="text-muted-foreground w-[80px] flex-shrink-0 text-right font-medium">Escritura:</span>
                                                                   {renderSource(campo.escritura)}
                                                                 </div>
-                                                                <div className="flex items-center gap-1">
-                                                                  <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">CTL Compra:</span>
+                                                                <div className="flex items-center gap-2">
+                                                                  <span className="text-muted-foreground w-[80px] flex-shrink-0 text-right font-medium">CTL Compra:</span>
                                                                   {renderSource(campo.ctl_compra)}
                                                                 </div>
-                                                                <div className="flex items-center gap-1">
-                                                                  <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">CTL Fiducia:</span>
+                                                                <div className="flex items-center gap-2">
+                                                                  <span className="text-muted-foreground w-[80px] flex-shrink-0 text-right font-medium">CTL Fiducia:</span>
                                                                   {renderSource(campo.ctl_fiducia)}
                                                                 </div>
                                                               </div>
