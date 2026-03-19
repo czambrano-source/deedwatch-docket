@@ -1622,7 +1622,7 @@ export default function DataPage() {
                 </p>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Valor nuevo (editable)</label>
+                <label className="text-xs text-muted-foreground">{isParqueaderoNumeroField(fixDiscrepancia) ? "Cant. Parqueadero (SF: Parqueadero__c)" : isDepositoBooleanDiscrepancia(fixDiscrepancia) ? "Deposito (SF: Deposito__c)" : `${resolveCampoDiscrepancia(fixDiscrepancia) || "Valor nuevo"}`}</label>
                 {isDepositoBooleanDiscrepancia(fixDiscrepancia) ? (
                   <Select value={fixValorNuevo} onValueChange={setFixValorNuevo}>
                     <SelectTrigger className="mt-1 text-sm">
