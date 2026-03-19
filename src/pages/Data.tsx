@@ -1318,7 +1318,37 @@ export default function DataPage() {
                                                                 </div>
                                                               </div>
                                                             )}
-                                                            {!campo.no_aplica && !campo.solo_info && (
+                                                            {!campo.no_aplica && campo.solo_valor && campo.campos_ctl && (
+                                                              <div className="space-y-3 text-xs">
+                                                                {campo.campos_ctl.map((sub: any, si: number) => (
+                                                                  <div key={si}>
+                                                                    <p className="text-xs font-medium text-muted-foreground mb-1">{sub.label}</p>
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                      <span className="text-foreground w-[70px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
+                                                                      <span className={cn("font-medium px-2 py-0.5 rounded", sub.valor_extraido ? "text-foreground bg-emerald-100" : "text-muted-foreground bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                      <span className="text-muted-foreground w-[70px] flex-shrink-0 text-right">SF:</span>
+                                                                      <span className={cn("font-mono px-2 py-0.5 rounded text-[11px]", !sub.sf ? "bg-duppla-orange/15 text-duppla-orange" : "bg-muted text-foreground")}>{sub.sf || 'vacío'}</span>
+                                                                      {sub.valor_extraido && (
+                                                                        <Button size="sm" variant="outline" className="gap-1 text-[11px] h-6 ml-auto" onClick={() => openFixModal({ campo: sub.campo_sf, campo_sf: sub.campo_sf, valor_actual: sub.sf, valor_documento: sub.valor_extraido, fuente: campo.fuente_label || 'CTL' })}>
+                                                                          <Wrench className="w-3 h-3" /> Corregir
+                                                                        </Button>
+                                                                      )}
+                                                                    </div>
+                                                                  </div>
+                                                                ))}
+                                                              </div>
+                                                            )}
+                                                            {!campo.no_aplica && campo.solo_valor && !campo.campos_ctl && (
+                                                              <div className="space-y-1.5 text-xs">
+                                                                <div className="flex items-center gap-2">
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Documento'}:</span>
+                                                                  <span className="font-medium text-foreground bg-emerald-100 px-2 py-0.5 rounded">{campo.valor_extraido || 'No encontrado'}</span>
+                                                                </div>
+                                                              </div>
+                                                            )}
+                                                            {!campo.no_aplica && !campo.solo_info && !campo.solo_valor && (
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
@@ -1338,7 +1368,7 @@ export default function DataPage() {
                                                                 </div>
                                                               </div>
                                                             )}
-                                                            {!campo.no_aplica && (
+                                                            {!campo.no_aplica && !campo.solo_valor && (
                                                               <div className="flex gap-2 mt-2">
                                                                 <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal({ campo: campo.campo_sf, campo_sf: campo.campo_sf, valor_actual: campo.sf, valor_documento: bestVal || '', fuente: 'Análisis IA' })}>
                                                                   <Wrench className="w-3 h-3" /> Corregir
