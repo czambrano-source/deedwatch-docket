@@ -206,6 +206,17 @@ export default function DataPage() {
   const [fixValorSecundario, setFixValorSecundario] = useState("");
   const [fixNumeroDeposito, setFixNumeroDeposito] = useState("");
 
+  // CTL source tracking
+  const [ctlSources, setCtlSources] = useState<Record<string, string>>({});
+  const fetchCtlSources = async (sfId: string) => {
+    const { data } = await supabase.from("ctl_source").select("bloque,tipo_ctl").eq("salesforce_id", sfId);
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach((r: any) => { map[r.bloque] = r.tipo_ctl; });
+      setCtlSources(map);
+    }
+  };
+
   // Historial
   const [historial, setHistorial] = useState<HistorialCambio[]>([]);
   const [historialLoading, setHistorialLoading] = useState(false);
@@ -783,16 +794,28 @@ export default function DataPage() {
       }
 
       // Si es deposito y escribieron numero, guardar en Supabase (SF aun no tiene el campo)
-      // Si es CTL doble (Nombre + NIT), actualizar campo secundario
-      if ((fixDiscrepancia as any).es_ctl_doble && (fixDiscrepancia as any).campo_sf_secundario && fixValorSecundario) {
-        await supabase.functions.invoke("fix-discrepancia-sf", {
-          body: { inmueble_id: selectedInmueble.salesforce_id, campo: (fixDiscrepancia as any).campo_sf_secundario, valor_nuevo: fixValorSecundario, fuente: fixDiscrepancia.fuente || "CTL", aprobado_por: fixAprobadorEmail }
-        });
-        await supabase.from("historial_cambios_sf").insert({
-          codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
-          campo_corregido: (fixDiscrepancia as any).campo_sf_secundario, valor_anterior: (fixDiscrepancia as any).valor_actual_secundario, valor_nuevo: fixValorSecundario,
-          fuente: fixDiscrepancia.fuente || "CTL", aprobado_por: fixAprobadorEmail,
-        });
+      // Si es CTL doble (Nombre + NIT), actualizar campo secundario + guardar tipo CTL
+      if ((fixDiscrepancia as any).es_ctl_doble) {
+        if ((fixDiscrepancia as any).campo_sf_secundario && fixValorSecundario) {
+          await supabase.functions.invoke("fix-discrepancia-sf", {
+            body: { inmueble_id: selectedInmueble.salesforce_id, campo: (fixDiscrepancia as any).campo_sf_secundario, valor_nuevo: fixValorSecundario, fuente: fixDiscrepancia.fuente || "CTL", aprobado_por: fixAprobadorEmail }
+          });
+          await supabase.from("historial_cambios_sf").insert({
+            codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
+            campo_corregido: (fixDiscrepancia as any).campo_sf_secundario, valor_anterior: (fixDiscrepancia as any).valor_actual_secundario, valor_nuevo: fixValorSecundario,
+            fuente: fixDiscrepancia.fuente || "CTL", aprobado_por: fixAprobadorEmail,
+          });
+        }
+        // Guardar tipo de CTL (compra o fiducia)
+        const fuente = (fixDiscrepancia.fuente || "").toLowerCase();
+        const tipoCTL = fuente.includes("fiducia") ? "fiducia" : "compra";
+        const bloque = campoCorregido.includes("parqueadero") ? "parqueadero" : campoCorregido.includes("bodega") ? "bodega" : "inmueble";
+        await supabase.from("ctl_source").upsert({
+          salesforce_id: selectedInmueble.salesforce_id,
+          bloque,
+          tipo_ctl: tipoCTL,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "salesforce_id,bloque" });
       }
 
       if (isDepositoNumeroOrBoolean(fixDiscrepancia) && fixNumeroDeposito) {
@@ -845,6 +868,7 @@ export default function DataPage() {
         };
       });
       fetchHistorial();
+      if (selectedInmueble) fetchCtlSources(selectedInmueble.salesforce_id);
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
     } finally {
@@ -1044,7 +1068,7 @@ export default function DataPage() {
                             </button>
                             {/* Chevron to expand inmueble details */}
                             <button
-                              onClick={() => setExpandedId(isExpanded ? null : inm.salesforce_id)}
+                              onClick={() => { setExpandedId(isExpanded ? null : inm.salesforce_id); if (!isExpanded) fetchCtlSources(inm.salesforce_id); }}
                               className="flex-shrink-0 text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
                             >
                               {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -1077,12 +1101,9 @@ export default function DataPage() {
                             const showCtlInm = isValidField(sel.Numero_matricula_inmobiliaria__c) || isValidField(sel.chip_apartamento__c);
                             const showCtlParq = isValidField(sel.No_Matricula_Inmo_Parqueadero__c) || isValidField(sel.chip_parqueadero__c);
                             const showCtlDep = isValidField(sel.No_Matricula_Inmo_Deposito__c) || isValidField(sel.chip_deposito__c);
-                            const esCtlR2O = (nombre?: string) => {
-                              if (!nombre) return false;
-                              const n = nombre.toUpperCase();
-                              return n.includes('FIDEICOMISO') || n.includes('PATRIMONIO AUTONOMO') || n.includes('PATRIMONIO AUTÓNOMO');
-                            };
-                            const ctlLabel = (nombre?: string) => esCtlR2O(nombre) ? 'CTL actualizado R2O' : 'Información CTL de compra, no registra CTL actualizado R2O';
+                            const esCtlR2O = (bloque: string) => ctlSources[bloque] === 'fiducia';
+                            const ctlLabel = (bloque: string) => esCtlR2O(bloque) ? 'CTL actualizado R2O' : 'Información CTL de compra, no registra CTL actualizado R2O';
+                            const tieneCtlSource = (bloque: string) => !!ctlSources[bloque];
 
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
@@ -1119,11 +1140,11 @@ export default function DataPage() {
                                     <div className="border-t border-border/40 pt-3 mt-1">
                                       <div className="flex items-center gap-2 mb-1">
                                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
-                                        {sel.nombre_ctl_inmueble__c ? (
-                                          <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O(sel.nombre_ctl_inmueble__c) ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O(sel.nombre_ctl_inmueble__c) ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel(sel.nombre_ctl_inmueble__c)}</span>
-                                        ) : (
+                                        {tieneCtlSource('inmueble') ? (
+                                          <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('inmueble') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('inmueble') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('inmueble')}</span>
+                                        ) : !sel.nombre_ctl_inmueble__c && !sel.nit_ctl_inmueble__c ? (
                                           <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                                        )}
+                                        ) : null}
                                       </div>
                                       <div className="space-y-1">
                                         <DItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
@@ -1155,11 +1176,11 @@ export default function DataPage() {
                                             <div className="border-t border-border/40 pt-3 mt-1">
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
-                                                {sel.nombre_ctl_parqueadero__c ? (
-                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O(sel.nombre_ctl_parqueadero__c) ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O(sel.nombre_ctl_parqueadero__c) ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel(sel.nombre_ctl_parqueadero__c)}</span>
-                                                ) : (
+                                                {tieneCtlSource('parqueadero') ? (
+                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('parqueadero') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('parqueadero') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('parqueadero')}</span>
+                                                ) : !sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                                                )}
+                                                ) : null}
                                               </div>
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
@@ -1193,9 +1214,9 @@ export default function DataPage() {
                                             <div className="border-t border-border/40 pt-3 mt-1">
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
-                                                {sel.nombre_ctl_bodega__c ? (
-                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O(sel.nombre_ctl_bodega__c) ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O(sel.nombre_ctl_bodega__c) ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel(sel.nombre_ctl_bodega__c)}</span>
-                                                ) : (
+                                                {tieneCtlSource('bodega') ? (
+                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
+                                                ) : !sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 )}
                                               </div>
