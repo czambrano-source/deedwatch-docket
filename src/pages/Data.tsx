@@ -202,6 +202,7 @@ export default function DataPage() {
   const [fixAprobadorEmail, setFixAprobadorEmail] = useState("");
   const [fixingInProgress, setFixingInProgress] = useState(false);
   const [fixTipoParqueadero, setFixTipoParqueadero] = useState("");
+  const [fixNumeroParqueadero, setFixNumeroParqueadero] = useState("");
   const [fixNumeroDeposito, setFixNumeroDeposito] = useState("");
 
   // Historial
@@ -715,6 +716,7 @@ export default function DataPage() {
 
     setFixAprobadorEmail("");
     setFixTipoParqueadero("");
+    setFixNumeroParqueadero(isParqueaderoNumeroField(disc) ? (disc.valor_documento || "") : "");
     setFixNumeroDeposito("");
     setFixModalOpen(true);
   };
@@ -754,6 +756,17 @@ export default function DataPage() {
           campo_corregido: "Parqueadero__c", valor_anterior: null, valor_nuevo: valorNormalizadoTexto,
           fuente: "Corrección manual", aprobado_por: fixAprobadorEmail,
         });
+        // Numero del parqueadero si lo escribieron
+        if (fixNumeroParqueadero) {
+          await supabase.functions.invoke("fix-discrepancia-sf", {
+            body: { inmueble_id: selectedInmueble.salesforce_id, campo: "numero_del_parqueadero__c", valor_nuevo: fixNumeroParqueadero, fuente: "Corrección manual", aprobado_por: fixAprobadorEmail }
+          });
+          await supabase.from("historial_cambios_sf").insert({
+            codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
+            campo_corregido: "numero_del_parqueadero__c", valor_anterior: null, valor_nuevo: fixNumeroParqueadero,
+            fuente: "Corrección manual", aprobado_por: fixAprobadorEmail,
+          });
+        }
         // Tipo de parqueadero si lo seleccionaron
         if (fixTipoParqueadero) {
           await supabase.functions.invoke("fix-discrepancia-sf", {
@@ -1677,6 +1690,17 @@ export default function DataPage() {
                   <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
                 )}
               </div>
+              {isParqueaderoNumeroField(fixDiscrepancia) && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Número del parqueadero (SF: numero_del_parqueadero__c)</label>
+                  <Input
+                    value={fixNumeroParqueadero}
+                    onChange={(e) => setFixNumeroParqueadero(e.target.value)}
+                    className="mt-1 text-sm"
+                    placeholder="Ej: 655, A-12"
+                  />
+                </div>
+              )}
               {isParqueaderoNumeroField(fixDiscrepancia) && (
                 <div>
                   <label className="text-xs text-muted-foreground">Tipo de parqueadero (SF: Tipo_de_parqueadero__c)</label>
