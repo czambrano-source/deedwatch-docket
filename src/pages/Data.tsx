@@ -201,13 +201,18 @@ export default function DataPage() {
   const [fixNumeroDeposito, setFixNumeroDeposito] = useState("");
 
   // CTL source tracking
-  const [ctlSources, setCtlSources] = useState<Record<string, string>>({});
+  const [ctlSources, setCtlSources] = useState<Record<string, any>>({});
   const fetchCtlSources = async (sfId: string) => {
-    const { data } = await supabase.from("ctl_source").select("bloque,tipo_ctl").eq("salesforce_id", sfId);
+    const { data } = await supabase.from("ctl_source").select("bloque,tipo_ctl,fecha_ctl").eq("salesforce_id", sfId);
     if (data) {
-      const map: Record<string, string> = {};
-      data.forEach((r: any) => { map[r.bloque] = r.tipo_ctl; });
+      const map: Record<string, any> = {};
+      data.forEach((r: any) => { map[r.bloque] = { tipo: r.tipo_ctl, fecha: r.fecha_ctl }; });
       setCtlSources(map);
+    }
+    // Tambien traer numero deposito de notas_predial
+    const { data: notasDep } = await supabase.from("notas_predial").select("nota").eq("salesforce_id", sfId).eq("tipo_predio", "deposito").like("nota", "Número de depósito:%").order("created_at", { ascending: false }).limit(1);
+    if (notasDep?.[0]?.nota) {
+      setCtlSources(prev => ({ ...prev, _numero_deposito: notasDep[0].nota.replace("Número de depósito: ", "") }));
     }
   };
 
@@ -809,6 +814,7 @@ export default function DataPage() {
           salesforce_id: selectedInmueble.salesforce_id,
           bloque,
           tipo_ctl: tipoCTL,
+          fecha_ctl: (fixDiscrepancia as any).fecha_ctl || null,
           updated_at: new Date().toISOString(),
         }, { onConflict: "salesforce_id,bloque" });
       }
@@ -1096,9 +1102,10 @@ export default function DataPage() {
                             const showCtlInm = isValidField(sel.Numero_matricula_inmobiliaria__c) || isValidField(sel.chip_apartamento__c);
                             const showCtlParq = isValidField(sel.No_Matricula_Inmo_Parqueadero__c) || isValidField(sel.chip_parqueadero__c);
                             const showCtlDep = isValidField(sel.No_Matricula_Inmo_Deposito__c) || isValidField(sel.chip_deposito__c);
-                            const esCtlR2O = (bloque: string) => ctlSources[bloque] === 'fiducia';
+                            const esCtlR2O = (bloque: string) => ctlSources[bloque]?.tipo === 'fiducia';
                             const ctlLabel = (bloque: string) => esCtlR2O(bloque) ? 'CTL actualizado R2O' : 'Información CTL de compra, no registra CTL actualizado R2O';
                             const tieneCtlSource = (bloque: string) => !!ctlSources[bloque];
+                            const ctlFechaLocal = (bloque: string) => ctlSources[bloque]?.fecha || null;
 
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
@@ -1144,6 +1151,7 @@ export default function DataPage() {
                                       <div className="space-y-1">
                                         <DItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
                                         <DItem label="NIT" value={sel.nit_ctl_inmueble__c} icon={Hash} />
+                                        {ctlFechaLocal('inmueble') && <DItem label="Fecha CTL" value={ctlFechaLocal('inmueble')} icon={CalendarIcon} />}
                                       </div>
                                     </div>
                                   )}
@@ -1180,6 +1188,7 @@ export default function DataPage() {
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
                                                 <DItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
+                                                {ctlFechaLocal('parqueadero') && <DItem label="Fecha CTL" value={ctlFechaLocal('parqueadero')} icon={CalendarIcon} />}
                                               </div>
                                             </div>
                                           )}
@@ -1201,7 +1210,7 @@ export default function DataPage() {
                                         <>
                                           <div className="space-y-1.5">
                                             <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
-                                            <DItem label="Número del depósito" value={(sel as any).numero_del_deposito__c || "—"} icon={Hash} />
+                                            <DItem label="Número del depósito" value={(sel as any).numero_del_deposito__c || (ctlSources._numero_deposito as string) || "—"} icon={Hash} />
                                             <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
                                             <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
                                           </div>
@@ -1218,6 +1227,7 @@ export default function DataPage() {
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
                                                 <DItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
+                                                {ctlFechaLocal('bodega') && <DItem label="Fecha CTL" value={ctlFechaLocal('bodega')} icon={CalendarIcon} />}
                                               </div>
                                             </div>
                                           )}
@@ -1471,6 +1481,7 @@ export default function DataPage() {
                                                                     <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => {
                                                                       const nombre = campo.campos_ctl.find((s: any) => s.label === 'Nombre');
                                                                       const nit = campo.campos_ctl.find((s: any) => s.label === 'NIT');
+                                                                      const fecha = campo.campos_ctl.find((s: any) => s.label === 'Fecha CTL');
                                                                       openFixModal({
                                                                         campo: nombre?.campo_sf || campo.campos_ctl[0]?.campo_sf,
                                                                         campo_sf: nombre?.campo_sf || campo.campos_ctl[0]?.campo_sf,
@@ -1481,6 +1492,7 @@ export default function DataPage() {
                                                                         valor_documento_secundario: nit?.valor_extraido || '',
                                                                         fuente: campo.fuente_label || 'CTL',
                                                                         es_ctl_doble: true,
+                                                                        fecha_ctl: fecha?.valor_extraido || null,
                                                                         label_principal: 'Nombre (SF: ' + (nombre?.campo_sf || '') + ')',
                                                                         label_secundario: 'NIT (SF: ' + (nit?.campo_sf || '') + ')',
                                                                       });
