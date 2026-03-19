@@ -201,6 +201,8 @@ export default function DataPage() {
   const [fixValorNuevo, setFixValorNuevo] = useState("");
   const [fixAprobadorEmail, setFixAprobadorEmail] = useState("");
   const [fixingInProgress, setFixingInProgress] = useState(false);
+  const [fixTipoParqueadero, setFixTipoParqueadero] = useState("");
+  const [fixNumeroDeposito, setFixNumeroDeposito] = useState("");
 
   // Historial
   const [historial, setHistorial] = useState<HistorialCambio[]>([]);
@@ -636,6 +638,15 @@ export default function DataPage() {
     return NUMERIC_FIX_FIELDS.has(c);
   };
 
+  const isParqueaderoNumeroField = (disc?: Discrepancia | null) => {
+    const campo = (disc?.campo || disc?.campo_sf || "").toLowerCase();
+    return campo.includes("numero") && campo.includes("parqueadero");
+  };
+
+  const isDepositoNumeroOrBoolean = (disc?: Discrepancia | null) => {
+    return isDepositoBooleanDiscrepancia(disc);
+  };
+
   const resolveCampoDiscrepancia = (disc?: Discrepancia | null) => {
     const rawCampo = (disc?.campo || "").trim();
     if (/__c$/i.test(rawCampo)) return rawCampo;
@@ -703,6 +714,8 @@ export default function DataPage() {
     }
 
     setFixAprobadorEmail("");
+    setFixTipoParqueadero("");
+    setFixNumeroDeposito("");
     setFixModalOpen(true);
   };
 
@@ -730,6 +743,28 @@ export default function DataPage() {
       const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
       if (error) throw new Error(error.message);
       if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
+
+      // Si es parqueadero y seleccionaron tipo, actualizar Tipo_de_parqueadero__c tambien
+      if (isParqueaderoNumeroField(fixDiscrepancia) && fixTipoParqueadero) {
+        await supabase.functions.invoke("fix-discrepancia-sf", {
+          body: { inmueble_id: selectedInmueble.salesforce_id, campo: "Tipo_de_parqueadero__c", valor_nuevo: fixTipoParqueadero, fuente: "Corrección manual", aprobado_por: fixAprobadorEmail }
+        });
+        await supabase.from("historial_cambios_sf").insert({
+          codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
+          campo_corregido: "Tipo_de_parqueadero__c", valor_anterior: null, valor_nuevo: fixTipoParqueadero,
+          fuente: "Corrección manual", aprobado_por: fixAprobadorEmail,
+        });
+      }
+
+      // Si es deposito y escribieron numero, guardar en Supabase (SF aun no tiene el campo)
+      if (isDepositoNumeroOrBoolean(fixDiscrepancia) && fixNumeroDeposito) {
+        await supabase.from("notas_predial").insert({
+          salesforce_id: selectedInmueble.salesforce_id,
+          nombre_inmueble: selectedInmueble.codigo,
+          tipo_predio: "deposito",
+          nota: `Número de depósito: ${fixNumeroDeposito}`,
+        });
+      }
 
       await supabase.from("historial_cambios_sf").insert({
         codigo_inmueble: selectedInmueble.codigo,
@@ -1613,6 +1648,32 @@ export default function DataPage() {
                   <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
                 )}
               </div>
+              {isParqueaderoNumeroField(fixDiscrepancia) && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Tipo de parqueadero (SF: Tipo_de_parqueadero__c)</label>
+                  <Select value={fixTipoParqueadero} onValueChange={setFixTipoParqueadero}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Unico">Unico</SelectItem>
+                      <SelectItem value="Servidumbre">Servidumbre</SelectItem>
+                      <SelectItem value="Sin parqueadero">Sin parqueadero</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {isDepositoNumeroOrBoolean(fixDiscrepancia) && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Numero de deposito (se guarda local, SF aun no tiene campo)</label>
+                  <Input
+                    value={fixNumeroDeposito}
+                    onChange={(e) => setFixNumeroDeposito(e.target.value)}
+                    className="mt-1 text-sm"
+                    placeholder="Ej: 101, B-3"
+                  />
+                </div>
+              )}
               <div>
                 <label className="text-xs text-muted-foreground">Email del aprobador</label>
                 <Input
