@@ -1395,6 +1395,9 @@ export default function DataPage() {
                                                             )}
                                                             {!campo.no_aplica && campo.solo_valor && campo.campos_ctl && (
                                                               <div className="space-y-3 text-xs">
+                                                                {campo.nota && (
+                                                                  <p className={cn("text-[11px] italic px-2 py-1 rounded", campo.nota.includes('actualizado') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{campo.nota}</p>
+                                                                )}
                                                                 {campo.campos_ctl.map((sub: any, si: number) => (
                                                                   <div key={si} className="space-y-1.5">
                                                                     <p className="text-xs font-medium text-muted-foreground">{sub.label}</p>
