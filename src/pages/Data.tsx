@@ -1410,22 +1410,16 @@ export default function DataPage() {
                                                             )}
                                                             {!campo.no_aplica && campo.solo_valor && campo.campos_ctl && (
                                                               <div className="space-y-3 text-xs">
-                                                                {campo.nota && (
-                                                                  <p className="text-[11px] italic px-2 py-1 rounded text-foreground bg-duppla-orange/20 flex items-center gap-1.5">
-                                                                    <AlertTriangle className="w-3 h-3 text-duppla-orange flex-shrink-0" />
-                                                                    {campo.nota}
-                                                                  </p>
-                                                                )}
                                                                 {campo.campos_ctl.map((sub: any, si: number) => (
                                                                   <div key={si} className="space-y-1.5">
                                                                     <p className="text-xs font-medium text-muted-foreground">{sub.label}</p>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                      <span className={cn("font-medium text-foreground px-2 py-0.5 rounded bg-muted")}>{sub.sf || 'vacío'}</span>
+                                                                      <span className="font-medium text-foreground px-2 py-0.5 rounded bg-muted">{sub.sf || 'vacío'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
-                                                                      <span className={cn("font-medium px-2 py-0.5 rounded", sub.valor_extraido ? "text-foreground bg-emerald-100" : "text-foreground bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
+                                                                      <span className="font-medium text-foreground px-2 py-0.5 rounded bg-muted">{sub.valor_extraido || 'No encontrado'}</span>
                                                                     </div>
                                                                   </div>
                                                                 ))}
@@ -1451,6 +1445,12 @@ export default function DataPage() {
                                                                       <Wrench className="w-3 h-3" /> Corregir
                                                                     </Button>
                                                                   </div>
+                                                                )}
+                                                                {campo.nota && (
+                                                                  <p className="text-[11px] italic px-2 py-1 rounded text-foreground bg-duppla-orange/20 flex items-center gap-1.5">
+                                                                    <AlertTriangle className="w-3 h-3 text-duppla-orange flex-shrink-0" />
+                                                                    {campo.nota}
+                                                                  </p>
                                                                 )}
                                                               </div>
                                                             )}
