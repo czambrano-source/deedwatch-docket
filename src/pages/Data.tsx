@@ -1416,7 +1416,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : status === 'coincide' ? "bg-emerald-100" : "bg-muted")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-emerald-100" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos:</span>
