@@ -162,12 +162,7 @@ export default function DataPage() {
   const [analyzingIA, setAnalyzingIA] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const cancelAnalysisRef = useRef(false);
-  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => {
-    try {
-      const stored = localStorage.getItem("dismissed_discrepancias");
-      return stored ? new Set(JSON.parse(stored)) : new Set();
-    } catch { return new Set(); }
-  });
+  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(new Set());
 
   const getDiscKey = (d: Discrepancia, idx?: number) => d.campo || d.campo_sf || d.descripcion || `disc-${idx ?? 0}`;
 
@@ -176,7 +171,6 @@ export default function DataPage() {
     setDismissedKeys(prev => {
       const next = new Set(prev);
       next.add(key);
-      localStorage.setItem("dismissed_discrepancias", JSON.stringify([...next]));
       return next;
     });
     // Remove from IA panel immediately
@@ -324,6 +318,7 @@ export default function DataPage() {
     setAnalyzingIA(true);
     setSheetOpen(true);
     cancelAnalysisRef.current = false;
+    setDismissedKeys(new Set());
     fetchHistorial();
 
     try {
@@ -1414,7 +1409,8 @@ export default function DataPage() {
                                                     </h4>
                                                     <div className="space-y-2">
                                                       {rawItems.filter((c: any) => (c.seccion || 'General') === section).map((campo: any, idx: number) => {
-                                                        const dismissed = dismissedKeys.has(`${sfId}::${campo.campo_sf}`);
+                                                        const dismissKey = campo.campo_sf || campo.label;
+                                                        const dismissed = dismissedKeys.has(`${sfId}::${dismissKey}`);
                                                         if (dismissed) return null;
                                                         const status = getStatus(campo);
                                                         const bestVal = getBestValue(campo);
@@ -1490,6 +1486,10 @@ export default function DataPage() {
                                                                       });
                                                                     }}>
                                                                       <Wrench className="w-3 h-3" /> Corregir
+                                                                    </Button>
+                                                                    <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, campo.label)}>
+                                                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                                                      Omitir
                                                                     </Button>
                                                                   </div>
                                                                 )}
