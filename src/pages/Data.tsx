@@ -1226,7 +1226,7 @@ export default function DataPage() {
                                                   <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
                                                 ) : !sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                                                )}
+                                                ) : null}
                                               </div>
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
