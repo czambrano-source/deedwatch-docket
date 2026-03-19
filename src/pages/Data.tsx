@@ -1147,7 +1147,7 @@ export default function DataPage() {
                                       <div className="flex items-center gap-2 mb-1">
                                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
                                         {tieneCtlSource('inmueble') ? (
-                                          <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('inmueble') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('inmueble') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('inmueble')}</span>
+                                          <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('inmueble') ? "text-primary bg-duppla-green/20" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('inmueble') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('inmueble')}</span>
                                         ) : !sel.nombre_ctl_inmueble__c && !sel.nit_ctl_inmueble__c ? (
                                           <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                         ) : null}
@@ -1184,7 +1184,7 @@ export default function DataPage() {
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
                                                 {tieneCtlSource('parqueadero') ? (
-                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('parqueadero') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('parqueadero') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('parqueadero')}</span>
+                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('parqueadero') ? "text-primary bg-duppla-green/20" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('parqueadero') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('parqueadero')}</span>
                                                 ) : !sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
@@ -1223,7 +1223,7 @@ export default function DataPage() {
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
                                                 {tieneCtlSource('bodega') ? (
-                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
+                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green/20" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
                                                 ) : !sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
@@ -1292,7 +1292,7 @@ export default function DataPage() {
                                                   <div key={i} className="flex items-center gap-2 text-xs">
                                                     <FileText className="w-3.5 h-3.5 text-primary" />
                                                     <span className="text-foreground">{doc}</span>
-                                                    <span className="text-[10px] text-primary bg-duppla-green-light px-1.5 py-0.5 rounded">Analizado</span>
+                                                    <span className="text-[10px] text-primary bg-duppla-green/20 px-1.5 py-0.5 rounded">Analizado</span>
                                                   </div>
                                                 ))}
                                                 {analisisIA.documentos_faltantes?.map((doc, i) => (
@@ -1356,7 +1356,7 @@ export default function DataPage() {
                                                           {d.valor_documento && (
                                                             <div className="flex items-center gap-2">
                                                               <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{d.fuente || 'Doc'}:</span>
-                                                              <span className="font-mono bg-duppla-green-light px-2 py-0.5 rounded">{d.valor_documento}</span>
+                                                              <span className="font-mono bg-duppla-green/20 px-2 py-0.5 rounded">{d.valor_documento}</span>
                                                             </div>
                                                           )}
                                                         </div>
@@ -1383,7 +1383,7 @@ export default function DataPage() {
 
                                             const renderSource = (src: any) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
-                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground bg-duppla-green-light px-2.5 py-0.5 rounded-full">{src.value}</span>;
+                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground bg-duppla-green/20 px-2.5 py-0.5 rounded-full">{src.value}</span>;
                                               if (src.status === 'vacio') return <span className="font-medium text-foreground bg-duppla-orange/15 px-2.5 py-0.5 rounded-full">No encontrado</span>;
                                               if (src.status === 'no_existe') return <span className="font-medium text-foreground bg-destructive/15 px-2.5 py-0.5 rounded-full">No existe documento</span>;
                                               if (src.status === 'error') return <span className="font-medium text-foreground bg-destructive/15 px-2.5 py-0.5 rounded-full">{src.label || 'No se pudo leer'}</span>;
@@ -1450,7 +1450,7 @@ export default function DataPage() {
                                                                 <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-orange bg-duppla-orange/10 px-2.5 py-0.5 rounded-full"><AlertTriangle className="w-3 h-3" /> Falta en SF</span>
                                                               )}
                                                               {status === 'coincide' && (
-                                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-duppla-green-light px-2.5 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> Coincide</span>
+                                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-duppla-green/20 px-2.5 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> Coincide</span>
                                                               )}
                                                             </div>
                                                             {!campo.no_aplica && campo.solo_info && (
@@ -1480,11 +1480,11 @@ export default function DataPage() {
                                                                     <>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-duppla-green-light" : !sub.sf ? "bg-duppla-orange/15" : "bg-muted")}>{sub.sf || 'vacío'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-duppla-green/20" : !sub.sf ? "bg-duppla-orange/15" : "bg-muted")}>{sub.sf || 'vacío'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
-                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-duppla-green-light" : "bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-duppla-green/20" : "bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
                                                                     </div>
                                                                     </>
                                                                     )}
@@ -1531,7 +1531,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Documento'}:</span>
-                                                                  <span className="font-medium text-foreground bg-duppla-green-light px-2 py-0.5 rounded">{campo.valor_extraido || 'No encontrado'}</span>
+                                                                  <span className="font-medium text-foreground bg-duppla-green/20 px-2 py-0.5 rounded">{campo.valor_extraido || 'No encontrado'}</span>
                                                                 </div>
                                                               </div>
                                                             )}
@@ -1539,7 +1539,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                  <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-duppla-green-light" : "bg-muted")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-duppla-green/20" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos:</span>
@@ -1913,7 +1913,7 @@ export default function DataPage() {
                     </p>
                     <div className="space-y-2 max-h-[40vh] overflow-y-auto">
                       {cambios.map((c: any, idx: number) => (
-                        <div key={idx} className="border rounded-lg p-3 bg-muted/30 space-y-1">
+                        <div key={idx} className="border rounded-lg p-3 bg-background bg-muted/30 space-y-1">
                           <p className="text-xs font-semibold text-foreground">{c.campo || c.field}</p>
                           <div className="flex gap-4 text-[11px]">
                             <div>
