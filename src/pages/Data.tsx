@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
@@ -161,6 +161,7 @@ export default function DataPage() {
   const [analisisIA, setAnalisisIA] = useState<AnalisisIA | null>(null);
   const [analyzingIA, setAnalyzingIA] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const cancelAnalysisRef = useRef(false);
   const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("dismissed_discrepancias");
@@ -307,6 +308,7 @@ export default function DataPage() {
     setAnalisisIA(null);
     setAnalyzingIA(true);
     setSheetOpen(true);
+    cancelAnalysisRef.current = false;
     fetchHistorial();
 
     try {
@@ -346,6 +348,8 @@ export default function DataPage() {
 
           while (Date.now() - startTime < MAX_POLL_TIME) {
             await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+
+            if (cancelAnalysisRef.current) break;
 
             const { data: rows, error: pollError } = await supabase
               .from("analisis_discrepancias_jobs")
@@ -1114,7 +1118,7 @@ export default function DataPage() {
                                         <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                                           <Eye className="w-4 h-4 text-primary" /> Análisis IA
                                         </h3>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSheetOpen(false)}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { cancelAnalysisRef.current = true; setAnalyzingIA(false); setSheetOpen(false); }}>
                                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                         </Button>
                                       </div>
