@@ -1283,12 +1283,37 @@ export default function DataPage() {
                                               <div className="space-y-4">
                                                 {sections.map((section: string) => (
                                                   <div key={section}>
-                                                    <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                                                      {section.includes('Apartamento') && <Building2 className="w-3.5 h-3.5 text-primary" />}
-                                                      {section.includes('Parqueadero') && <Car className="w-3.5 h-3.5 text-primary" />}
-                                                      {section.includes('Deposito') && <Package className="w-3.5 h-3.5 text-primary" />}
-                                                      {section}
-                                                    </h4>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                      <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                                        {section.includes('Apartamento') && <Building2 className="w-3.5 h-3.5 text-primary" />}
+                                                        {section.includes('Parqueadero') && <Car className="w-3.5 h-3.5 text-primary" />}
+                                                        {section.includes('Deposito') && <Package className="w-3.5 h-3.5 text-primary" />}
+                                                        {section}
+                                                      </h4>
+                                                      {section === 'Parqueadero' && (
+                                                        <Select defaultValue={Number(selectedInmueble?.raw?.Parqueadero__c) >= 1 ? "si" : "no"} onValueChange={(val) => {
+                                                          const newVal = val === "si" ? 1 : 0;
+                                                          openFixModal({ campo: 'Parqueadero__c', campo_sf: 'Parqueadero__c', valor_actual: String(selectedInmueble?.raw?.Parqueadero__c ?? 0), valor_documento: String(newVal), fuente: 'Corrección manual' });
+                                                        }}>
+                                                          <SelectTrigger className="h-6 w-[70px] text-xs"><SelectValue /></SelectTrigger>
+                                                          <SelectContent>
+                                                            <SelectItem value="si">Sí</SelectItem>
+                                                            <SelectItem value="no">No</SelectItem>
+                                                          </SelectContent>
+                                                        </Select>
+                                                      )}
+                                                      {section === 'Deposito' && (
+                                                        <Select defaultValue={(selectedInmueble?.raw?.Deposito__c || '').toString().toLowerCase() === 'si' ? "si" : "no"} onValueChange={(val) => {
+                                                          openFixModal({ campo: 'Deposito__c', campo_sf: 'Deposito__c', valor_actual: selectedInmueble?.raw?.Deposito__c || 'No', valor_documento: val === "si" ? "Si" : "No", fuente: 'Corrección manual' });
+                                                        }}>
+                                                          <SelectTrigger className="h-6 w-[70px] text-xs"><SelectValue /></SelectTrigger>
+                                                          <SelectContent>
+                                                            <SelectItem value="si">Sí</SelectItem>
+                                                            <SelectItem value="no">No</SelectItem>
+                                                          </SelectContent>
+                                                        </Select>
+                                                      )}
+                                                    </div>
                                                     <div className="space-y-2">
                                                       {rawItems.filter((c: any) => (c.seccion || 'General') === section).map((campo: any, idx: number) => {
                                                         const dismissed = dismissedKeys.has(`${sfId}::${campo.campo_sf}`);
