@@ -1291,27 +1291,14 @@ export default function DataPage() {
                                                         {section}
                                                       </h4>
                                                       {section === 'Parqueadero' && (
-                                                        <Select defaultValue={Number(selectedInmueble?.raw?.Parqueadero__c) >= 1 ? "si" : "no"} onValueChange={(val) => {
-                                                          const newVal = val === "si" ? 1 : 0;
-                                                          openFixModal({ campo: 'Parqueadero__c', campo_sf: 'Parqueadero__c', valor_actual: String(selectedInmueble?.raw?.Parqueadero__c ?? 0), valor_documento: String(newVal), fuente: 'Corrección manual' });
-                                                        }}>
-                                                          <SelectTrigger className="h-6 w-[70px] text-xs"><SelectValue /></SelectTrigger>
-                                                          <SelectContent>
-                                                            <SelectItem value="si">Sí</SelectItem>
-                                                            <SelectItem value="no">No</SelectItem>
-                                                          </SelectContent>
-                                                        </Select>
+                                                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-6" onClick={() => openFixModal({ campo: 'Parqueadero__c', campo_sf: 'Parqueadero__c', valor_actual: String(selectedInmueble?.raw?.Parqueadero__c ?? 0), valor_documento: Number(selectedInmueble?.raw?.Parqueadero__c) >= 1 ? '0' : '1', fuente: 'Corrección manual' })}>
+                                                          <Wrench className="w-3 h-3" /> {Number(selectedInmueble?.raw?.Parqueadero__c) >= 1 ? 'No tiene' : 'Sí tiene'}
+                                                        </Button>
                                                       )}
                                                       {section === 'Deposito' && (
-                                                        <Select defaultValue={(selectedInmueble?.raw?.Deposito__c || '').toString().toLowerCase() === 'si' ? "si" : "no"} onValueChange={(val) => {
-                                                          openFixModal({ campo: 'Deposito__c', campo_sf: 'Deposito__c', valor_actual: selectedInmueble?.raw?.Deposito__c || 'No', valor_documento: val === "si" ? "Si" : "No", fuente: 'Corrección manual' });
-                                                        }}>
-                                                          <SelectTrigger className="h-6 w-[70px] text-xs"><SelectValue /></SelectTrigger>
-                                                          <SelectContent>
-                                                            <SelectItem value="si">Sí</SelectItem>
-                                                            <SelectItem value="no">No</SelectItem>
-                                                          </SelectContent>
-                                                        </Select>
+                                                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-6" onClick={() => openFixModal({ campo: 'Deposito__c', campo_sf: 'Deposito__c', valor_actual: selectedInmueble?.raw?.Deposito__c || 'No', valor_documento: (selectedInmueble?.raw?.Deposito__c || '').toString().toLowerCase() === 'si' ? 'No' : 'Si', fuente: 'Corrección manual' })}>
+                                                          <Wrench className="w-3 h-3" /> {(selectedInmueble?.raw?.Deposito__c || '').toString().toLowerCase() === 'si' ? 'No tiene' : 'Sí tiene'}
+                                                        </Button>
                                                       )}
                                                     </div>
                                                     <div className="space-y-2">
