@@ -202,18 +202,22 @@ export default function DataPage() {
 
   // CTL source tracking
   const [ctlSources, setCtlSources] = useState<Record<string, any>>({});
+  const [numDepositoLocal, setNumDepositoLocal] = useState<string>("");
   const fetchCtlSources = async (sfId: string) => {
-    const { data } = await supabase.from("ctl_source").select("bloque,tipo_ctl,fecha_ctl").eq("salesforce_id", sfId);
-    if (data) {
-      const map: Record<string, any> = {};
-      data.forEach((r: any) => { map[r.bloque] = { tipo: r.tipo_ctl, fecha: r.fecha_ctl }; });
-      setCtlSources(map);
-    }
-    // Tambien traer numero deposito de notas_predial
-    const { data: notasDep } = await supabase.from("notas_predial").select("nota").eq("salesforce_id", sfId).eq("tipo_predio", "deposito").like("nota", "Número de depósito:%").order("created_at", { ascending: false }).limit(1);
-    if (notasDep?.[0]?.nota) {
-      setCtlSources(prev => ({ ...prev, _numero_deposito: notasDep[0].nota.replace("Número de depósito: ", "") }));
-    }
+    try {
+      const { data } = await supabase.from("ctl_source").select("bloque,tipo_ctl,fecha_ctl").eq("salesforce_id", sfId);
+      if (data) {
+        const map: Record<string, any> = {};
+        data.forEach((r: any) => { map[r.bloque] = { tipo: r.tipo_ctl, fecha: r.fecha_ctl }; });
+        setCtlSources(map);
+      }
+    } catch {}
+    try {
+      const { data: notasDep } = await supabase.from("notas_predial").select("nota").eq("salesforce_id", sfId).eq("tipo_predio", "deposito").order("created_at", { ascending: false }).limit(5);
+      const depNota = notasDep?.find((n: any) => n.nota?.startsWith("Número de depósito:"));
+      if (depNota) setNumDepositoLocal(depNota.nota.replace("Número de depósito: ", ""));
+      else setNumDepositoLocal("");
+    } catch { setNumDepositoLocal(""); }
   };
 
   // Historial
@@ -1210,7 +1214,7 @@ export default function DataPage() {
                                         <>
                                           <div className="space-y-1.5">
                                             <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
-                                            <DItem label="Número del depósito" value={(sel as any).numero_del_deposito__c || (ctlSources._numero_deposito as string) || "—"} icon={Hash} />
+                                            <DItem label="Número del depósito" value={(sel as any).numero_del_deposito__c || numDepositoLocal || "—"} icon={Hash} />
                                             <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
                                             <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
                                           </div>
