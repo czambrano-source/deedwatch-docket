@@ -203,6 +203,7 @@ export default function DataPage() {
   const [fixingInProgress, setFixingInProgress] = useState(false);
   const [fixTipoParqueadero, setFixTipoParqueadero] = useState("");
   const [fixNumeroParqueadero, setFixNumeroParqueadero] = useState("");
+  const [fixValorSecundario, setFixValorSecundario] = useState("");
   const [fixNumeroDeposito, setFixNumeroDeposito] = useState("");
 
   // Historial
@@ -717,6 +718,7 @@ export default function DataPage() {
     setFixAprobadorEmail("");
     setFixTipoParqueadero("");
     setFixNumeroParqueadero(isParqueaderoNumeroField(disc) ? (disc.valor_documento || "") : "");
+    setFixValorSecundario((disc as any).valor_documento_secundario || "");
     setFixNumeroDeposito("");
     setFixModalOpen(true);
   };
@@ -781,6 +783,18 @@ export default function DataPage() {
       }
 
       // Si es deposito y escribieron numero, guardar en Supabase (SF aun no tiene el campo)
+      // Si es CTL doble (Nombre + NIT), actualizar campo secundario
+      if ((fixDiscrepancia as any).es_ctl_doble && (fixDiscrepancia as any).campo_sf_secundario && fixValorSecundario) {
+        await supabase.functions.invoke("fix-discrepancia-sf", {
+          body: { inmueble_id: selectedInmueble.salesforce_id, campo: (fixDiscrepancia as any).campo_sf_secundario, valor_nuevo: fixValorSecundario, fuente: fixDiscrepancia.fuente || "CTL", aprobado_por: fixAprobadorEmail }
+        });
+        await supabase.from("historial_cambios_sf").insert({
+          codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
+          campo_corregido: (fixDiscrepancia as any).campo_sf_secundario, valor_anterior: (fixDiscrepancia as any).valor_actual_secundario, valor_nuevo: fixValorSecundario,
+          fuente: fixDiscrepancia.fuente || "CTL", aprobado_por: fixAprobadorEmail,
+        });
+      }
+
       if (isDepositoNumeroOrBoolean(fixDiscrepancia) && fixNumeroDeposito) {
         await supabase.from("notas_predial").insert({
           salesforce_id: selectedInmueble.salesforce_id,
@@ -1397,28 +1411,47 @@ export default function DataPage() {
                                                             {!campo.no_aplica && campo.solo_valor && campo.campos_ctl && (
                                                               <div className="space-y-3 text-xs">
                                                                 {campo.nota && (
-                                                                  <p className={cn("text-[11px] italic px-2 py-1 rounded text-foreground", campo.nota.includes('actualizado') ? "bg-duppla-green-light" : "bg-duppla-orange/20")}>{campo.nota}</p>
+                                                                  <p className="text-[11px] italic px-2 py-1 rounded text-foreground bg-duppla-orange/20 flex items-center gap-1.5">
+                                                                    <AlertTriangle className="w-3 h-3 text-duppla-orange flex-shrink-0" />
+                                                                    {campo.nota}
+                                                                  </p>
                                                                 )}
                                                                 {campo.campos_ctl.map((sub: any, si: number) => (
                                                                   <div key={si} className="space-y-1.5">
                                                                     <p className="text-xs font-medium text-muted-foreground">{sub.label}</p>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                      <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !sub.sf ? "bg-muted" : "bg-muted")}>{sub.sf || 'vacío'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2 py-0.5 rounded bg-muted")}>{sub.sf || 'vacío'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
                                                                       <span className={cn("font-medium px-2 py-0.5 rounded", sub.valor_extraido ? "text-foreground bg-emerald-100" : "text-foreground bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
                                                                     </div>
-                                                                    {sub.valor_extraido && (
-                                                                      <div className="flex justify-end">
-                                                                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal({ campo: sub.campo_sf, campo_sf: sub.campo_sf, valor_actual: sub.sf, valor_documento: sub.valor_extraido, fuente: campo.fuente_label || 'CTL' })}>
-                                                                          <Wrench className="w-3 h-3" /> Corregir
-                                                                        </Button>
-                                                                      </div>
-                                                                    )}
                                                                   </div>
                                                                 ))}
+                                                                {campo.campos_ctl.some((sub: any) => sub.valor_extraido) && (
+                                                                  <div className="flex gap-2 mt-1">
+                                                                    <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => {
+                                                                      const nombre = campo.campos_ctl.find((s: any) => s.label === 'Nombre');
+                                                                      const nit = campo.campos_ctl.find((s: any) => s.label === 'NIT');
+                                                                      openFixModal({
+                                                                        campo: nombre?.campo_sf || campo.campos_ctl[0]?.campo_sf,
+                                                                        campo_sf: nombre?.campo_sf || campo.campos_ctl[0]?.campo_sf,
+                                                                        campo_sf_secundario: nit?.campo_sf,
+                                                                        valor_actual: nombre?.sf,
+                                                                        valor_actual_secundario: nit?.sf,
+                                                                        valor_documento: nombre?.valor_extraido || '',
+                                                                        valor_documento_secundario: nit?.valor_extraido || '',
+                                                                        fuente: campo.fuente_label || 'CTL',
+                                                                        es_ctl_doble: true,
+                                                                        label_principal: 'Nombre (SF: ' + (nombre?.campo_sf || '') + ')',
+                                                                        label_secundario: 'NIT (SF: ' + (nit?.campo_sf || '') + ')',
+                                                                      });
+                                                                    }}>
+                                                                      <Wrench className="w-3 h-3" /> Corregir
+                                                                    </Button>
+                                                                  </div>
+                                                                )}
                                                               </div>
                                                             )}
                                                             {!campo.no_aplica && campo.solo_valor && !campo.campos_ctl && (
@@ -1661,6 +1694,21 @@ export default function DataPage() {
                   <p className="text-foreground">{fixDiscrepancia.fuente || "—"}</p>
                 </div>
               </div>
+              {(fixDiscrepancia as any).es_ctl_doble ? (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground">{(fixDiscrepancia as any).label_principal || 'Nombre'}</label>
+                    <p className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded mt-0.5 mb-1">SF: {fixDiscrepancia.valor_actual || 'vacío'}</p>
+                    <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">{(fixDiscrepancia as any).label_secundario || 'NIT'}</label>
+                    <p className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded mt-0.5 mb-1">SF: {(fixDiscrepancia as any).valor_actual_secundario || 'vacío'}</p>
+                    <Input value={fixValorSecundario} onChange={(e) => setFixValorSecundario(e.target.value)} className="text-sm" />
+                  </div>
+                </>
+              ) : (
+              <>
               <div>
                 <label className="text-xs text-muted-foreground">Valor actual (SF)</label>
                 <p className="font-mono text-sm text-muted-foreground bg-muted px-2 py-1 rounded mt-1">
@@ -1731,6 +1779,8 @@ export default function DataPage() {
                   />
                 </div>
               )}
+              </>
+              )}
               <div>
                 <label className="text-xs text-muted-foreground">Email del aprobador</label>
                 <Input
@@ -1745,7 +1795,7 @@ export default function DataPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setFixModalOpen(false)} disabled={fixingInProgress}>Cancelar</Button>
-            <Button onClick={handleConfirmFix} disabled={fixingInProgress || !fixValorNuevo || !fixAprobadorEmail}>
+            <Button onClick={handleConfirmFix} disabled={fixingInProgress || (!fixValorNuevo && !fixValorSecundario) || !fixAprobadorEmail}>
               {fixingInProgress && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Confirmar corrección
             </Button>
