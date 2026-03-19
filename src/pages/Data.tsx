@@ -790,15 +790,18 @@ export default function DataPage() {
       toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado a "${valorNormalizadoTexto}".` });
       setFixModalOpen(false);
 
-      // Campos parqueadero a quitar si Parqueadero__c = 0
+      // Campos relacionados a quitar si parq=0 o dep=No
       const parqCamposRelacionados = ["numero_del_parqueadero__c", "No_Matricula_Inmo_Parqueadero__c", "chip_parqueadero__c", "nombre_ctl_parqueadero__c", "nit_ctl_parqueadero__c"];
+      const depCamposRelacionados = ["No_Matricula_Inmo_Deposito__c", "chip_deposito__c", "nombre_ctl_bodega__c", "nit_ctl_bodega__c"];
       const esParqCero = isParqueaderoNumeroField(fixDiscrepancia) && Number(valorNormalizado) === 0;
+      const esDepNo = isDepositoNumeroOrBoolean(fixDiscrepancia) && valorNormalizadoTexto.toLowerCase() === "no";
 
-      // Remove the fixed campo from the IA panel + related campos if parq=0
+      // Remove the fixed campo from the IA panel + related campos
       setAnalisisIA(prev => {
         if (!prev) return prev;
         const camposAQuitar = new Set([campoCorregido]);
         if (esParqCero) parqCamposRelacionados.forEach(c => camposAQuitar.add(c));
+        if (esDepNo) depCamposRelacionados.forEach(c => camposAQuitar.add(c));
         return {
           ...prev,
           discrepancias: (prev.discrepancias || []).filter(d =>
@@ -806,10 +809,10 @@ export default function DataPage() {
           ),
           campos: (prev.campos || []).filter((c: any) => {
             if (camposAQuitar.has(c.campo_sf)) return false;
-            // Also remove solo_valor cards for parqueadero if parq=0
             if (esParqCero && c.solo_valor && c.label?.toLowerCase().includes("parqueadero")) return false;
-            // Remove entire Parqueadero section if parq=0
             if (esParqCero && c.seccion === "Parqueadero") return false;
+            if (esDepNo && c.solo_valor && c.label?.toLowerCase().includes("bodega")) return false;
+            if (esDepNo && c.seccion === "Deposito") return false;
             return true;
           }),
         };
