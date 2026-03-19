@@ -1356,7 +1356,7 @@ export default function DataPage() {
                                                           {d.valor_documento && (
                                                             <div className="flex items-center gap-2">
                                                               <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{d.fuente || 'Doc'}:</span>
-                                                              <span className="font-mono bg-emerald-100 px-2 py-0.5 rounded">{d.valor_documento}</span>
+                                                              <span className="font-mono bg-emerald-200 px-2 py-0.5 rounded">{d.valor_documento}</span>
                                                             </div>
                                                           )}
                                                         </div>
@@ -1383,7 +1383,7 @@ export default function DataPage() {
 
                                             const renderSource = (src: any) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
-                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground bg-emerald-100 px-2.5 py-0.5 rounded-full">{src.value}</span>;
+                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground bg-emerald-200 px-2.5 py-0.5 rounded-full">{src.value}</span>;
                                               if (src.status === 'vacio') return <span className="font-medium text-foreground bg-duppla-orange/15 px-2.5 py-0.5 rounded-full">No encontrado</span>;
                                               if (src.status === 'no_existe') return <span className="font-medium text-foreground bg-destructive/15 px-2.5 py-0.5 rounded-full">No existe documento</span>;
                                               if (src.status === 'error') return <span className="font-medium text-foreground bg-destructive/15 px-2.5 py-0.5 rounded-full">{src.label || 'No se pudo leer'}</span>;
@@ -1480,11 +1480,11 @@ export default function DataPage() {
                                                                     <>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-emerald-100" : !sub.sf ? "bg-duppla-orange/15" : "bg-muted")}>{sub.sf || 'vacío'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-emerald-200" : !sub.sf ? "bg-duppla-orange/15" : "bg-muted")}>{sub.sf || 'vacío'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
-                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-emerald-100" : "bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-emerald-200" : "bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
                                                                     </div>
                                                                     </>
                                                                     )}
@@ -1531,7 +1531,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Documento'}:</span>
-                                                                  <span className="font-medium text-foreground bg-emerald-100 px-2 py-0.5 rounded">{campo.valor_extraido || 'No encontrado'}</span>
+                                                                  <span className="font-medium text-foreground bg-emerald-200 px-2 py-0.5 rounded">{campo.valor_extraido || 'No encontrado'}</span>
                                                                 </div>
                                                               </div>
                                                             )}
@@ -1539,7 +1539,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                  <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-emerald-100" : "bg-muted")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-emerald-200" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos:</span>
