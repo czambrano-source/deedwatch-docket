@@ -1400,6 +1400,16 @@ export default function DataPage() {
 
                                             const getStatus = (campo: any): 'coincide' | 'falta_sf' | 'diferencia' | 'sin_datos' | 'no_aplica' => {
                                               if (campo.no_aplica || campo.solo_info) return 'no_aplica';
+                                              // CTL campos_ctl: comparar cada sub.sf vs sub.valor_extraido
+                                              if (campo.solo_valor && campo.campos_ctl) {
+                                                const subs = campo.campos_ctl.filter((s: any) => !s.solo_lectura);
+                                                const conDatos = subs.filter((s: any) => s.valor_extraido);
+                                                if (conDatos.length === 0) return 'sin_datos';
+                                                const sinSf = conDatos.some((s: any) => !s.sf);
+                                                if (sinSf) return 'falta_sf';
+                                                const allMatch = conDatos.every((s: any) => s.sf && s.valor_extraido && s.sf.toLowerCase() === s.valor_extraido.toLowerCase());
+                                                return allMatch ? 'coincide' : 'diferencia';
+                                              }
                                               const docValues = [campo.escritura, campo.ctl_compra, campo.ctl_fiducia]
                                                 .filter((s: any) => s?.status === 'ok' && s.value)
                                                 .map((s: any) => s.value.toLowerCase());
@@ -1470,11 +1480,11 @@ export default function DataPage() {
                                                                     <>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                      <span className="font-medium text-foreground px-2.5 py-0.5 rounded-full bg-muted">{sub.sf || 'vacío'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-emerald-100" : !sub.sf ? "bg-duppla-orange/15" : "bg-muted")}>{sub.sf || 'vacío'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
-                                                                      <span className="font-medium text-foreground px-2.5 py-0.5 rounded-full bg-muted">{sub.valor_extraido || 'No encontrado'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-emerald-100" : "bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
                                                                     </div>
                                                                     </>
                                                                     )}
@@ -1510,7 +1520,7 @@ export default function DataPage() {
                                                                   </div>
                                                                 )}
                                                                 {campo.nota && (
-                                                                  <p className="text-[11px] px-2 py-1 rounded text-foreground bg-duppla-orange/20 flex items-center gap-1.5">
+                                                                  <p className="text-[11px] px-2.5 py-1 rounded-full text-foreground bg-duppla-orange/20 flex items-center gap-1.5">
                                                                     <AlertTriangle className="w-3 h-3 text-duppla-orange flex-shrink-0" />
                                                                     {campo.nota}
                                                                   </p>
