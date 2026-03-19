@@ -1077,6 +1077,12 @@ export default function DataPage() {
                             const showCtlInm = isValidField(sel.Numero_matricula_inmobiliaria__c) || isValidField(sel.chip_apartamento__c);
                             const showCtlParq = isValidField(sel.No_Matricula_Inmo_Parqueadero__c) || isValidField(sel.chip_parqueadero__c);
                             const showCtlDep = isValidField(sel.No_Matricula_Inmo_Deposito__c) || isValidField(sel.chip_deposito__c);
+                            const esCtlR2O = (nombre?: string) => {
+                              if (!nombre) return false;
+                              const n = nombre.toUpperCase();
+                              return n.includes('FIDEICOMISO') || n.includes('PATRIMONIO AUTONOMO') || n.includes('PATRIMONIO AUTÓNOMO');
+                            };
+                            const ctlLabel = (nombre?: string) => esCtlR2O(nombre) ? 'CTL actualizado R2O' : 'Información CTL de compra, no registra CTL actualizado R2O';
 
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
@@ -1112,8 +1118,10 @@ export default function DataPage() {
                                   {showCtlInm && (
                                     <div className="border-t border-border/40 pt-3 mt-1">
                                       <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
-                                        {!sel.nombre_ctl_inmueble__c && !sel.nit_ctl_inmueble__c && (
+                                        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
+                                        {sel.nombre_ctl_inmueble__c ? (
+                                          <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O(sel.nombre_ctl_inmueble__c) ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O(sel.nombre_ctl_inmueble__c) ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel(sel.nombre_ctl_inmueble__c)}</span>
+                                        ) : (
                                           <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                         )}
                                       </div>
@@ -1146,8 +1154,10 @@ export default function DataPage() {
                                           {showCtlParq && (
                                             <div className="border-t border-border/40 pt-3 mt-1">
                                               <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
-                                                {!sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c && (
+                                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
+                                                {sel.nombre_ctl_parqueadero__c ? (
+                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O(sel.nombre_ctl_parqueadero__c) ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O(sel.nombre_ctl_parqueadero__c) ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel(sel.nombre_ctl_parqueadero__c)}</span>
+                                                ) : (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 )}
                                               </div>
@@ -1182,8 +1192,10 @@ export default function DataPage() {
                                           {showCtlDep && (
                                             <div className="border-t border-border/40 pt-3 mt-1">
                                               <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
-                                                {!sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c && (
+                                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
+                                                {sel.nombre_ctl_bodega__c ? (
+                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O(sel.nombre_ctl_bodega__c) ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O(sel.nombre_ctl_bodega__c) ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel(sel.nombre_ctl_bodega__c)}</span>
+                                                ) : (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 )}
                                               </div>
