@@ -1480,7 +1480,7 @@ export default function DataPage() {
                                                                   </div>
                                                                 )}
                                                                 {campo.nota && (
-                                                                  <p className="text-[11px] italic px-2 py-1 rounded text-foreground bg-duppla-orange/20 flex items-center gap-1.5">
+                                                                  <p className="text-[11px] px-2 py-1 rounded text-foreground bg-duppla-orange/20 flex items-center gap-1.5">
                                                                     <AlertTriangle className="w-3 h-3 text-duppla-orange flex-shrink-0" />
                                                                     {campo.nota}
                                                                   </p>
