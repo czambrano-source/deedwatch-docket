@@ -1383,12 +1383,12 @@ export default function DataPage() {
 
                                             const renderSource = (src: any) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
-                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground bg-emerald-100 px-2 py-0.5 rounded">{src.value}</span>;
-                                              if (src.status === 'vacio') return <span className="font-medium text-foreground bg-duppla-orange/15 px-2 py-0.5 rounded">No encontrado</span>;
-                                              if (src.status === 'no_existe') return <span className="font-medium text-foreground bg-destructive/15 px-2 py-0.5 rounded">No existe documento</span>;
-                                              if (src.status === 'error') return <span className="font-medium text-foreground bg-destructive/15 px-2 py-0.5 rounded">{src.label || 'No se pudo leer'}</span>;
-                                              if (src.status === 'info') return <span className="text-foreground">—</span>;
-                                              return <span className="text-foreground">—</span>;
+                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground bg-emerald-100 px-2.5 py-0.5 rounded-full">{src.value}</span>;
+                                              if (src.status === 'vacio') return <span className="font-medium text-foreground bg-duppla-orange/15 px-2.5 py-0.5 rounded-full">No encontrado</span>;
+                                              if (src.status === 'no_existe') return <span className="font-medium text-foreground bg-destructive/15 px-2.5 py-0.5 rounded-full">No existe documento</span>;
+                                              if (src.status === 'error') return <span className="font-medium text-foreground bg-destructive/15 px-2.5 py-0.5 rounded-full">{src.label || 'No se pudo leer'}</span>;
+                                              if (src.status === 'info') return <span className="text-muted-foreground">{src.label || '—'}</span>;
+                                              return <span className="text-muted-foreground">—</span>;
                                             };
 
                                             const getBestValue = (campo: any) => {
@@ -1434,13 +1434,13 @@ export default function DataPage() {
                                                             <div className="flex items-center justify-between mb-2">
                                                               <p className="text-sm font-semibold text-foreground">{campo.label}</p>
                                                               {status === 'diferencia' && (
-                                                                <span className="text-xs font-semibold text-destructive bg-destructive/10 px-2 py-0.5 rounded">Valores diferentes</span>
+                                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><AlertTriangle className="w-3 h-3" /> Valores diferentes</span>
                                                               )}
                                                               {status === 'falta_sf' && (
-                                                                <span className="text-xs font-semibold text-duppla-orange bg-duppla-orange/10 px-2 py-0.5 rounded">Falta en SF</span>
+                                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-orange bg-duppla-orange/10 px-2.5 py-0.5 rounded-full"><AlertTriangle className="w-3 h-3" /> Falta en SF</span>
                                                               )}
                                                               {status === 'coincide' && (
-                                                                <span className="text-xs font-semibold text-primary bg-duppla-green-light px-2 py-0.5 rounded">Coincide</span>
+                                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-duppla-green-light px-2.5 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> Coincide</span>
                                                               )}
                                                             </div>
                                                             {!campo.no_aplica && campo.solo_info && (
@@ -1464,17 +1464,17 @@ export default function DataPage() {
                                                                     {sub.solo_lectura ? (
                                                                       <div className="flex items-center gap-2">
                                                                         <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
-                                                                        <span className="font-medium text-foreground px-2 py-0.5 rounded bg-muted">{sub.valor_extraido || 'No encontrado'}</span>
+                                                                        <span className="font-medium text-foreground px-2.5 py-0.5 rounded-full bg-muted">{sub.valor_extraido || 'No encontrado'}</span>
                                                                       </div>
                                                                     ) : (
                                                                     <>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                      <span className="font-medium text-foreground px-2 py-0.5 rounded bg-muted">{sub.sf || 'vacío'}</span>
+                                                                      <span className="font-medium text-foreground px-2.5 py-0.5 rounded-full bg-muted">{sub.sf || 'vacío'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
-                                                                      <span className="font-medium text-foreground px-2 py-0.5 rounded bg-muted">{sub.valor_extraido || 'No encontrado'}</span>
+                                                                      <span className="font-medium text-foreground px-2.5 py-0.5 rounded-full bg-muted">{sub.valor_extraido || 'No encontrado'}</span>
                                                                     </div>
                                                                     </>
                                                                     )}
@@ -1529,7 +1529,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-emerald-100" : "bg-muted")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className={cn("font-medium text-foreground px-2.5 py-0.5 rounded-full", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-emerald-100" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos:</span>
