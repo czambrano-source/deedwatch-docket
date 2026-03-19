@@ -1445,7 +1445,19 @@ export default function DataPage() {
                                                               <div className="space-y-3 text-xs">
                                                                 {campo.campos_ctl.map((sub: any, si: number) => (
                                                                   <div key={si} className="space-y-1.5">
-                                                                    <p className="text-xs font-medium text-muted-foreground">{sub.label}</p>
+                                                                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                                                      {sub.label === 'Fecha CTL' && <CalendarIcon className="w-3 h-3" />}
+                                                                      {sub.label === 'Nombre' && <FileText className="w-3 h-3" />}
+                                                                      {sub.label === 'NIT' && <Hash className="w-3 h-3" />}
+                                                                      {sub.label}
+                                                                    </p>
+                                                                    {sub.solo_lectura ? (
+                                                                      <div className="flex items-center gap-2">
+                                                                        <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
+                                                                        <span className="font-medium text-foreground px-2 py-0.5 rounded bg-muted">{sub.valor_extraido || 'No encontrado'}</span>
+                                                                      </div>
+                                                                    ) : (
+                                                                    <>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
                                                                       <span className="font-medium text-foreground px-2 py-0.5 rounded bg-muted">{sub.sf || 'vacío'}</span>
@@ -1454,6 +1466,8 @@ export default function DataPage() {
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
                                                                       <span className="font-medium text-foreground px-2 py-0.5 rounded bg-muted">{sub.valor_extraido || 'No encontrado'}</span>
                                                                     </div>
+                                                                    </>
+                                                                    )}
                                                                   </div>
                                                                 ))}
                                                                 {campo.campos_ctl.some((sub: any) => sub.valor_extraido) && (
