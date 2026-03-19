@@ -409,23 +409,31 @@ export default function DataPage() {
             valor_actual: d.valor_actual || d.valor_sf,
           }));
 
+          // Map sf_actual → datos_actuales_sf for the SF panel
+          const sfActual = base.sf_actual || base.resultado?.sf_actual || base.data?.sf_actual || null;
+
+          const docsAnalizados = Array.isArray(base.documentos_analizados)
+              ? base.documentos_analizados
+              : Array.isArray(base.docs_analizados) ? base.docs_analizados
+              : Array.isArray(base.resultado?.documentos_analizados) ? base.resultado.documentos_analizados
+              : Array.isArray(base.resultado?.docs_analizados) ? base.resultado.docs_analizados
+              : Array.isArray(base.data?.documentos_analizados) ? base.data.documentos_analizados
+              : [];
+
+          const docsFaltantes = Array.isArray(base.documentos_faltantes)
+              ? base.documentos_faltantes
+              : Array.isArray(base.docs_faltantes) ? base.docs_faltantes
+              : Array.isArray(base.resultado?.documentos_faltantes) ? base.resultado.documentos_faltantes
+              : Array.isArray(base.resultado?.docs_faltantes) ? base.resultado.docs_faltantes
+              : Array.isArray(base.data?.documentos_faltantes) ? base.data.documentos_faltantes
+              : [];
+
           payload = {
             ...base,
+            datos_actuales_sf: sfActual,
             discrepancias: mappedDiscs,
-            documentos_analizados: Array.isArray(base.documentos_analizados)
-              ? base.documentos_analizados
-              : Array.isArray(base.resultado?.documentos_analizados)
-                ? base.resultado.documentos_analizados
-                : Array.isArray(base.data?.documentos_analizados)
-                  ? base.data.documentos_analizados
-                  : [],
-            documentos_faltantes: Array.isArray(base.documentos_faltantes)
-              ? base.documentos_faltantes
-              : Array.isArray(base.resultado?.documentos_faltantes)
-                ? base.resultado.documentos_faltantes
-                : Array.isArray(base.data?.documentos_faltantes)
-                  ? base.data.documentos_faltantes
-                  : [],
+            documentos_analizados: docsAnalizados,
+            documentos_faltantes: docsFaltantes,
           };
           break;
         } catch (err: any) {
@@ -1176,16 +1184,66 @@ export default function DataPage() {
 
                                           {/* Tabla comparativa por campos */}
                                           {(() => {
-                                            const campos = analisisIA.campos || analisisIA.discrepancias || [];
-                                            if (!campos.length) return (
+                                            // Support both old "campos" format and new "discrepancias" format
+                                            const hasCampos = Array.isArray(analisisIA.campos) && analisisIA.campos.length > 0;
+                                            const rawItems = hasCampos ? analisisIA.campos : (analisisIA.discrepancias || []);
+                                            if (!rawItems.length) return (
                                               <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
                                                 <CheckCircle2 className="w-4 h-4 text-primary" />
-                                                Sin datos para comparar
+                                                Sin discrepancias encontradas
                                               </div>
                                             );
 
                                             const sfId = selectedInmueble?.salesforce_id || "";
-                                            const sections = [...new Set(campos.map((c: any) => c.seccion || 'General'))];
+
+                                            // NEW format: discrepancias with campo_sf, valor_sf, valor_documento, fuente, descripcion
+                                            if (!hasCampos) {
+                                              const sevColor = (sev: string) => sev === 'alta' ? 'destructive' : sev === 'media' ? 'duppla-orange' : 'muted-foreground';
+                                              return (
+                                                <div className="space-y-2">
+                                                  {rawItems.map((d: any, idx: number) => {
+                                                    const dismissed = dismissedKeys.has(`${sfId}::${d.campo_sf || d.campo}`);
+                                                    if (dismissed) return null;
+                                                    const sev = d.severidad || 'media';
+                                                    return (
+                                                      <div key={idx} className={cn("border rounded-lg p-3 bg-background", sev === 'alta' ? "border-l-4 border-l-destructive" : sev === 'media' ? "border-l-4 border-l-duppla-orange" : "")}>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                          <p className="text-sm font-semibold text-foreground">{d.campo || d.campo_sf}</p>
+                                                          <span className={cn("text-xs font-semibold px-2 py-0.5 rounded", sev === 'alta' ? "text-destructive bg-destructive/10" : "text-duppla-orange bg-duppla-orange/10")}>{d.tipo}</span>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mb-2">{d.descripcion}</p>
+                                                        <div className="space-y-1 text-xs">
+                                                          <div className="flex items-center gap-2">
+                                                            <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
+                                                            <span className={cn("font-mono px-2 py-0.5 rounded", !d.valor_sf || d.valor_sf === '-' ? "bg-duppla-orange/15 text-duppla-orange" : "bg-muted")}>{d.valor_sf || d.valor_actual || 'vacío'}</span>
+                                                          </div>
+                                                          {d.valor_documento && (
+                                                            <div className="flex items-center gap-2">
+                                                              <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{d.fuente || 'Doc'}:</span>
+                                                              <span className="font-mono bg-emerald-100 px-2 py-0.5 rounded">{d.valor_documento}</span>
+                                                            </div>
+                                                          )}
+                                                        </div>
+                                                        <div className="flex gap-2 mt-2">
+                                                          {d.valor_documento && (
+                                                            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal({ campo: d.campo_sf || d.campo, campo_sf: d.campo_sf || d.campo, valor_actual: d.valor_sf || d.valor_actual, valor_documento: d.valor_documento, fuente: d.fuente || 'Análisis IA' })}>
+                                                              <Wrench className="w-3 h-3" /> Corregir
+                                                            </Button>
+                                                          )}
+                                                          <Button size="sm" variant="ghost" className="gap-1.5 text-xs h-7 text-muted-foreground hover:text-foreground" onClick={() => dismissDiscrepancia(sfId, d.campo_sf || d.campo)}>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                                            Omitir
+                                                          </Button>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              );
+                                            }
+
+                                            // OLD format: campos with sf, escritura, ctl_compra, ctl_fiducia
+                                            const sections = [...new Set(rawItems.map((c: any) => c.seccion || 'General'))];
 
                                             const renderSource = (src: any) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
@@ -1204,18 +1262,17 @@ export default function DataPage() {
                                               return null;
                                             };
 
-                                            // Get all unique values from all sources including SF
                                             const getStatus = (campo: any): 'coincide' | 'falta_sf' | 'diferencia' | 'sin_datos' | 'no_aplica' => {
                                               if (campo.no_aplica || campo.solo_info) return 'no_aplica';
                                               const docValues = [campo.escritura, campo.ctl_compra, campo.ctl_fiducia]
                                                 .filter((s: any) => s?.status === 'ok' && s.value)
                                                 .map((s: any) => s.value.toLowerCase());
-                                              if (docValues.length === 0) return 'sin_datos'; // No hay datos en documentos
-                                              if (!campo.sf) return 'falta_sf'; // SF vacio pero docs tienen dato
+                                              if (docValues.length === 0) return 'sin_datos';
+                                              if (!campo.sf) return 'falta_sf';
                                               const sfLower = campo.sf.toLowerCase();
                                               const allMatch = docValues.every((v: string) => v === sfLower);
                                               if (allMatch) return 'coincide';
-                                              return 'diferencia'; // SF o docs tienen valores distintos
+                                              return 'diferencia';
                                             };
 
                                             return (
@@ -1229,7 +1286,7 @@ export default function DataPage() {
                                                       {section}
                                                     </h4>
                                                     <div className="space-y-2">
-                                                      {campos.filter((c: any) => (c.seccion || 'General') === section).map((campo: any, idx: number) => {
+                                                      {rawItems.filter((c: any) => (c.seccion || 'General') === section).map((campo: any, idx: number) => {
                                                         const dismissed = dismissedKeys.has(`${sfId}::${campo.campo_sf}`);
                                                         if (dismissed) return null;
                                                         const status = getStatus(campo);
