@@ -744,16 +744,27 @@ export default function DataPage() {
       if (error) throw new Error(error.message);
       if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
 
-      // Si es parqueadero y seleccionaron tipo, actualizar Tipo_de_parqueadero__c tambien
-      if (isParqueaderoNumeroField(fixDiscrepancia) && fixTipoParqueadero) {
+      // Si es parqueadero: actualizar Parqueadero__c (cantidad) con el valor numerico
+      if (isParqueaderoNumeroField(fixDiscrepancia)) {
         await supabase.functions.invoke("fix-discrepancia-sf", {
-          body: { inmueble_id: selectedInmueble.salesforce_id, campo: "Tipo_de_parqueadero__c", valor_nuevo: fixTipoParqueadero, fuente: "Corrección manual", aprobado_por: fixAprobadorEmail }
+          body: { inmueble_id: selectedInmueble.salesforce_id, campo: "Parqueadero__c", valor_nuevo: valorNormalizado, fuente: "Corrección manual", aprobado_por: fixAprobadorEmail }
         });
         await supabase.from("historial_cambios_sf").insert({
           codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
-          campo_corregido: "Tipo_de_parqueadero__c", valor_anterior: null, valor_nuevo: fixTipoParqueadero,
+          campo_corregido: "Parqueadero__c", valor_anterior: null, valor_nuevo: valorNormalizadoTexto,
           fuente: "Corrección manual", aprobado_por: fixAprobadorEmail,
         });
+        // Tipo de parqueadero si lo seleccionaron
+        if (fixTipoParqueadero) {
+          await supabase.functions.invoke("fix-discrepancia-sf", {
+            body: { inmueble_id: selectedInmueble.salesforce_id, campo: "Tipo_de_parqueadero__c", valor_nuevo: fixTipoParqueadero, fuente: "Corrección manual", aprobado_por: fixAprobadorEmail }
+          });
+          await supabase.from("historial_cambios_sf").insert({
+            codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
+            campo_corregido: "Tipo_de_parqueadero__c", valor_anterior: null, valor_nuevo: fixTipoParqueadero,
+            fuente: "Corrección manual", aprobado_por: fixAprobadorEmail,
+          });
+        }
       }
 
       // Si es deposito y escribieron numero, guardar en Supabase (SF aun no tiene el campo)
@@ -788,8 +799,6 @@ export default function DataPage() {
         };
       });
       fetchHistorial();
-      // Refresh inmuebles data from SF so the detail view updates immediately
-      queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
     } finally {
