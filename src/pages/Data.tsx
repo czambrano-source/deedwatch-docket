@@ -1283,24 +1283,12 @@ export default function DataPage() {
                                               <div className="space-y-4">
                                                 {sections.map((section: string) => (
                                                   <div key={section}>
-                                                    <div className="flex items-center justify-between mb-2">
-                                                      <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                                        {section.includes('Apartamento') && <Building2 className="w-3.5 h-3.5 text-primary" />}
-                                                        {section.includes('Parqueadero') && <Car className="w-3.5 h-3.5 text-primary" />}
-                                                        {section.includes('Deposito') && <Package className="w-3.5 h-3.5 text-primary" />}
-                                                        {section}
-                                                      </h4>
-                                                      {section === 'Parqueadero' && (
-                                                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-6" onClick={() => openFixModal({ campo: 'Parqueadero__c', campo_sf: 'Parqueadero__c', valor_actual: String(selectedInmueble?.raw?.Parqueadero__c ?? 0), valor_documento: Number(selectedInmueble?.raw?.Parqueadero__c) >= 1 ? '0' : '1', fuente: 'Corrección manual' })}>
-                                                          <Wrench className="w-3 h-3" /> {Number(selectedInmueble?.raw?.Parqueadero__c) >= 1 ? 'No tiene' : 'Sí tiene'}
-                                                        </Button>
-                                                      )}
-                                                      {section === 'Deposito' && (
-                                                        <Button size="sm" variant="outline" className="gap-1.5 text-xs h-6" onClick={() => openFixModal({ campo: 'Deposito__c', campo_sf: 'Deposito__c', valor_actual: selectedInmueble?.raw?.Deposito__c || 'No', valor_documento: (selectedInmueble?.raw?.Deposito__c || '').toString().toLowerCase() === 'si' ? 'No' : 'Si', fuente: 'Corrección manual' })}>
-                                                          <Wrench className="w-3 h-3" /> {(selectedInmueble?.raw?.Deposito__c || '').toString().toLowerCase() === 'si' ? 'No tiene' : 'Sí tiene'}
-                                                        </Button>
-                                                      )}
-                                                    </div>
+                                                    <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                                                      {section.includes('Apartamento') && <Building2 className="w-3.5 h-3.5 text-primary" />}
+                                                      {section.includes('Parqueadero') && <Car className="w-3.5 h-3.5 text-primary" />}
+                                                      {section.includes('Deposito') && <Package className="w-3.5 h-3.5 text-primary" />}
+                                                      {section}
+                                                    </h4>
                                                     <div className="space-y-2">
                                                       {rawItems.filter((c: any) => (c.seccion || 'General') === section).map((campo: any, idx: number) => {
                                                         const dismissed = dismissedKeys.has(`${sfId}::${campo.campo_sf}`);
@@ -1354,6 +1342,11 @@ export default function DataPage() {
                                                               <div className="flex gap-2 mt-2">
                                                                 {(status === 'diferencia' || status === 'falta_sf') && !campo.solo_info && bestVal && (
                                                                   <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal({ campo: campo.campo_sf, campo_sf: campo.campo_sf, valor_actual: campo.sf, valor_documento: bestVal, fuente: 'Análisis IA' })}>
+                                                                    <Wrench className="w-3 h-3" /> Corregir
+                                                                  </Button>
+                                                                )}
+                                                                {!bestVal && (campo.campo_sf === 'Parqueadero__c' || campo.campo_sf === 'numero_del_parqueadero__c' || campo.campo_sf === 'No_Matricula_Inmo_Parqueadero__c' || campo.campo_sf === 'chip_parqueadero__c' || campo.campo_sf === 'Deposito__c' || campo.campo_sf === 'No_Matricula_Inmo_Deposito__c' || campo.campo_sf === 'chip_deposito__c') && (
+                                                                  <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => openFixModal({ campo: campo.campo_sf, campo_sf: campo.campo_sf, valor_actual: campo.sf, valor_documento: '', fuente: 'Corrección manual' })}>
                                                                     <Wrench className="w-3 h-3" /> Corregir
                                                                   </Button>
                                                                 )}
