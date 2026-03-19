@@ -777,7 +777,6 @@ export default function DataPage() {
       });
 
       toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado a "${valorNormalizadoTexto}".` });
-      setFixModalOpen(false);
       // Remove the fixed discrepancy from the IA panel immediately
       setAnalisisIA(prev => {
         if (!prev) return prev;
