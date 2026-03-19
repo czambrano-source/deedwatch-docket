@@ -1155,7 +1155,7 @@ export default function DataPage() {
                                       <div className="space-y-1">
                                         <DItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
                                         <DItem label="NIT" value={sel.nit_ctl_inmueble__c} icon={Hash} />
-                                        {ctlFechaLocal('inmueble') && <DItem label="Fecha CTL" value={ctlFechaLocal('inmueble')} icon={CalendarIcon} />}
+                                        <DItem label="Fecha CTL" value={ctlFechaLocal('inmueble') || "—"} icon={CalendarIcon} />
                                       </div>
                                     </div>
                                   )}
@@ -1192,7 +1192,7 @@ export default function DataPage() {
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
                                                 <DItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
-                                                {ctlFechaLocal('parqueadero') && <DItem label="Fecha CTL" value={ctlFechaLocal('parqueadero')} icon={CalendarIcon} />}
+                                                <DItem label="Fecha CTL" value={ctlFechaLocal('parqueadero') || "—"} icon={CalendarIcon} />
                                               </div>
                                             </div>
                                           )}
@@ -1231,7 +1231,7 @@ export default function DataPage() {
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
                                                 <DItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
-                                                {ctlFechaLocal('bodega') && <DItem label="Fecha CTL" value={ctlFechaLocal('bodega')} icon={CalendarIcon} />}
+                                                <DItem label="Fecha CTL" value={ctlFechaLocal('bodega') || "—"} icon={CalendarIcon} />
                                               </div>
                                             </div>
                                           )}
