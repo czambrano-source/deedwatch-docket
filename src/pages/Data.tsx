@@ -1313,7 +1313,7 @@ export default function DataPage() {
                                                             {!campo.no_aplica && campo.solo_info && (
                                                               <div className="text-xs">
                                                                 <div className="flex items-center gap-2">
-                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Escritura:</span>
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos:</span>
                                                                   {renderSource(campo.escritura)}
                                                                 </div>
                                                               </div>
@@ -1325,7 +1325,7 @@ export default function DataPage() {
                                                                   <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : status === 'coincide' ? "bg-emerald-100" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
-                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Escritura:</span>
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos:</span>
                                                                   {renderSource(campo.escritura)}
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
