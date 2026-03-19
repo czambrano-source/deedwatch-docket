@@ -788,14 +788,30 @@ export default function DataPage() {
       });
 
       toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado a "${valorNormalizadoTexto}".` });
-      // Remove the fixed discrepancy from the IA panel immediately
+      setFixModalOpen(false);
+
+      // Campos parqueadero a quitar si Parqueadero__c = 0
+      const parqCamposRelacionados = ["numero_del_parqueadero__c", "No_Matricula_Inmo_Parqueadero__c", "chip_parqueadero__c", "nombre_ctl_parqueadero__c", "nit_ctl_parqueadero__c"];
+      const esParqCero = isParqueaderoNumeroField(fixDiscrepancia) && Number(valorNormalizado) === 0;
+
+      // Remove the fixed campo from the IA panel + related campos if parq=0
       setAnalisisIA(prev => {
         if (!prev) return prev;
+        const camposAQuitar = new Set([campoCorregido]);
+        if (esParqCero) parqCamposRelacionados.forEach(c => camposAQuitar.add(c));
         return {
           ...prev,
           discrepancias: (prev.discrepancias || []).filter(d =>
-            (d.campo || d.campo_sf) !== campoCorregido
+            !camposAQuitar.has(d.campo || d.campo_sf || "")
           ),
+          campos: (prev.campos || []).filter((c: any) => {
+            if (camposAQuitar.has(c.campo_sf)) return false;
+            // Also remove solo_valor cards for parqueadero if parq=0
+            if (esParqCero && c.solo_valor && c.label?.toLowerCase().includes("parqueadero")) return false;
+            // Remove entire Parqueadero section if parq=0
+            if (esParqCero && c.seccion === "Parqueadero") return false;
+            return true;
+          }),
         };
       });
       fetchHistorial();
