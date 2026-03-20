@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ExternalLink, Trash2, Receipt, FileText } from "lucide-react";
+import { Loader2, ExternalLink, Trash2, Receipt, FileText, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -48,6 +48,26 @@ export function VerReciboModal({ open, onClose, salesforceId, tipoPredio, nombre
     deposito: "recibo_pago_predial_deposito_r2o",
   };
 
+  const { data: docPreview, isLoading: previewLoading } = useQuery({
+    queryKey: ["doc_preview", salesforceId, tipoDocMap[tipoPredio]],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("preview-predial-alejandria", {
+        body: { id_inmueble: salesforceId, tipo_doc: tipoDocMap[tipoPredio] || tipoDocMap.inmueble },
+      });
+      if (error) throw error;
+      return data as { found: boolean; documento_id?: number; tipo_archivo?: string };
+    },
+    enabled: open,
+  });
+
+  const handlePreview = () => {
+    if (!docPreview?.documento_id) return;
+    window.open(
+      `https://back.duppla.co/app-administraciones/documento/${docPreview.documento_id}/url`,
+      "_blank"
+    );
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("¿Estás seguro de eliminar este recibo? También se eliminará el documento de Alejandría.")) return;
     setDeleting(id);
@@ -83,6 +103,20 @@ export function VerReciboModal({ open, onClose, salesforceId, tipoPredio, nombre
           </DialogTitle>
           <p className="text-sm text-muted-foreground">{nombreInmueble}</p>
         </DialogHeader>
+
+        {/* Preview del documento en Alejandría */}
+        <div className="flex items-center justify-between border rounded-lg px-3 py-2 bg-muted/30">
+          <span className="text-xs text-muted-foreground">Recibo en Alejandría</span>
+          {previewLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          ) : docPreview?.found ? (
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handlePreview}>
+              <Eye className="w-3 h-3" /> Ver recibo
+            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground italic">Sin documento</span>
+          )}
+        </div>
 
         <div className="max-h-80 overflow-y-auto space-y-3">
           {isLoading ? (
