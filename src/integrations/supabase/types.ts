@@ -993,6 +993,7 @@ export type Database = {
           last_message_time: string | null
           lo_corrimos_en_datacredito: boolean | null
           metadata: Json | null
+          queja_comercial: boolean | null
           responde_primera_pregunta: string | null
           se_le_pidio_la_cedula: boolean | null
           se_nego_a_dar_cedula: boolean | null
@@ -1022,6 +1023,7 @@ export type Database = {
           last_message_time?: string | null
           lo_corrimos_en_datacredito?: boolean | null
           metadata?: Json | null
+          queja_comercial?: boolean | null
           responde_primera_pregunta?: string | null
           se_le_pidio_la_cedula?: boolean | null
           se_nego_a_dar_cedula?: boolean | null
@@ -1051,6 +1053,7 @@ export type Database = {
           last_message_time?: string | null
           lo_corrimos_en_datacredito?: boolean | null
           metadata?: Json | null
+          queja_comercial?: boolean | null
           responde_primera_pregunta?: string | null
           se_le_pidio_la_cedula?: boolean | null
           se_nego_a_dar_cedula?: boolean | null
@@ -1068,6 +1071,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ctl_source: {
+        Row: {
+          bloque: string
+          created_at: string | null
+          fecha_ctl: string | null
+          id: string
+          salesforce_id: string
+          tipo_ctl: string
+          updated_at: string | null
+        }
+        Insert: {
+          bloque: string
+          created_at?: string | null
+          fecha_ctl?: string | null
+          id?: string
+          salesforce_id: string
+          tipo_ctl: string
+          updated_at?: string | null
+        }
+        Update: {
+          bloque?: string
+          created_at?: string | null
+          fecha_ctl?: string | null
+          id?: string
+          salesforce_id?: string
+          tipo_ctl?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       cuentas_por_pagar: {
         Row: {
@@ -2175,6 +2208,42 @@ export type Database = {
           },
         ]
       }
+      entrevista_otp: {
+        Row: {
+          celular: string
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          id_oportunidad: string
+          nombre_contacto: string | null
+          otp: string
+          usado: boolean | null
+        }
+        Insert: {
+          celular: string
+          created_at?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          id_oportunidad: string
+          nombre_contacto?: string | null
+          otp: string
+          usado?: boolean | null
+        }
+        Update: {
+          celular?: string
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          id_oportunidad?: string
+          nombre_contacto?: string | null
+          otp?: string
+          usado?: boolean | null
+        }
+        Relationships: []
+      }
       entrevista_registro_solicitud: {
         Row: {
           ahorro_sugerido: number | null
@@ -2229,6 +2298,30 @@ export type Database = {
           responsable_entrevista?: string | null
           semaforo_aprobacion?: string | null
           timestamp_aprobacion?: string | null
+        }
+        Relationships: []
+      }
+      entrevista_sesion: {
+        Row: {
+          datos_parciales: Json | null
+          historia: Json | null
+          id_oportunidad: string
+          transcript_texto: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          datos_parciales?: Json | null
+          historia?: Json | null
+          id_oportunidad: string
+          transcript_texto?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          datos_parciales?: Json | null
+          historia?: Json | null
+          id_oportunidad?: string
+          transcript_texto?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2576,6 +2669,42 @@ export type Database = {
           start_date?: string | null
           tags?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      hackathon_feedback: {
+        Row: {
+          comentarios_adicionales: string | null
+          created_at: string | null
+          equipo: string | null
+          id: string
+          nombre: string | null
+          rating_aprendizaje: number | null
+          rating_ejecucion: number | null
+          rating_organizacion: number | null
+          satisfaccion_general: number | null
+        }
+        Insert: {
+          comentarios_adicionales?: string | null
+          created_at?: string | null
+          equipo?: string | null
+          id?: string
+          nombre?: string | null
+          rating_aprendizaje?: number | null
+          rating_ejecucion?: number | null
+          rating_organizacion?: number | null
+          satisfaccion_general?: number | null
+        }
+        Update: {
+          comentarios_adicionales?: string | null
+          created_at?: string | null
+          equipo?: string | null
+          id?: string
+          nombre?: string | null
+          rating_aprendizaje?: number | null
+          rating_ejecucion?: number | null
+          rating_organizacion?: number | null
+          satisfaccion_general?: number | null
         }
         Relationships: []
       }
@@ -6207,6 +6336,75 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      verificacion_certificacion_bancaria: {
+        Row: {
+          banco_certificacion: string | null
+          banco_entrevista: string | null
+          bancos_colombianos: string | null
+          bancos_extranjeros: string | null
+          coincide: boolean
+          coincide_banco: boolean | null
+          coincide_titular: boolean | null
+          created_at: string | null
+          discrepancias: string | null
+          document_uuid: string | null
+          es_banco_extranjero: boolean | null
+          estado_cuenta_cert: string | null
+          id: string
+          id_oportunidad: string
+          moneda_cert: string | null
+          nombre_entrevista: string | null
+          numero_cuenta_cert: string | null
+          pais_banco: string | null
+          tipo_cuenta_cert: string | null
+          titular_certificacion: string | null
+        }
+        Insert: {
+          banco_certificacion?: string | null
+          banco_entrevista?: string | null
+          bancos_colombianos?: string | null
+          bancos_extranjeros?: string | null
+          coincide?: boolean
+          coincide_banco?: boolean | null
+          coincide_titular?: boolean | null
+          created_at?: string | null
+          discrepancias?: string | null
+          document_uuid?: string | null
+          es_banco_extranjero?: boolean | null
+          estado_cuenta_cert?: string | null
+          id?: string
+          id_oportunidad: string
+          moneda_cert?: string | null
+          nombre_entrevista?: string | null
+          numero_cuenta_cert?: string | null
+          pais_banco?: string | null
+          tipo_cuenta_cert?: string | null
+          titular_certificacion?: string | null
+        }
+        Update: {
+          banco_certificacion?: string | null
+          banco_entrevista?: string | null
+          bancos_colombianos?: string | null
+          bancos_extranjeros?: string | null
+          coincide?: boolean
+          coincide_banco?: boolean | null
+          coincide_titular?: boolean | null
+          created_at?: string | null
+          discrepancias?: string | null
+          document_uuid?: string | null
+          es_banco_extranjero?: boolean | null
+          estado_cuenta_cert?: string | null
+          id?: string
+          id_oportunidad?: string
+          moneda_cert?: string | null
+          nombre_entrevista?: string | null
+          numero_cuenta_cert?: string | null
+          pais_banco?: string | null
+          tipo_cuenta_cert?: string | null
+          titular_certificacion?: string | null
         }
         Relationships: []
       }
