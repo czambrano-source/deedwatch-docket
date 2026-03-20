@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { KpiCard } from "@/components/predial/KpiCard";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -152,6 +153,41 @@ const severidadColor = (sev: string) => {
   if (s === "normalizacion") return "bg-blue-500/15 text-blue-600";
   return "bg-muted text-muted-foreground";
 };
+
+/* Map discrepancias campo → DItem label for highlighting */
+const CAMPO_TO_LABEL: Record<string, string> = {
+  "chip_parqueadero__c": "Chip Parqueadero",
+  "No_Matricula_Inmo_Parqueadero__c": "No. Matricula Inmo Parqueadero",
+  "chip_deposito__c": "Chip Depósito",
+  "No_Matricula_Inmo_Deposito__c": "No. Matricula Inmo Depósito",
+  "numero_del_parqueadero__c": "Número del parqueadero",
+  "Fecha firma escritura": "Fecha Firma Escritura",
+  "CTL Fiducia pendiente": "CTL Apto",
+  "CTL Inmueble": "CTL Apto",
+  "CTL Parqueadero": "CTL Parqueadero",
+  "CTL Depósito": "CTL Bodega",
+};
+
+function buildAlertMap(discrepancias: Discrepancia[]): Map<string, { severidad: string; descripcion: string }> {
+  const map = new Map<string, { severidad: string; descripcion: string }>();
+  for (const d of discrepancias) {
+    const campo = d.campo || "";
+    // Direct match
+    if (CAMPO_TO_LABEL[campo]) {
+      map.set(CAMPO_TO_LABEL[campo], { severidad: d.severidad || "media", descripcion: d.descripcion || campo });
+    }
+    // "Parqueadero — campo_sf" or "Depósito — campo_sf" format
+    const dashMatch = campo.match(/^(?:Parqueadero|Depósito)\s*—\s*(.+)$/);
+    if (dashMatch) {
+      const sfField = dashMatch[1].trim();
+      const label = CAMPO_TO_LABEL[sfField];
+      if (label) {
+        map.set(label, { severidad: d.severidad || "media", descripcion: d.descripcion || campo });
+      }
+    }
+  }
+  return map;
+}
 
 /* ─── Main Component ─── */
 export default function DataPage() {
@@ -1165,26 +1201,42 @@ export default function DataPage() {
                                 </span>
                               );
                             })()}
-                            {/* Badges por severidad */}
+                            {/* Badges por severidad con tooltip */}
                             <div className="inline-flex items-center gap-1.5 flex-shrink-0">
                               {totalProblems > 0 ? (
-                                <button onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }} className="inline-flex items-center gap-1.5 cursor-pointer">
-                                  {counts.alta > 0 && (
-                                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-destructive bg-destructive/10">
-                                      <ShieldAlert className="w-3 h-3" /> {counts.alta}
-                                    </span>
-                                  )}
-                                  {counts.media > 0 && (
-                                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-duppla-orange bg-duppla-orange/10">
-                                      <Shield className="w-3 h-3" /> {counts.media}
-                                    </span>
-                                  )}
-                                  {counts.baja > 0 && (
-                                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-muted-foreground bg-muted">
-                                      {counts.baja}
-                                    </span>
-                                  )}
-                                </button>
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }} className="inline-flex items-center gap-1.5 cursor-pointer">
+                                        {counts.alta > 0 && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-destructive bg-destructive/10">
+                                            <ShieldAlert className="w-3 h-3" /> {counts.alta}
+                                          </span>
+                                        )}
+                                        {counts.media > 0 && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-duppla-orange bg-duppla-orange/10">
+                                            <Shield className="w-3 h-3" /> {counts.media}
+                                          </span>
+                                        )}
+                                        {counts.baja > 0 && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-muted-foreground bg-muted">
+                                            {counts.baja}
+                                          </span>
+                                        )}
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-xs">
+                                      <div className="space-y-1 text-xs">
+                                        {inm.discrepancias.map((d, idx) => (
+                                          <div key={idx} className="flex items-start gap-1.5">
+                                            <span className={cn("mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0", (d.severidad || "").toLowerCase() === "alta" ? "bg-destructive" : (d.severidad || "").toLowerCase() === "media" ? "bg-duppla-orange" : "bg-muted-foreground")} />
+                                            <span><strong>{d.campo}</strong>{d.descripcion ? `: ${d.descripcion}` : ""}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               ) : (
                                 <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md text-primary bg-duppla-green-light">
                                   <CheckCircle2 className="w-3 h-3" /> OK
@@ -1203,6 +1255,8 @@ export default function DataPage() {
                           {/* Expanded: inmueble details */}
                           {isExpanded && (() => {
                             const sel = inm.raw;
+                            const alertMap = buildAlertMap(inm.discrepancias);
+                            const getAlert = (label: string) => alertMap.get(label) || null;
                             const isValidField = (val?: string | number | null) => {
                               if (val == null) return false;
                               if (typeof val !== 'string') return false;
@@ -1240,13 +1294,13 @@ export default function DataPage() {
                                       <DItem label="Torre" value={sel.Torre__c} icon={Layers} />
                                     </div>
                                     <div className="space-y-3">
-                                      <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} />
+                                      <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} alert={getAlert("Fecha Firma Escritura")} />
                                       <DItem label="Fecha Entrega Inmueble" value={sel.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c ?? undefined} icon={CalendarIcon} />
                                       <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
                                       <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
                                     </div>
                                   </div>
-                                  <div className="border-t border-border/40 pt-3 mt-1">
+                                  <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Apto") && "bg-destructive/8 ring-1 ring-destructive/30")}>
                                       <div className="flex items-center gap-2 mb-1">
                                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
                                         {tieneCtlSource('inmueble') ? (
@@ -1255,6 +1309,9 @@ export default function DataPage() {
                                           <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                         ) : null}
                                       </div>
+                                      {getAlert("CTL Apto") && (
+                                        <p className="text-[11px] text-destructive flex items-center gap-1 mb-2"><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Apto")!.descripcion}</p>
+                                      )}
                                       <div className="space-y-1">
                                         <DItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
                                         <DItem label="NIT" value={sel.nit_ctl_inmueble__c} icon={Hash} />
@@ -1285,12 +1342,12 @@ export default function DataPage() {
                                         <>
                                           <div className="space-y-1.5">
                                             <DItem label="Parqueadero" value={`Sí (${sel.Parqueadero__c})`} icon={Car} />
-                                            <DItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} />
-                                            <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
-                                            <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} />
+                                            <DItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} alert={getAlert("Número del parqueadero")} />
+                                            <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} alert={getAlert("No. Matricula Inmo Parqueadero")} />
+                                            <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} alert={getAlert("Chip Parqueadero")} />
                                           </div>
                                           {!(sel.No_Matricula_Inmo_Parqueadero__c === 'SIN_MATRICULA' && (sel.chip_parqueadero__c === 'SIN_CHIP' || sel.chip_parqueadero__c === '-')) && (
-                                          <div className="border-t border-border/40 pt-3 mt-1">
+                                          <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Parqueadero") && "bg-destructive/8 ring-1 ring-destructive/30")}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
                                                 {tieneCtlSource('parqueadero') ? (
@@ -1299,6 +1356,9 @@ export default function DataPage() {
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
                                               </div>
+                                              {getAlert("CTL Parqueadero") && (
+                                                <p className="text-[11px] text-destructive flex items-center gap-1 mb-2"><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Parqueadero")!.descripcion}</p>
+                                              )}
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
                                                 <DItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
@@ -1333,11 +1393,11 @@ export default function DataPage() {
                                           <div className="space-y-1.5">
                                             <DItem label="Depósito" value={sel.Deposito__c || "—"} icon={Package} />
                                             <DItem label="Número del depósito" value={(sel as any).numero_del_deposito__c || numDepositoLocal || "—"} icon={Hash} />
-                                            <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
-                                            <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
+                                            <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} alert={getAlert("No. Matricula Inmo Depósito")} />
+                                            <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} alert={getAlert("Chip Depósito")} />
                                           </div>
                                           {!(sel.No_Matricula_Inmo_Deposito__c === 'SIN_MATRICULA' && (sel.chip_deposito__c === 'SIN_CHIP' || sel.chip_deposito__c === '-')) && (
-                                          <div className="border-t border-border/40 pt-3 mt-1">
+                                          <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Bodega") && "bg-destructive/8 ring-1 ring-destructive/30")}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
                                                 {tieneCtlSource('bodega') ? (
@@ -1346,6 +1406,9 @@ export default function DataPage() {
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
                                               </div>
+                                              {getAlert("CTL Bodega") && (
+                                                <p className="text-[11px] text-destructive flex items-center gap-1 mb-2"><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Bodega")!.descripcion}</p>
+                                              )}
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
                                                 <DItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
@@ -2094,11 +2157,17 @@ export default function DataPage() {
   );
 }
 
-function DItem({ label, value, icon: Icon }: { label: string; value?: string | null; icon: any }) {
+function DItem({ label, value, icon: Icon, alert }: { label: string; value?: string | null; icon: any; alert?: { severidad: string; descripcion: string } | null }) {
   return (
-    <div className="space-y-1">
+    <div className={cn("space-y-1 rounded-md px-1.5 py-1 -mx-1.5 transition-colors", alert && (alert.severidad === "alta" ? "bg-destructive/8 ring-1 ring-destructive/30" : "bg-duppla-orange/8 ring-1 ring-duppla-orange/30"))}>
       <p className="text-xs text-muted-foreground flex items-center gap-1"><Icon className="w-3 h-3" /> {label}</p>
       <p className="text-sm font-medium text-foreground">{value || "—"}</p>
+      {alert && (
+        <p className={cn("text-[11px] flex items-center gap-1", alert.severidad === "alta" ? "text-destructive" : "text-duppla-orange")}>
+          <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+          {alert.descripcion}
+        </p>
+      )}
     </div>
   );
 }

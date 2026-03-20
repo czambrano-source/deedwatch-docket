@@ -38,6 +38,7 @@ export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio, vigenc
       let urlSoporte: string | null = null;
 
       if (file) {
+        // 1. Subir a Supabase storage (temporal, para obtener URL)
         const filePath = `${inmueble.Id}/${Date.now()}_${file.name}`;
         const { error: uploadError } = await supabase.storage
           .from("soportes_predial")
@@ -48,6 +49,26 @@ export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio, vigenc
           .from("soportes_predial")
           .getPublicUrl(filePath);
         urlSoporte = urlData.publicUrl;
+
+        // 2. Enviar a Alejandría via edge function
+        const tipoDocMap: Record<string, string> = {
+          inmueble: "factura_impuesto_predial_r2o",
+          parqueadero: "factura_de_impuesto_predial_parqueadero_r2o",
+          deposito: "factura_impuesto_predial_deposito_r2o",
+        };
+        try {
+          await supabase.functions.invoke("upload-predial-alejandria", {
+            body: {
+              file_url: urlSoporte,
+              id_inmueble: inmueble.Id,
+              tipo_doc: tipoDocMap[tipoPredio] || tipoDocMap.inmueble,
+              nombre_inmueble: inmueble.Name,
+              vigencia,
+            },
+          });
+        } catch (alejErr) {
+          console.error("Error subiendo a Alejandría:", alejErr);
+        }
       }
 
       const { error } = await supabase.from("gestion_predial").insert({
@@ -64,7 +85,7 @@ export function RegistrarPagoModal({ open, onClose, inmueble, tipoPredio, vigenc
 
       if (error) throw error;
 
-      toast.success("Pago registrado exitosamente");
+      toast.success("Pago registrado y subido a Alejandría");
       queryClient.invalidateQueries({ queryKey: ["gestion_predial"] });
       onClose();
     } catch (err: any) {

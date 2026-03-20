@@ -33,6 +33,7 @@ export function RegistrarReciboModal({ open, onClose, inmueble, tipoPredio, vige
 
     setLoading(true);
     try {
+      // 1. Subir a Supabase storage (temporal, para obtener URL)
       const filePath = `recibos/${inmueble.Id}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from("soportes_predial")
@@ -42,6 +43,26 @@ export function RegistrarReciboModal({ open, onClose, inmueble, tipoPredio, vige
       const { data: urlData } = supabase.storage
         .from("soportes_predial")
         .getPublicUrl(filePath);
+
+      // 2. Enviar a Alejandría via edge function
+      const tipoDocMap: Record<string, string> = {
+        inmueble: "recibo_pago_predial_r2o",
+        parqueadero: "recibo_pago_del_predial_del_parqueadero_r2o",
+        deposito: "recibo_pago_predial_deposito_r2o",
+      };
+      try {
+        await supabase.functions.invoke("upload-predial-alejandria", {
+          body: {
+            file_url: urlData.publicUrl,
+            id_inmueble: inmueble.Id,
+            tipo_doc: tipoDocMap[tipoPredio] || tipoDocMap.inmueble,
+            nombre_inmueble: inmueble.Name,
+            vigencia,
+          },
+        });
+      } catch (alejErr) {
+        console.error("Error subiendo a Alejandría:", alejErr);
+      }
 
       const { error } = await supabase.from("recibos_predial").insert({
         salesforce_id: inmueble.Id,
@@ -54,7 +75,7 @@ export function RegistrarReciboModal({ open, onClose, inmueble, tipoPredio, vige
 
       if (error) throw error;
 
-      toast.success("Recibo registrado exitosamente");
+      toast.success("Recibo registrado y subido a Alejandría");
       queryClient.invalidateQueries({ queryKey: ["recibos_predial"] });
       setFile(null);
       setNotas("");
