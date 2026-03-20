@@ -5596,6 +5596,99 @@ export type Database = {
         }
         Relationships: []
       }
+      puntualidad_presentaciones: {
+        Row: {
+          comercial: string
+          created_at: string | null
+          duration_sec: number | null
+          fecha_programada: string
+          first_start_time_sec: number | null
+          id: number
+          opp_name: string
+          semana: string
+          tardanza_min: number | null
+          tarde: boolean | null
+          tldv_id: string
+        }
+        Insert: {
+          comercial: string
+          created_at?: string | null
+          duration_sec?: number | null
+          fecha_programada: string
+          first_start_time_sec?: number | null
+          id?: never
+          opp_name: string
+          semana: string
+          tardanza_min?: number | null
+          tarde?: boolean | null
+          tldv_id: string
+        }
+        Update: {
+          comercial?: string
+          created_at?: string | null
+          duration_sec?: number | null
+          fecha_programada?: string
+          first_start_time_sec?: number | null
+          id?: never
+          opp_name?: string
+          semana?: string
+          tardanza_min?: number | null
+          tarde?: boolean | null
+          tldv_id?: string
+        }
+        Relationships: []
+      }
+      puntualidad_resumen_semanal: {
+        Row: {
+          a_tiempo: number | null
+          agendadas: number | null
+          comercial: string
+          con_grabacion: number | null
+          created_at: string | null
+          duracion_promedio_min: number | null
+          id: number
+          no_asistieron: number | null
+          pct_asistencia: number | null
+          pct_tardanza: number | null
+          pendientes: number | null
+          semana: string
+          sin_grabacion: number | null
+          tarde: number | null
+        }
+        Insert: {
+          a_tiempo?: number | null
+          agendadas?: number | null
+          comercial: string
+          con_grabacion?: number | null
+          created_at?: string | null
+          duracion_promedio_min?: number | null
+          id?: never
+          no_asistieron?: number | null
+          pct_asistencia?: number | null
+          pct_tardanza?: number | null
+          pendientes?: number | null
+          semana: string
+          sin_grabacion?: number | null
+          tarde?: number | null
+        }
+        Update: {
+          a_tiempo?: number | null
+          agendadas?: number | null
+          comercial?: string
+          con_grabacion?: number | null
+          created_at?: string | null
+          duracion_promedio_min?: number | null
+          id?: never
+          no_asistieron?: number | null
+          pct_asistencia?: number | null
+          pct_tardanza?: number | null
+          pendientes?: number | null
+          semana?: string
+          sin_grabacion?: number | null
+          tarde?: number | null
+        }
+        Relationships: []
+      }
       razones_no_pago: {
         Row: {
           balance: number | null
