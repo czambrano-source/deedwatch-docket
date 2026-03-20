@@ -29,7 +29,7 @@ export interface Inmueble {
   Legales__r?: {
     totalSize?: number;
     done?: boolean;
-    records?: Array<{ Fecha_firma_escritura__c?: string }>;
+    records?: Array<{ Fecha_firma_escritura__c?: string; Fecha_de_desembolso__c?: string; Fecha_entrega_inmueble__c?: string }>;
   };
   [key: string]: any;
 }
