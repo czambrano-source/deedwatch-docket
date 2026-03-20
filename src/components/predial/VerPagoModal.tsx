@@ -114,11 +114,9 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
                     <span className="text-foreground">{formatCurrency(p.valor_avaluo)}</span>
                   </div>
                 )}
-                {p.url_soporte && (
-                  <a href={p.url_soporte} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
-                    <ExternalLink className="w-3 h-3" /> Ver soporte PDF
-                  </a>
-                )}
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" /> Soporte guardado en Alejandría
+                </span>
               </div>
             ))
           )}

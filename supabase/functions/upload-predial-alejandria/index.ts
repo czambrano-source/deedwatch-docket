@@ -17,9 +17,9 @@ serve(async (req) => {
   try {
     const body = await req.json();
 
-    if (!body?.file_url || !body?.id_inmueble || !body?.tipo_doc) {
+    if ((!body?.file_base64 && !body?.file_url) || !body?.id_inmueble || !body?.tipo_doc) {
       return new Response(
-        JSON.stringify({ error: "Campos requeridos: file_url, id_inmueble, tipo_doc" }),
+        JSON.stringify({ error: "Campos requeridos: id_inmueble, tipo_doc, y file_base64 o file_url" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

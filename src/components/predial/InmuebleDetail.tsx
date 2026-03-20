@@ -225,13 +225,9 @@ export function InmuebleDetail({ inmueble, pago, onRegistrarPago }: InmuebleDeta
                 <p className="text-sm text-foreground">{pago.notas}</p>
               </div>
             )}
-            {pago.url_soporte && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={pago.url_soporte} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="w-4 h-4 mr-1" /> Ver Soporte PDF
-                </a>
-              </Button>
-            )}
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <ExternalLink className="w-4 h-4" /> Soporte guardado en Alejandría
+            </span>
           </div>
         ) : (
           <div className="text-center py-6 space-y-3">

@@ -103,11 +103,9 @@ export function VerReciboModal({ open, onClose, salesforceId, tipoPredio, nombre
                 {r.notas && (
                   <p className="text-xs text-muted-foreground bg-muted rounded px-2 py-1">{r.notas}</p>
                 )}
-                {r.url_recibo && (
-                  <a href={r.url_recibo} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
-                    <ExternalLink className="w-3 h-3" /> Ver archivo adjunto
-                  </a>
-                )}
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" /> Documento guardado en Alejandría
+                </span>
               </div>
             ))
           )}
