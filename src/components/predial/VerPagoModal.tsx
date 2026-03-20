@@ -68,7 +68,7 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
       // Eliminar registro de Supabase
       const { error } = await supabase.from("gestion_predial").delete().eq("id", id);
       if (error) throw error;
-      toast.success("Pago y documento eliminados");
+      toast.success("Pago eliminado");
       queryClient.invalidateQueries({ queryKey: ["gestion_predial"] });
     } catch (err: any) {
       toast.error(err.message || "Error al eliminar");

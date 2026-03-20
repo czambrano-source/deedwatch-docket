@@ -62,7 +62,7 @@ export function VerReciboModal({ open, onClose, salesforceId, tipoPredio, nombre
       // Eliminar registro de Supabase
       const { error } = await supabase.from("recibos_predial").delete().eq("id", id);
       if (error) throw error;
-      toast.success("Recibo y documento eliminados");
+      toast.success("Recibo eliminado");
       queryClient.invalidateQueries({ queryKey: ["recibos_predial"] });
     } catch (err: any) {
       toast.error(err.message || "Error al eliminar");
