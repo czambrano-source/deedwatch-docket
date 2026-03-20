@@ -12,7 +12,7 @@ export function useInmuebles() {
       if (!res.ok) throw new Error("Error fetching inmuebles");
       return res.json();
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30s — permite refresh rápido después de correcciones
   });
 }
 

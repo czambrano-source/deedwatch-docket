@@ -4,7 +4,8 @@ import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
   ShieldAlert, ShieldCheck, Shield, Building2, ChevronRight, ChevronDown,
-  Hash, MapPin, DollarSign, Layers, Car, Package, Clock, Calendar as CalendarIcon
+  Hash, MapPin, DollarSign, Layers, Car, Package, Clock, Calendar as CalendarIcon,
+  ArrowUpDown, ArrowUp, ArrowDown
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -123,6 +124,23 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
     }
   }
 
+  // CTL pendiente: >90 días desde entrega sin CTL Fiducia en Alejandría
+  const hoy = new Date();
+  for (const i of inmuebles) {
+    const fechaEntrega = (i as any).Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+    if (!fechaEntrega) continue;
+    const dias = Math.floor((hoy.getTime() - new Date(fechaEntrega).getTime()) / (1000 * 60 * 60 * 24));
+    if (dias > 90 && !(i as any).tiene_ctl_fiducia) {
+      const p = ensure(i);
+      p.discrepancias.push({
+        tipo: "CTL",
+        severidad: "alta",
+        campo: "CTL Fiducia pendiente",
+        descripcion: `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
+      });
+    }
+  }
+
   return Array.from(map.values()).filter((p) => p.discrepancias.length > 0);
 }
 
@@ -139,7 +157,7 @@ const severidadColor = (sev: string) => {
 export default function DataPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: rawInmuebles = [], isLoading } = useInmuebles();
+  const { data: rawInmuebles = [], isLoading, isFetching } = useInmuebles();
 
   const [view, setView] = useState<"general" | "historial">("general");
 
@@ -148,6 +166,7 @@ export default function DataPage() {
   const [severidadFilter, setSeveridadFilter] = useState("all");
   const [parqueaderoFilter, setParqueaderoFilter] = useState<"all" | "si" | "no">("all");
   const [depositoFilter, setDepositoFilter] = useState<"all" | "si" | "no">("all");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc"); // fecha entrega: últimas primero
 
   // Problemas sheet
   const [problemasInmueble, setProblemasInmueble] = useState<InmuebleProblema | null>(null);
@@ -199,6 +218,7 @@ export default function DataPage() {
   const [fixNumeroParqueadero, setFixNumeroParqueadero] = useState("");
   const [fixValorSecundario, setFixValorSecundario] = useState("");
   const [fixNumeroDeposito, setFixNumeroDeposito] = useState("");
+  const [fixFechaCtl, setFixFechaCtl] = useState("");
 
   // CTL source tracking
   const [ctlSources, setCtlSources] = useState<Record<string, any>>({});
@@ -220,6 +240,23 @@ export default function DataPage() {
     } catch { setNumDepositoLocal(""); }
   };
 
+  const handleFechaCtlChange = async (sfId: string, bloque: string, fecha: string) => {
+    try {
+      const existing = ctlSources[bloque];
+      await supabase.from("ctl_source").upsert({
+        salesforce_id: sfId,
+        bloque,
+        tipo_ctl: existing?.tipo || "compra",
+        fecha_ctl: fecha || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "salesforce_id,bloque" });
+      setCtlSources(prev => ({ ...prev, [bloque]: { ...prev[bloque], tipo: existing?.tipo || "compra", fecha: fecha || null } }));
+      toast({ title: "Fecha CTL guardada", description: `Bloque ${bloque}: ${fecha}` });
+    } catch (err: any) {
+      toast({ title: "Error al guardar fecha", description: err.message, variant: "destructive" });
+    }
+  };
+
   // Historial
   const [historial, setHistorial] = useState<HistorialCambio[]>([]);
   const [historialLoading, setHistorialLoading] = useState(false);
@@ -231,16 +268,17 @@ export default function DataPage() {
 
   /* ─── KPIs ─── */
   const kpis = useMemo(() => {
-    let alta = 0, media = 0, baja = 0;
+    let alta = 0, media = 0, baja = 0, ctlPendiente = 0;
     inmuebles.forEach((i) =>
       i.discrepancias.forEach((d) => {
         const s = (d.severidad || "baja").toLowerCase();
         if (s === "alta") alta++;
         else if (s === "media") media++;
         else baja++;
+        if (d.campo === "CTL Fiducia pendiente") ctlPendiente++;
       })
     );
-    return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja };
+    return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente };
   }, [inmuebles, rawInmuebles]);
 
   /* ─── Filters ─── */
@@ -255,8 +293,29 @@ export default function DataPage() {
     return { conParqueadero, sinParqueadero, conDeposito, sinDeposito };
   }, [inmuebles]);
 
+  // Build full list: ALL inmuebles with their discrepancias (0 or more)
+  const allInmuebles = useMemo(() => {
+    const problemMap = new Map<string, InmuebleProblema>();
+    inmuebles.forEach(p => problemMap.set(p.salesforce_id, p));
+
+    return rawInmuebles.map(raw => {
+      const existing = problemMap.get(raw.Id);
+      if (existing) return existing;
+      return {
+        codigo: raw.Name,
+        salesforce_id: raw.Id,
+        oportunidad: raw.Opportunity__r?.Name || "",
+        nombre_conjunto: raw.Nombre_de_edificio_o_conjunto__c || "",
+        direccion: raw.Direccion__c || "",
+        proceso: raw.Proceso_entrega_inmueble__c || "",
+        discrepancias: [],
+        raw,
+      } as InmuebleProblema;
+    });
+  }, [rawInmuebles, inmuebles]);
+
   const filteredInmuebles = useMemo(() => {
-    let result = [...inmuebles];
+    let result = [...allInmuebles];
     if (searchFilter) {
       const q = searchFilter.toLowerCase();
       result = result.filter(
@@ -268,9 +327,17 @@ export default function DataPage() {
       );
     }
     if (severidadFilter !== "all") {
-      result = result.filter((i) =>
-        i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
-      );
+      if (severidadFilter === "con_problemas") {
+        result = result.filter((i) => i.discrepancias.length > 0);
+      } else if (severidadFilter === "ctl_pendiente") {
+        result = result.filter((i) =>
+          i.discrepancias.some((d) => d.campo === "CTL Fiducia pendiente")
+        );
+      } else {
+        result = result.filter((i) =>
+          i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
+        );
+      }
     }
     if (parqueaderoFilter !== "all") {
       result = result.filter((i) => {
@@ -285,8 +352,18 @@ export default function DataPage() {
         return depositoFilter === "si" ? tiene : !tiene;
       });
     }
-    return result.sort((a, b) => b.discrepancias.length - a.discrepancias.length);
-  }, [inmuebles, searchFilter, severidadFilter, parqueaderoFilter, depositoFilter]);
+    // Ordenar por fecha de entrega
+    const getFechaEntrega = (i: InmuebleProblema) => {
+      const f = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+      return f ? new Date(f).getTime() : 0;
+    };
+    result.sort((a, b) => {
+      const fa = getFechaEntrega(a);
+      const fb = getFechaEntrega(b);
+      return sortDir === "desc" ? fb - fa : fa - fb;
+    });
+    return result;
+  }, [allInmuebles, searchFilter, severidadFilter, parqueaderoFilter, depositoFilter, sortDir]);
 
   /* ─── Load historial ─── */
   const fetchHistorial = async () => {
@@ -303,22 +380,7 @@ export default function DataPage() {
     if (view === "historial") fetchHistorial();
   }, [view]);
 
-  /* ─── Filter AI discrepancias: remove parking/deposit field errors when unit doesn't exist ─── */
-  const filterIrrelevantDiscrepancias = (discrepancias: Discrepancia[], raw: Inmueble): Discrepancia[] => {
-    const noParqueadero = raw.Parqueadero__c == null || raw.Parqueadero__c === 0;
-    const depVal = raw.Deposito__c;
-    const noDeposito = !depVal || ["no", "0"].includes(depVal.trim().toLowerCase());
-
-    const camposParqueadero = ["chip_parqueadero__c", "no_matricula_inmo_parqueadero__c", "numero_del_parqueadero__c"];
-    const camposDeposito = ["chip_deposito__c", "no_matricula_inmo_deposito__c"];
-
-    return discrepancias.filter((d) => {
-      const campo = (d.campo || "").toLowerCase().replace(/\s+/g, "_");
-      if (noParqueadero && camposParqueadero.some((c) => campo.includes(c.replace(/__c$/, "").replace(/^no_/, "")))) return false;
-      if (noDeposito && camposDeposito.some((c) => campo.includes(c.replace(/__c$/, "").replace(/^no_/, "")))) return false;
-      return true;
-    });
-  };
+  /* ─── Filter AI discrepancias: disabled — always show all, even if SF says no parking/deposit ─── */
 
   /* ─── AI Analysis (async: POST → poll Supabase) ─── */
   const handleAnalizarIA = async (inm: InmuebleProblema) => {
@@ -469,9 +531,8 @@ export default function DataPage() {
         throw lastError ?? new Error("No se pudo obtener respuesta válida del análisis IA");
       }
 
-      // Filter out irrelevant discrepancias for properties without parking/deposit
+      // Show all discrepancias — even if SF says no parking/deposit
       if (payload?.discrepancias) {
-        payload.discrepancias = filterIrrelevantDiscrepancias(payload.discrepancias, inm.raw);
 
         // If AI confirms parking >= 1 and numero_del_parqueadero is missing, suggest finding it
         if (inm.raw.Parqueadero__c != null && inm.raw.Parqueadero__c >= 1 && !inm.raw.numero_del_parqueadero__c) {
@@ -623,7 +684,7 @@ export default function DataPage() {
       }
       if (cambios.length > 0) {
         fetchHistorial();
-        queryClient.invalidateQueries({ queryKey: ["inmuebles"] });
+        queryClient.invalidateQueries({ queryKey: ["inmuebles"], refetchType: "all" });
       }
     } catch (err: any) {
       toast({ title: "Error al normalizar", description: err.message, variant: "destructive" });
@@ -735,6 +796,10 @@ export default function DataPage() {
     setFixNumeroParqueadero(isParqueaderoNumeroField(disc) ? (disc.valor_documento || "") : "");
     setFixValorSecundario((disc as any).valor_documento_secundario || "");
     setFixNumeroDeposito("");
+    // Convertir fecha DD-MM-YYYY a YYYY-MM-DD para input date
+    const rawFecha = (disc as any).fecha_ctl || "";
+    const fechaParts = rawFecha.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    setFixFechaCtl(fechaParts ? `${fechaParts[3]}-${fechaParts[2]}-${fechaParts[1]}` : rawFecha);
     setFixModalOpen(true);
   };
 
@@ -818,7 +883,7 @@ export default function DataPage() {
           salesforce_id: selectedInmueble.salesforce_id,
           bloque,
           tipo_ctl: tipoCTL,
-          fecha_ctl: (fixDiscrepancia as any).fecha_ctl || null,
+          fecha_ctl: fixFechaCtl || null,
           updated_at: new Date().toISOString(),
         }, { onConflict: "salesforce_id,bloque" });
       }
@@ -874,6 +939,10 @@ export default function DataPage() {
       });
       fetchHistorial();
       if (selectedInmueble) fetchCtlSources(selectedInmueble.salesforce_id);
+      // Esperar 3s para que SF propague el cambio, luego refrescar
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["inmuebles"], refetchType: "all" });
+      }, 3000);
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
     } finally {
@@ -912,7 +981,7 @@ export default function DataPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {isLoading ? (
+      {isLoading && rawInmuebles.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -951,39 +1020,57 @@ export default function DataPage() {
 
             {view === "general" && (
               <div className="space-y-6">
-                {/* KPI Cards — same as Prediales */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* KPI Cards — clickeables para filtrar */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <KpiCard
                     title="Total Inmuebles"
                     value={kpis.total}
-                    subtitle="Analizados"
+                    subtitle="En Salesforce"
                     icon={Database}
                     iconBg="bg-duppla-blue-light"
                     iconColor="text-duppla-blue"
+                    onClick={() => setSeveridadFilter(severidadFilter === "all" ? "all" : "all")}
+                    active={severidadFilter === "all"}
                   />
                   <KpiCard
                     title="Con Problemas"
                     value={kpis.conProblemas}
-                    subtitle="Inmuebles con inconsistencias"
+                    subtitle="Datos faltantes o inconsistentes"
                     icon={AlertTriangle}
                     iconBg="bg-duppla-orange-light"
                     iconColor="text-duppla-orange"
+                    onClick={() => setSeveridadFilter(severidadFilter === "con_problemas" ? "all" : "con_problemas")}
+                    active={severidadFilter === "con_problemas"}
                   />
                   <KpiCard
                     title="Severidad Alta"
                     value={kpis.alta}
-                    subtitle="Discrepancias críticas"
+                    subtitle="CTL faltante, escritura sin fecha"
                     icon={ShieldAlert}
                     iconBg="bg-duppla-red-light"
                     iconColor="text-destructive"
+                    onClick={() => setSeveridadFilter(severidadFilter === "alta" ? "all" : "alta")}
+                    active={severidadFilter === "alta"}
                   />
                   <KpiCard
                     title="Severidad Media"
                     value={kpis.media}
-                    subtitle="Datos parciales"
+                    subtitle="Campos parciales (parq./depósito)"
                     icon={Shield}
                     iconBg="bg-duppla-orange-light"
                     iconColor="text-duppla-orange"
+                    onClick={() => setSeveridadFilter(severidadFilter === "media" ? "all" : "media")}
+                    active={severidadFilter === "media"}
+                  />
+                  <KpiCard
+                    title="CTL Pendiente"
+                    value={kpis.ctlPendiente}
+                    subtitle=">90 días sin CTL Fiducia"
+                    icon={Clock}
+                    iconBg="bg-duppla-red-light"
+                    iconColor="text-destructive"
+                    onClick={() => setSeveridadFilter(severidadFilter === "ctl_pendiente" ? "all" : "ctl_pendiente")}
+                    active={severidadFilter === "ctl_pendiente"}
                   />
                 </div>
 
@@ -1000,14 +1087,15 @@ export default function DataPage() {
                       />
                     </div>
                     <Select value={severidadFilter} onValueChange={setSeveridadFilter}>
-                      <SelectTrigger className="w-40 h-9 text-xs">
-                        <SelectValue placeholder="Prioridad" />
+                      <SelectTrigger className="w-44 h-9 text-xs">
+                        <SelectValue placeholder="Filtrar" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Prioridad</SelectItem>
-                        <SelectItem value="alta">Alta</SelectItem>
-                        <SelectItem value="media">Media</SelectItem>
-                        <SelectItem value="baja">Baja</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="con_problemas">Con problemas ({kpis.conProblemas})</SelectItem>
+                        <SelectItem value="alta">Severidad Alta ({kpis.alta})</SelectItem>
+                        <SelectItem value="media">Severidad Media ({kpis.media})</SelectItem>
+                        <SelectItem value="baja">Severidad Baja ({kpis.baja})</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={parqueaderoFilter} onValueChange={(v) => setParqueaderoFilter(v as any)}>
@@ -1030,6 +1118,15 @@ export default function DataPage() {
                         <SelectItem value="no">Sin depósito ({filterCounts.sinDeposito})</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 text-xs gap-1.5 flex-shrink-0"
+                      onClick={() => setSortDir(prev => prev === "desc" ? "asc" : "desc")}
+                    >
+                      {sortDir === "desc" ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                      Fecha entrega
+                    </Button>
                   </div>
                 </div>
 
@@ -1056,21 +1153,44 @@ export default function DataPage() {
                               <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
                               <p className="text-xs text-muted-foreground truncate">{inm.oportunidad || "—"}</p>
                             </div>
-                            {/* Total problems badge — click to open modal */}
-                            <button
-                              onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }}
-                              className={cn(
-                                "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md transition-colors cursor-pointer",
-                                counts.alta > 0
-                                  ? "text-destructive bg-destructive/10 hover:bg-destructive/20"
-                                  : counts.media > 0
-                                    ? "text-duppla-orange bg-duppla-orange/10 hover:bg-duppla-orange/20"
-                                    : "text-muted-foreground bg-muted hover:bg-muted/80"
+                            {/* Fecha entrega */}
+                            {(() => {
+                              const fechaEnt = (inm.raw as any).Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+                              if (!fechaEnt) return null;
+                              const [y, m, d] = fechaEnt.split('-');
+                              return (
+                                <span className="text-xs text-muted-foreground inline-flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
+                                  <CalendarIcon className="w-3 h-3 flex-shrink-0" />
+                                  {d}-{m}-{y}
+                                </span>
+                              );
+                            })()}
+                            {/* Badges por severidad */}
+                            <div className="inline-flex items-center gap-1.5 flex-shrink-0">
+                              {totalProblems > 0 ? (
+                                <button onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }} className="inline-flex items-center gap-1.5 cursor-pointer">
+                                  {counts.alta > 0 && (
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-destructive bg-destructive/10">
+                                      <ShieldAlert className="w-3 h-3" /> {counts.alta}
+                                    </span>
+                                  )}
+                                  {counts.media > 0 && (
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-duppla-orange bg-duppla-orange/10">
+                                      <Shield className="w-3 h-3" /> {counts.media}
+                                    </span>
+                                  )}
+                                  {counts.baja > 0 && (
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-muted-foreground bg-muted">
+                                      {counts.baja}
+                                    </span>
+                                  )}
+                                </button>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md text-primary bg-duppla-green-light">
+                                  <CheckCircle2 className="w-3 h-3" /> OK
+                                </span>
                               )}
-                            >
-                              <AlertTriangle className="w-3 h-3" />
-                              {totalProblems} {totalProblems === 1 ? "problema" : "problemas"}
-                            </button>
+                            </div>
                             {/* Chevron to expand inmueble details */}
                             <button
                               onClick={() => { setExpandedId(isExpanded ? null : inm.salesforce_id); if (!isExpanded) fetchCtlSources(inm.salesforce_id); }}
@@ -1090,22 +1210,6 @@ export default function DataPage() {
                               return n !== "" && n !== "n/a" && n !== "no tiene" && n !== "-" && n !== "sin_chip" && n !== "sin_matricula";
                             };
                             const getFidName = (i: any) => i.Fiduciaria__r?.Name ?? i.Fiduciaria__c ?? "—";
-                            const hasParq = () => {
-                              if (sel.Parqueadero__c != null && sel.Parqueadero__c > 0) return true;
-                              if (isValidField(sel.numero_del_parqueadero__c)) return true;
-                              if (isValidField(sel.No_Matricula_Inmo_Parqueadero__c)) return true;
-                              if (isValidField(sel.chip_parqueadero__c)) return true;
-                              return false;
-                            };
-                            const hasDep = () => {
-                              if (sel.Deposito__c && sel.Deposito__c !== "No" && sel.Deposito__c !== "0" && !["n/a","no tiene","sin_matricula"].includes(sel.Deposito__c.toLowerCase())) return true;
-                              if (isValidField(sel.No_Matricula_Inmo_Deposito__c)) return true;
-                              if (isValidField(sel.chip_deposito__c)) return true;
-                              return false;
-                            };
-                            const showCtlInm = isValidField(sel.Numero_matricula_inmobiliaria__c) || isValidField(sel.chip_apartamento__c);
-                            const showCtlParq = isValidField(sel.No_Matricula_Inmo_Parqueadero__c) || isValidField(sel.chip_parqueadero__c);
-                            const showCtlDep = isValidField(sel.No_Matricula_Inmo_Deposito__c) || isValidField(sel.chip_deposito__c);
                             const esCtlR2O = (bloque: string) => ctlSources[bloque]?.tipo === 'fiducia';
                             const ctlLabel = (bloque: string) => esCtlR2O(bloque) ? 'CTL actualizado R2O' : 'Información CTL de compra, no registra CTL actualizado R2O';
                             const tieneCtlSource = (bloque: string) => !!ctlSources[bloque];
@@ -1142,8 +1246,7 @@ export default function DataPage() {
                                       <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
                                     </div>
                                   </div>
-                                  {showCtlInm && (
-                                    <div className="border-t border-border/40 pt-3 mt-1">
+                                  <div className="border-t border-border/40 pt-3 mt-1">
                                       <div className="flex items-center gap-2 mb-1">
                                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
                                         {tieneCtlSource('inmueble') ? (
@@ -1155,10 +1258,17 @@ export default function DataPage() {
                                       <div className="space-y-1">
                                         <DItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
                                         <DItem label="NIT" value={sel.nit_ctl_inmueble__c} icon={Hash} />
-                                        <DItem label="Fecha CTL" value={ctlFechaLocal('inmueble') || "—"} icon={CalendarIcon} />
+                                        <div className="space-y-1">
+                                          <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Fecha CTL</p>
+                                          <input
+                                            type="date"
+                                            className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
+                                            value={ctlFechaLocal('inmueble') || ""}
+                                            onChange={(e) => handleFechaCtlChange(inm.salesforce_id, 'inmueble', e.target.value)}
+                                          />
+                                        </div>
                                       </div>
                                     </div>
-                                  )}
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1179,8 +1289,8 @@ export default function DataPage() {
                                             <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
                                             <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} />
                                           </div>
-                                          {showCtlParq && (
-                                            <div className="border-t border-border/40 pt-3 mt-1">
+                                          {!(sel.No_Matricula_Inmo_Parqueadero__c === 'SIN_MATRICULA' && (sel.chip_parqueadero__c === 'SIN_CHIP' || sel.chip_parqueadero__c === '-')) && (
+                                          <div className="border-t border-border/40 pt-3 mt-1">
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
                                                 {tieneCtlSource('parqueadero') ? (
@@ -1192,9 +1302,17 @@ export default function DataPage() {
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
                                                 <DItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
-                                                <DItem label="Fecha CTL" value={ctlFechaLocal('parqueadero') || "—"} icon={CalendarIcon} />
+                                                <div className="space-y-1">
+                                                  <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Fecha CTL</p>
+                                                  <input
+                                                    type="date"
+                                                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
+                                                    value={ctlFechaLocal('parqueadero') || ""}
+                                                    onChange={(e) => handleFechaCtlChange(inm.salesforce_id, 'parqueadero', e.target.value)}
+                                                  />
+                                                </div>
                                               </div>
-                                            </div>
+                                          </div>
                                           )}
                                         </>
                                       )}
@@ -1213,13 +1331,13 @@ export default function DataPage() {
                                       ) : (
                                         <>
                                           <div className="space-y-1.5">
-                                            <DItem label="Depósito" value={sel.Deposito__c} icon={Package} />
+                                            <DItem label="Depósito" value={sel.Deposito__c || "—"} icon={Package} />
                                             <DItem label="Número del depósito" value={(sel as any).numero_del_deposito__c || numDepositoLocal || "—"} icon={Hash} />
                                             <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} />
                                             <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} />
                                           </div>
-                                          {showCtlDep && (
-                                            <div className="border-t border-border/40 pt-3 mt-1">
+                                          {!(sel.No_Matricula_Inmo_Deposito__c === 'SIN_MATRICULA' && (sel.chip_deposito__c === 'SIN_CHIP' || sel.chip_deposito__c === '-')) && (
+                                          <div className="border-t border-border/40 pt-3 mt-1">
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
                                                 {tieneCtlSource('bodega') ? (
@@ -1231,9 +1349,17 @@ export default function DataPage() {
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
                                                 <DItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
-                                                <DItem label="Fecha CTL" value={ctlFechaLocal('bodega') || "—"} icon={CalendarIcon} />
+                                                <div className="space-y-1">
+                                                  <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Fecha CTL</p>
+                                                  <input
+                                                    type="date"
+                                                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
+                                                    value={ctlFechaLocal('bodega') || ""}
+                                                    onChange={(e) => handleFechaCtlChange(inm.salesforce_id, 'bodega', e.target.value)}
+                                                  />
+                                                </div>
                                               </div>
-                                            </div>
+                                          </div>
                                           )}
                                         </>
                                       )}
@@ -1381,9 +1507,12 @@ export default function DataPage() {
                                             // OLD format: campos with sf, escritura, ctl_compra, ctl_fiducia
                                             const sections = [...new Set(rawItems.map((c: any) => c.seccion || 'General'))];
 
-                                            const renderSource = (src: any) => {
+                                            const renderSource = (src: any, sfVal?: string) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
-                                              if (src.status === 'ok' && src.value) return <span className="font-medium text-foreground bg-duppla-green/20 px-2 py-0.5 rounded">{src.value}</span>;
+                                              if (src.status === 'ok' && src.value) {
+                                                const matches = sfVal && src.value.toLowerCase() === sfVal.toLowerCase();
+                                                return <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", matches ? "bg-duppla-green/20" : sfVal ? "bg-destructive/10" : "bg-muted")}>{src.value}</span>;
+                                              }
                                               if (src.status === 'vacio') return <span className="font-medium text-foreground bg-duppla-orange/15 px-2 py-0.5 rounded">No encontrado</span>;
                                               if (src.status === 'no_existe') return <span className="font-medium text-foreground bg-destructive/15 px-2 py-0.5 rounded">No existe documento</span>;
                                               if (src.status === 'error') return <span className="font-medium text-foreground bg-destructive/15 px-2 py-0.5 rounded">{src.label || 'No se pudo leer'}</span>;
@@ -1392,7 +1521,7 @@ export default function DataPage() {
                                             };
 
                                             const getBestValue = (campo: any) => {
-                                              for (const src of [campo.ctl_fiducia, campo.ctl_compra, campo.escritura]) {
+                                              for (const src of [campo.ctl_fiducia, campo.ctl_compra, campo.escritura_bodega, campo.escritura_parq, campo.escritura]) {
                                                 if (src?.status === 'ok' && src.value) return src.value;
                                               }
                                               return null;
@@ -1410,7 +1539,7 @@ export default function DataPage() {
                                                 const allMatch = conDatos.every((s: any) => s.sf && s.valor_extraido && s.sf.toLowerCase() === s.valor_extraido.toLowerCase());
                                                 return allMatch ? 'coincide' : 'diferencia';
                                               }
-                                              const docValues = [campo.escritura, campo.ctl_compra, campo.ctl_fiducia]
+                                              const docValues = [campo.escritura, campo.escritura_parq, campo.escritura_bodega, campo.ctl_compra, campo.ctl_fiducia]
                                                 .filter((s: any) => s?.status === 'ok' && s.value)
                                                 .map((s: any) => s.value.toLowerCase());
                                               if (docValues.length === 0) return 'sin_datos';
@@ -1456,7 +1585,7 @@ export default function DataPage() {
                                                             {!campo.no_aplica && campo.solo_info && (
                                                               <div className="text-xs">
                                                                 <div className="flex items-center gap-2">
-                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos:</span>
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{(campo.escritura as any)?.fuente || 'Est. Títulos'}:</span>
                                                                   {renderSource(campo.escritura)}
                                                                 </div>
                                                               </div>
@@ -1490,7 +1619,7 @@ export default function DataPage() {
                                                                     )}
                                                                   </div>
                                                                 ))}
-                                                                {campo.campos_ctl.some((sub: any) => sub.valor_extraido) && (
+                                                                {(
                                                                   <div className="flex gap-2 mt-1">
                                                                     <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => {
                                                                       const nombre = campo.campos_ctl.find((s: any) => s.label === 'Nombre');
@@ -1539,19 +1668,31 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-duppla-green/20" : "bg-muted")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, (campo as any).escritura_parq, (campo as any).escritura_bodega, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-duppla-green/20" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
-                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos:</span>
-                                                                  {renderSource(campo.escritura)}
+                                                                  <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{((campo as any).escritura_parq || (campo as any).escritura_bodega) ? 'Est. Títulos Apto' : 'Est. Títulos'}:</span>
+                                                                  {renderSource(campo.escritura, campo.sf)}
                                                                 </div>
+                                                                {(campo as any).escritura_parq && (
+                                                                  <div className="flex items-center gap-2">
+                                                                    <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos Parq.:</span>
+                                                                    {renderSource((campo as any).escritura_parq, campo.sf)}
+                                                                  </div>
+                                                                )}
+                                                                {(campo as any).escritura_bodega && (
+                                                                  <div className="flex items-center gap-2">
+                                                                    <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">Est. Títulos Bod.:</span>
+                                                                    {renderSource((campo as any).escritura_bodega, campo.sf)}
+                                                                  </div>
+                                                                )}
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">CTL Compra:</span>
-                                                                  {renderSource(campo.ctl_compra)}
+                                                                  {renderSource(campo.ctl_compra, campo.sf)}
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">CTL Fiducia:</span>
-                                                                  {renderSource(campo.ctl_fiducia)}
+                                                                  {renderSource(campo.ctl_fiducia, campo.sf)}
                                                                 </div>
                                                               </div>
                                                             )}
@@ -1778,6 +1919,16 @@ export default function DataPage() {
                     <label className="text-xs text-muted-foreground">{(fixDiscrepancia as any).label_secundario || 'NIT'}</label>
                     <p className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded mt-0.5 mb-1">SF: {(fixDiscrepancia as any).valor_actual_secundario || 'vacío'}</p>
                     <Input value={fixValorSecundario} onChange={(e) => setFixValorSecundario(e.target.value)} className="text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Fecha CTL</label>
+                    {(fixDiscrepancia as any).fecha_ctl && (
+                      <p className="font-mono text-[11px] text-muted-foreground bg-duppla-blue-light px-2 py-0.5 rounded mt-0.5 mb-1 flex items-center gap-1">
+                        <CalendarIcon className="w-3 h-3" />
+                        Sugerida: {(fixDiscrepancia as any).fecha_ctl}
+                      </p>
+                    )}
+                    <Input type="date" value={fixFechaCtl} onChange={(e) => setFixFechaCtl(e.target.value)} className="text-sm" />
                   </div>
                 </>
               ) : (

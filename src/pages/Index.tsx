@@ -94,12 +94,22 @@ const Index = () => {
   const showCtlParqueadero = (i: Inmueble) => isValidField(i.No_Matricula_Inmo_Parqueadero__c) || isValidField(i.chip_parqueadero__c);
   const showCtlDeposito = (i: Inmueble) => isValidField(i.No_Matricula_Inmo_Deposito__c) || isValidField(i.chip_deposito__c);
 
+  // Necesita pago separado = tiene matrícula o chip independiente (no SIN_MATRICULA/SIN_CHIP)
+  const needsSeparatePaymentParq = (i: Inmueble) => {
+    if (!hasParqueadero(i)) return false;
+    return isValidField(i.No_Matricula_Inmo_Parqueadero__c) || isValidField(i.chip_parqueadero__c);
+  };
+  const needsSeparatePaymentDep = (i: Inmueble) => {
+    if (!hasDeposito(i)) return false;
+    return isValidField(i.No_Matricula_Inmo_Deposito__c) || isValidField(i.chip_deposito__c);
+  };
+
   // Combined status: "completo" if all applicable blocks are paid/included, "pendiente" otherwise
   const getOverallStatus = (i: Inmueble) => {
     const inmPaid = hasPago(i.Id, "inmueble");
     if (!inmPaid) return "pendiente";
-    const needsParq = hasParqueadero(i);
-    const needsDep = hasDeposito(i);
+    const needsParq = needsSeparatePaymentParq(i);
+    const needsDep = needsSeparatePaymentDep(i);
     if (needsParq && !hasPago(i.Id, "parqueadero") && !pagoIncluidoParq[i.Id]) return "pendiente";
     if (needsDep && !hasPago(i.Id, "deposito") && !pagoIncluidoDep[i.Id]) return "pendiente";
     return "completo";
@@ -512,6 +522,7 @@ const Index = () => {
                               <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
                               <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c} icon={Hash} />
                             </div>
+                            {needsSeparatePaymentParq(selected) ? (
                             <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
                               <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
                               {!hasPago(selected.Id, "parqueadero") && (
@@ -553,6 +564,11 @@ const Index = () => {
                                 <FileText className="w-3 h-3 mr-1" /> Notas
                               </Button>
                             </div>
+                            ) : (
+                              <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
+                                <p className="text-xs text-muted-foreground text-center">Predial incluido en inmueble</p>
+                              </div>
+                            )}
                           </div>
                           {/* CTL Parqueadero */}
                           {showCtlParqueadero(selected) && (
@@ -589,6 +605,7 @@ const Index = () => {
                               <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
                               <DItem label="Chip Depósito" value={selected.chip_deposito__c} icon={Hash} />
                             </div>
+                            {needsSeparatePaymentDep(selected) ? (
                             <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
                               <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
                               {!hasPago(selected.Id, "deposito") && (
@@ -630,6 +647,11 @@ const Index = () => {
                                 <FileText className="w-3 h-3 mr-1" /> Notas
                               </Button>
                             </div>
+                            ) : (
+                              <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
+                                <p className="text-xs text-muted-foreground text-center">Predial incluido en inmueble</p>
+                              </div>
+                            )}
                           </div>
                           {/* CTL Depósito */}
                           {showCtlDeposito(selected) && (
