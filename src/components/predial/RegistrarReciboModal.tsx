@@ -33,43 +33,36 @@ export function RegistrarReciboModal({ open, onClose, inmueble, tipoPredio, vige
 
     setLoading(true);
     try {
-      // 1. Subir a Supabase storage (temporal, para obtener URL)
-      const filePath = `recibos/${inmueble.Id}/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("soportes_predial")
-        .upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("soportes_predial")
-        .getPublicUrl(filePath);
-
-      // 2. Enviar a Alejandría via edge function
+      // Subir archivo directo a Alejandría (sin pasar por Supabase storage)
       const tipoDocMap: Record<string, string> = {
         inmueble: "recibo_pago_predial_r2o",
         parqueadero: "recibo_pago_del_predial_del_parqueadero_r2o",
         deposito: "recibo_pago_predial_deposito_r2o",
       };
-      try {
-        await supabase.functions.invoke("upload-predial-alejandria", {
-          body: {
-            file_url: urlData.publicUrl,
-            id_inmueble: inmueble.Id,
-            tipo_doc: tipoDocMap[tipoPredio] || tipoDocMap.inmueble,
-            nombre_inmueble: inmueble.Name,
-            vigencia,
-          },
-        });
-      } catch (alejErr) {
-        console.error("Error subiendo a Alejandría:", alejErr);
-      }
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const { error: alejError } = await supabase.functions.invoke("upload-predial-alejandria", {
+        body: {
+          file_base64: base64,
+          file_name: file.name,
+          id_inmueble: inmueble.Id,
+          tipo_doc: tipoDocMap[tipoPredio] || tipoDocMap.inmueble,
+          nombre_inmueble: inmueble.Name,
+          vigencia,
+        },
+      });
+      if (alejError) throw new Error("Error subiendo archivo a Alejandría");
 
       const { error } = await supabase.from("recibos_predial").insert({
         salesforce_id: inmueble.Id,
         nombre_inmueble: inmueble.Name,
         tipo_predio: tipoPredio,
         anio_vigencia: vigencia,
-        url_recibo: urlData.publicUrl,
+        url_recibo: null,
         notas: notas || null,
       } as any);
 
