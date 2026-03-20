@@ -48,13 +48,27 @@ export function VerPagoModal({ open, onClose, salesforceId, tipoPredio, nombreIn
     enabled: open,
   });
 
+  const tipoDocMap: Record<string, string> = {
+    inmueble: "factura_impuesto_predial_r2o",
+    parqueadero: "factura_de_impuesto_predial_parqueadero_r2o",
+    deposito: "factura_impuesto_predial_deposito_r2o",
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de eliminar este pago?")) return;
+    if (!confirm("¿Estás seguro de eliminar este pago? También se eliminará el documento de Alejandría.")) return;
     setDeleting(id);
     try {
+      // Eliminar de Alejandría
+      await supabase.functions.invoke("delete-predial-alejandria", {
+        body: {
+          id_inmueble: salesforceId,
+          tipo_doc: tipoDocMap[tipoPredio] || tipoDocMap.inmueble,
+        },
+      });
+      // Eliminar registro de Supabase
       const { error } = await supabase.from("gestion_predial").delete().eq("id", id);
       if (error) throw error;
-      toast.success("Pago eliminado");
+      toast.success("Pago y documento eliminados");
       queryClient.invalidateQueries({ queryKey: ["gestion_predial"] });
     } catch (err: any) {
       toast.error(err.message || "Error al eliminar");
