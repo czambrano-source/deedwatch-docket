@@ -52,3 +52,25 @@ export function useRecibos() {
     },
   });
 }
+
+export interface NotaPredial {
+  id: string;
+  salesforce_id: string;
+  tipo_predio: string;
+  nota: string;
+  created_at: string;
+}
+
+export function useNotas() {
+  return useQuery<NotaPredial[]>({
+    queryKey: ["notas_predial"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notas_predial")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as NotaPredial[];
+    },
+  });
+}

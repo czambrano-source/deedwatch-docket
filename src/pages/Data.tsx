@@ -5,8 +5,10 @@ import {
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
   ShieldAlert, ShieldCheck, Shield, Building2, ChevronRight, ChevronDown,
   Hash, MapPin, DollarSign, Layers, Car, Package, Clock, Calendar as CalendarIcon,
-  ArrowUpDown, ArrowUp, ArrowDown
+  ArrowUpDown, ArrowUp, ArrowDown, Download
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -156,16 +158,30 @@ const severidadColor = (sev: string) => {
 
 /* Map discrepancias campo → DItem label for highlighting */
 const CAMPO_TO_LABEL: Record<string, string> = {
+  // SF API field names
+  "chip_apartamento__c": "Chip Apartamento",
+  "Numero_matricula_inmobiliaria__c": "No. Matricula Inmo Apto",
+  "Numero_de_apartamento__c": "Número de apartamento",
+  "Torre__c": "Torre",
+  "Direccion__c": "Dirección",
+  "Nombre_de_edificio_o_conjunto__c": "Nombre de edificio o conjunto",
+  "Municipio_del__c": "Municipio",
   "chip_parqueadero__c": "Chip Parqueadero",
   "No_Matricula_Inmo_Parqueadero__c": "No. Matricula Inmo Parqueadero",
   "chip_deposito__c": "Chip Depósito",
   "No_Matricula_Inmo_Deposito__c": "No. Matricula Inmo Depósito",
   "numero_del_parqueadero__c": "Número del parqueadero",
+  // Special campos
   "Fecha firma escritura": "Fecha Firma Escritura",
   "CTL Fiducia pendiente": "CTL Apto",
   "CTL Inmueble": "CTL Apto",
   "CTL Parqueadero": "CTL Parqueadero",
   "CTL Depósito": "CTL Bodega",
+};
+
+const INCONSISTENCIA_LABEL_MAP: Record<string, Record<string, string>> = {
+  "Parqueadero": { "Número": "Número del parqueadero", "Matrícula": "No. Matricula Inmo Parqueadero", "CHIP": "Chip Parqueadero" },
+  "Depósito": { "Matrícula": "No. Matricula Inmo Depósito", "CHIP": "Chip Depósito" },
 };
 
 function buildAlertMap(discrepancias: Discrepancia[]): Map<string, { severidad: string; descripcion: string }> {
@@ -176,11 +192,13 @@ function buildAlertMap(discrepancias: Discrepancia[]): Map<string, { severidad: 
     if (CAMPO_TO_LABEL[campo]) {
       map.set(CAMPO_TO_LABEL[campo], { severidad: d.severidad || "media", descripcion: d.descripcion || campo });
     }
-    // "Parqueadero — campo_sf" or "Depósito — campo_sf" format
-    const dashMatch = campo.match(/^(?:Parqueadero|Depósito)\s*—\s*(.+)$/);
+    // "Parqueadero — campo" or "Depósito — campo" format
+    const dashMatch = campo.match(/^(Parqueadero|Depósito)\s*—\s*(.+)$/);
     if (dashMatch) {
-      const sfField = dashMatch[1].trim();
-      const label = CAMPO_TO_LABEL[sfField];
+      const tipo = dashMatch[1];
+      const sfField = dashMatch[2].trim();
+      // Try SF API name first, then inconsistencia label
+      const label = CAMPO_TO_LABEL[sfField] || INCONSISTENCIA_LABEL_MAP[tipo]?.[sfField];
       if (label) {
         map.set(label, { severidad: d.severidad || "media", descripcion: d.descripcion || campo });
       }
@@ -207,6 +225,7 @@ export default function DataPage() {
   // Problemas sheet
   const [problemasInmueble, setProblemasInmueble] = useState<InmuebleProblema | null>(null);
   const [problemasSheetOpen, setProblemasSheetOpen] = useState(false);
+  const [showCtlPendienteModal, setShowCtlPendienteModal] = useState(false);
 
   // Expanded row for inmueble details
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -316,6 +335,44 @@ export default function DataPage() {
     );
     return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente };
   }, [inmuebles, rawInmuebles]);
+
+  const generateCtlPendientePDF = useCallback(() => {
+    const ctlItems = inmuebles.filter((i) =>
+      i.discrepancias.some((d) => d.campo === "CTL Fiducia pendiente")
+    );
+    if (ctlItems.length === 0) return;
+
+    const doc = new jsPDF({ orientation: "landscape" });
+    const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+
+    doc.setFontSize(16);
+    doc.text("Reporte CTL Fiducia Pendiente", 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generado: ${now} — Total: ${ctlItems.length} inmuebles`, 14, 28);
+    doc.setTextColor(0);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [["Inmueble", "Oportunidad", "Chip Apartamento", "Matricula Inmobiliaria", "Dias sin CTL"]],
+      body: ctlItems.map((i) => {
+        const d = i.discrepancias.find((d) => d.campo === "CTL Fiducia pendiente");
+        const dias = d?.descripcion?.match(/(\d+) días/)?.[1] || "—";
+        return [
+          i.codigo,
+          i.oportunidad || "—",
+          i.raw.chip_apartamento__c || "—",
+          i.raw.Numero_matricula_inmobiliaria__c || "—",
+          dias,
+        ];
+      }),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [41, 98, 255] },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+
+    doc.save(`ctl_pendiente_${new Date().toISOString().slice(0, 10)}.pdf`);
+  }, [inmuebles]);
 
   /* ─── Filters ─── */
   const filterCounts = useMemo(() => {
@@ -1105,7 +1162,7 @@ export default function DataPage() {
                     icon={Clock}
                     iconBg="bg-duppla-red-light"
                     iconColor="text-destructive"
-                    onClick={() => setSeveridadFilter(severidadFilter === "ctl_pendiente" ? "all" : "ctl_pendiente")}
+                    onClick={() => kpis.ctlPendiente > 0 ? setShowCtlPendienteModal(true) : setSeveridadFilter(severidadFilter === "ctl_pendiente" ? "all" : "ctl_pendiente")}
                     active={severidadFilter === "ctl_pendiente"}
                   />
                 </div>
@@ -1180,7 +1237,7 @@ export default function DataPage() {
                       const totalProblems = inm.discrepancias.length;
                       const isExpanded = expandedId === inm.salesforce_id;
                       return (
-                        <div key={inm.salesforce_id}>
+                        <div key={inm.salesforce_id} id={`inm-${inm.salesforce_id}`}>
                           <div className="flex items-center gap-3 p-4 border-l-4 border-l-transparent hover:bg-muted/50 transition-colors">
                             <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                               <Building2 className="w-4 h-4 text-muted-foreground" />
@@ -1189,18 +1246,6 @@ export default function DataPage() {
                               <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
                               <p className="text-xs text-muted-foreground truncate">{inm.oportunidad || "—"}</p>
                             </div>
-                            {/* Fecha entrega */}
-                            {(() => {
-                              const fechaEnt = (inm.raw as any).Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
-                              if (!fechaEnt) return null;
-                              const [y, m, d] = fechaEnt.split('-');
-                              return (
-                                <span className="text-xs text-muted-foreground inline-flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
-                                  <CalendarIcon className="w-3 h-3 flex-shrink-0" />
-                                  {d}-{m}-{y}
-                                </span>
-                              );
-                            })()}
                             {/* Badges por severidad con tooltip */}
                             <div className="inline-flex items-center gap-1.5 flex-shrink-0">
                               {totalProblems > 0 ? (
@@ -1243,6 +1288,18 @@ export default function DataPage() {
                                 </span>
                               )}
                             </div>
+                            {/* Fecha entrega */}
+                            {(() => {
+                              const fechaEnt = (inm.raw as any).Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+                              if (!fechaEnt) return null;
+                              const [y, m, d] = fechaEnt.split('-');
+                              return (
+                                <span className="text-xs text-muted-foreground inline-flex items-center gap-1 flex-shrink-0 whitespace-nowrap">
+                                  <CalendarIcon className="w-3 h-3 flex-shrink-0" />
+                                  {d}-{m}-{y}
+                                </span>
+                              );
+                            })()}
                             {/* Chevron to expand inmueble details */}
                             <button
                               onClick={() => { setExpandedId(isExpanded ? null : inm.salesforce_id); if (!isExpanded) fetchCtlSources(inm.salesforce_id); }}
@@ -1268,39 +1325,64 @@ export default function DataPage() {
                             const ctlLabel = (bloque: string) => esCtlR2O(bloque) ? 'CTL actualizado R2O' : 'Información CTL de compra, no registra CTL actualizado R2O';
                             const tieneCtlSource = (bloque: string) => !!ctlSources[bloque];
                             const ctlFechaLocal = (bloque: string) => ctlSources[bloque]?.fecha || null;
+                            const panelOpen = sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id;
 
                             return (
                               <div className="bg-muted/20 border-l-4 border-l-primary px-6 py-5 space-y-5">
-                                <div className={cn("flex gap-5", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "flex-col xl:flex-row xl:items-stretch" : "")}>
+                                <div className={cn("flex gap-5", panelOpen ? "flex-row items-stretch" : "")}>
                                   {/* Left column: all property info */}
-                                  <div className={cn("space-y-5 min-w-0", sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id ? "xl:flex-1" : "flex-1")}>
+                                  <div className={cn("min-w-0 flex-1", panelOpen ? "space-y-3" : "space-y-4")}>
                                 {/* Inmueble Block */}
-                                <div className="bg-card rounded-xl border p-5 space-y-4">
+                                <div className={cn("bg-card rounded-xl border", panelOpen ? "p-3 space-y-2" : "p-4 space-y-3")}>
                                   <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                     <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
                                   </h3>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <div className="space-y-3">
+                                  {panelOpen ? (
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                    <div className="space-y-1">
                                       <DItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
-                                      <DItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} />
+                                      <DItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} alert={getAlert("Municipio")} />
                                       <DItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
                                       <DItem label="Ciudad Inmueble" value={sel.Ciudad_Inmueble__c} icon={MapPin} />
-                                      <DItem label="Dirección" value={sel.Direccion__c} icon={MapPin} />
-                                    </div>
-                                    <div className="space-y-3">
-                                      <DItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+                                      <DItem label="Dirección" value={sel.Direccion__c} icon={MapPin} alert={getAlert("Dirección")} />
+                                      <DItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} alert={getAlert("Nombre de edificio o conjunto")} />
                                       <DItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
-                                      <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} />
-                                      <DItem label="Torre" value={sel.Torre__c} icon={Layers} />
+                                      <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} alert={getAlert("Número de apartamento")} />
+                                      <DItem label="Torre" value={sel.Torre__c} icon={Layers} alert={getAlert("Torre")} />
                                     </div>
-                                    <div className="space-y-3">
+                                    <div className="space-y-1">
                                       <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} alert={getAlert("Fecha Firma Escritura")} />
                                       <DItem label="Fecha Entrega Inmueble" value={sel.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c ?? undefined} icon={CalendarIcon} />
-                                      <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} />
-                                      <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} />
+                                      <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} alert={getAlert("No. Matricula Inmo Apto")} />
+                                      <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} alert={getAlert("Chip Apartamento")} />
                                     </div>
                                   </div>
-                                  <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Apto") && "bg-destructive/8 ring-1 ring-destructive/30")}>
+                                  ) : (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
+                                    <div className="space-y-2 lg:contents">
+                                      <div className="space-y-2">
+                                        <DItem label="Fiduciaria" value={getFidName(sel)} icon={Building2} />
+                                        <DItem label="Municipio" value={sel.Municipio_del__c} icon={MapPin} alert={getAlert("Municipio")} />
+                                        <DItem label="Departamento" value={sel.Departamento__c} icon={MapPin} />
+                                        <DItem label="Ciudad Inmueble" value={sel.Ciudad_Inmueble__c} icon={MapPin} />
+                                        <DItem label="Dirección" value={sel.Direccion__c} icon={MapPin} alert={getAlert("Dirección")} />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <DItem label="Nombre de edificio o conjunto" value={sel.Nombre_de_edificio_o_conjunto__c} icon={Building2} alert={getAlert("Nombre de edificio o conjunto")} />
+                                        <DItem label="Tipo de inmueble" value={sel.Tipo_de_inmueble__c} icon={Building2} />
+                                        <DItem label="Número de apartamento" value={sel.Numero_de_apartamento__c} icon={Building2} alert={getAlert("Número de apartamento")} />
+                                        <DItem label="Torre" value={sel.Torre__c} icon={Layers} alert={getAlert("Torre")} />
+                                      </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <DItem label="Fecha Firma Escritura" value={sel.Legales__r?.records?.[0]?.Fecha_firma_escritura__c ?? undefined} icon={CalendarIcon} alert={getAlert("Fecha Firma Escritura")} />
+                                      <DItem label="Fecha Entrega Inmueble" value={sel.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c ?? undefined} icon={CalendarIcon} />
+                                      <DItem label="No. Matricula Inmo Apto" value={sel.Numero_matricula_inmobiliaria__c} icon={FileText} alert={getAlert("No. Matricula Inmo Apto")} />
+                                      <DItem label="Chip Apartamento" value={sel.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (sel.chip_apartamento__c || "Sin asignar")} icon={Hash} alert={getAlert("Chip Apartamento")} />
+                                    </div>
+                                  </div>
+                                  )}
+                                  <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Apto") && "")}>
                                       <div className="flex items-center gap-2 mb-1">
                                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
                                         {tieneCtlSource('inmueble') ? (
@@ -1310,7 +1392,7 @@ export default function DataPage() {
                                         ) : null}
                                       </div>
                                       {getAlert("CTL Apto") && (
-                                        <p className="text-[11px] text-destructive flex items-center gap-1 mb-2"><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Apto")!.descripcion}</p>
+                                        <p className={cn("text-[11px] flex items-center gap-1 mb-2", getAlert("CTL Apto")!.severidad === "alta" ? "text-destructive" : "text-duppla-orange")}><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Apto")!.descripcion}</p>
                                       )}
                                       <div className="space-y-1">
                                         <DItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
@@ -1328,11 +1410,11 @@ export default function DataPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className={cn("grid gap-4", panelOpen ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
                                 {(() => {
                                   const parqIsNo = sel.Parqueadero__c == null || sel.Parqueadero__c === 0;
                                   return (
-                                    <div className="bg-card rounded-xl border p-5 space-y-4">
+                                    <div className={cn("bg-card rounded-xl border", panelOpen ? "p-3 space-y-2" : "p-4 space-y-3")}>
                                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                         <Car className="w-4 h-4 text-primary" /> Información Parqueadero
                                       </h3>
@@ -1347,7 +1429,7 @@ export default function DataPage() {
                                             <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} alert={getAlert("Chip Parqueadero")} />
                                           </div>
                                           {!(sel.No_Matricula_Inmo_Parqueadero__c === 'SIN_MATRICULA' && (sel.chip_parqueadero__c === 'SIN_CHIP' || sel.chip_parqueadero__c === '-')) && (
-                                          <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Parqueadero") && "bg-destructive/8 ring-1 ring-destructive/30")}>
+                                          <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Parqueadero") && "")}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
                                                 {tieneCtlSource('parqueadero') ? (
@@ -1357,7 +1439,7 @@ export default function DataPage() {
                                                 ) : null}
                                               </div>
                                               {getAlert("CTL Parqueadero") && (
-                                                <p className="text-[11px] text-destructive flex items-center gap-1 mb-2"><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Parqueadero")!.descripcion}</p>
+                                                <p className={cn("text-[11px] flex items-center gap-1 mb-2", getAlert("CTL Parqueadero")!.severidad === "alta" ? "text-destructive" : "text-duppla-orange")}><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Parqueadero")!.descripcion}</p>
                                               )}
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
@@ -1382,7 +1464,7 @@ export default function DataPage() {
                                 {(() => {
                                   const depIsNo = !sel.Deposito__c || ["no", "0"].includes(sel.Deposito__c.trim().toLowerCase());
                                   return (
-                                    <div className="bg-card rounded-xl border p-5 space-y-4">
+                                    <div className={cn("bg-card rounded-xl border", panelOpen ? "p-3 space-y-2" : "p-4 space-y-3")}>
                                       <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
                                         <Package className="w-4 h-4 text-primary" /> Información Depósito
                                       </h3>
@@ -1397,7 +1479,7 @@ export default function DataPage() {
                                             <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} alert={getAlert("Chip Depósito")} />
                                           </div>
                                           {!(sel.No_Matricula_Inmo_Deposito__c === 'SIN_MATRICULA' && (sel.chip_deposito__c === 'SIN_CHIP' || sel.chip_deposito__c === '-')) && (
-                                          <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Bodega") && "bg-destructive/8 ring-1 ring-destructive/30")}>
+                                          <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Bodega") && "")}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
                                                 {tieneCtlSource('bodega') ? (
@@ -1407,7 +1489,7 @@ export default function DataPage() {
                                                 ) : null}
                                               </div>
                                               {getAlert("CTL Bodega") && (
-                                                <p className="text-[11px] text-destructive flex items-center gap-1 mb-2"><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Bodega")!.descripcion}</p>
+                                                <p className={cn("text-[11px] flex items-center gap-1 mb-2", getAlert("CTL Bodega")!.severidad === "alta" ? "text-destructive" : "text-duppla-orange")}><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Bodega")!.descripcion}</p>
                                               )}
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
@@ -1433,8 +1515,8 @@ export default function DataPage() {
                                   </div>
 
                                   {/* Right: IA Analysis panel */}
-                                  {sheetOpen && selectedInmueble?.salesforce_id === inm.salesforce_id && (
-                                    <div className="xl:w-[420px] flex-shrink-0 bg-card rounded-xl border p-5 flex flex-col" style={{height: 'calc(100vh - 280px)', minHeight: '400px'}}>
+                                  {panelOpen && (
+                                    <div className="w-[360px] flex-shrink-0 bg-card rounded-xl border p-5 flex flex-col" style={{height: 'calc(100vh - 280px)', minHeight: '400px'}}>
                                       <div className="flex items-center justify-between flex-shrink-0 mb-4">
                                         <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
                                           <Eye className="w-4 h-4 text-primary" /> Análisis IA
@@ -1573,7 +1655,7 @@ export default function DataPage() {
                                             const renderSource = (src: any, sfVal?: string) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
                                               if (src.status === 'ok' && src.value) {
-                                                const matches = sfVal && src.value.toLowerCase() === sfVal.toLowerCase();
+                                                const matches = sfVal && src.value.toLowerCase() === String(sfVal).toLowerCase();
                                                 return <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", matches ? "bg-duppla-green/20" : sfVal ? "bg-destructive/10" : "bg-muted")}>{src.value}</span>;
                                               }
                                               if (src.status === 'vacio') return <span className="font-medium text-foreground bg-duppla-orange/15 px-2 py-0.5 rounded">No encontrado</span>;
@@ -1599,15 +1681,15 @@ export default function DataPage() {
                                                 if (conDatos.length === 0) return 'sin_datos';
                                                 const sinSf = conDatos.some((s: any) => !s.sf);
                                                 if (sinSf) return 'falta_sf';
-                                                const allMatch = conDatos.every((s: any) => s.sf && s.valor_extraido && s.sf.toLowerCase() === s.valor_extraido.toLowerCase());
+                                                const allMatch = conDatos.every((s: any) => s.sf && s.valor_extraido && String(s.sf).toLowerCase() === String(s.valor_extraido).toLowerCase());
                                                 return allMatch ? 'coincide' : 'diferencia';
                                               }
                                               const docValues = [campo.escritura, campo.escritura_parq, campo.escritura_bodega, campo.ctl_compra, campo.ctl_fiducia]
                                                 .filter((s: any) => s?.status === 'ok' && s.value)
                                                 .map((s: any) => s.value.toLowerCase());
                                               if (docValues.length === 0) return 'sin_datos';
-                                              if (!campo.sf) return 'falta_sf';
-                                              const sfLower = campo.sf.toLowerCase();
+                                              if (!campo.sf && campo.sf !== 0) return 'falta_sf';
+                                              const sfLower = String(campo.sf).toLowerCase();
                                               const allMatch = docValues.every((v: string) => v === sfLower);
                                               if (allMatch) return 'coincide';
                                               return 'diferencia';
@@ -1672,11 +1754,11 @@ export default function DataPage() {
                                                                     <>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                      <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-duppla-green/20" : !sub.sf ? "bg-duppla-orange/15" : "bg-muted")}>{sub.sf || 'vacío'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", sub.sf && sub.valor_extraido && String(sub.sf).toLowerCase() === String(sub.valor_extraido).toLowerCase() ? "bg-duppla-green/20" : !sub.sf ? "bg-duppla-orange/15" : "bg-muted")}>{sub.sf || 'vacío'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                       <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{campo.fuente_label || 'Doc'}:</span>
-                                                                      <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", sub.sf && sub.valor_extraido && sub.sf.toLowerCase() === sub.valor_extraido.toLowerCase() ? "bg-duppla-green/20" : "bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
+                                                                      <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", sub.sf && sub.valor_extraido && String(sub.sf).toLowerCase() === String(sub.valor_extraido).toLowerCase() ? "bg-duppla-green/20" : "bg-muted")}>{sub.valor_extraido || 'No encontrado'}</span>
                                                                     </div>
                                                                     </>
                                                                     )}
@@ -1731,7 +1813,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, (campo as any).escritura_parq, (campo as any).escritura_bodega, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === campo.sf.toLowerCase()) ? "bg-duppla-green/20" : "bg-muted")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, (campo as any).escritura_parq, (campo as any).escritura_bodega, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === String(campo.sf).toLowerCase()) ? "bg-duppla-green/20" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{((campo as any).escritura_parq || (campo as any).escritura_bodega) ? 'Est. Títulos Apto' : 'Est. Títulos'}:</span>
@@ -1952,6 +2034,68 @@ export default function DataPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ─── CTL Pendiente Modal ─── */}
+      <Dialog open={showCtlPendienteModal} onOpenChange={(v) => !v && setShowCtlPendienteModal(false)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="w-5 h-5 text-duppla-orange" />
+                CTL Fiducia Pendiente
+              </DialogTitle>
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={generateCtlPendientePDF}>
+                <Download className="w-3.5 h-3.5" /> Generar Reporte PDF
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+            {(() => {
+              const ctlItems = inmuebles.filter((i) =>
+                i.discrepancias.some((d) => d.campo === "CTL Fiducia pendiente")
+              );
+              if (ctlItems.length === 0) return (
+                <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                  <CheckCircle2 className="w-10 h-10 text-duppla-green" />
+                  <p className="text-sm text-muted-foreground font-medium">No hay inmuebles con CTL Fiducia pendiente.</p>
+                </div>
+              );
+              return (
+                <>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Se encontraron <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s) con mas de 90 dias sin CTL Fiducia.
+                  </p>
+                  {ctlItems.map((i) => {
+                    const d = i.discrepancias.find((d) => d.campo === "CTL Fiducia pendiente");
+                    const dias = d?.descripcion?.match(/(\d+) días/)?.[1] || "—";
+                    return (
+                      <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-1 bg-card cursor-pointer transition-colors hover:bg-accent/50"
+                        onClick={() => {
+                          setShowCtlPendienteModal(false);
+                          setSeveridadFilter("ctl_pendiente");
+                          setExpandedId(i.salesforce_id);
+                          fetchCtlSources(i.salesforce_id);
+                          setTimeout(() => {
+                            document.getElementById(`inm-${i.salesforce_id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }, 100);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-foreground">{i.codigo}</p>
+                          <Badge variant="outline" className="text-xs">{dias} dias</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Chip: {i.raw.chip_apartamento__c || "—"} · Matricula: {i.raw.Numero_matricula_inmobiliaria__c || "—"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ─── Fix Confirmation Modal ─── */}
       <Dialog open={fixModalOpen} onOpenChange={setFixModalOpen}>
         <DialogContent>
@@ -2159,7 +2303,7 @@ export default function DataPage() {
 
 function DItem({ label, value, icon: Icon, alert }: { label: string; value?: string | null; icon: any; alert?: { severidad: string; descripcion: string } | null }) {
   return (
-    <div className={cn("space-y-1 rounded-md px-1.5 py-1 -mx-1.5 transition-colors", alert && (alert.severidad === "alta" ? "bg-destructive/8 ring-1 ring-destructive/30" : "bg-duppla-orange/8 ring-1 ring-duppla-orange/30"))}>
+    <div className={cn("space-y-0.5 rounded-md px-1.5 -mx-1.5 transition-colors", alert ? "py-1" : "py-0")}>
       <p className="text-xs text-muted-foreground flex items-center gap-1"><Icon className="w-3 h-3" /> {label}</p>
       <p className="text-sm font-medium text-foreground">{value || "—"}</p>
       {alert && (

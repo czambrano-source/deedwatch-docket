@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
-import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, Filter, X, Upload, Receipt } from "lucide-react";
-import { useInmuebles, usePagos, useRecibos } from "@/hooks/useInmuebles";
+import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, X, Upload, Receipt, Eye, MessageSquare, ChevronDown } from "lucide-react";
+import { useInmuebles, usePagos, useRecibos, useNotas } from "@/hooks/useInmuebles";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { KpiCard } from "@/components/predial/KpiCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,7 +19,7 @@ import { VerPagoModal } from "@/components/predial/VerPagoModal";
 import { InconsistenciasModal, getInconsistencias } from "@/components/predial/InconsistenciasModal";
 import { SinFechaEscrituraModal, getSinFechaEscritura } from "@/components/predial/SinFechaEscrituraModal";
 import { CtlInconsistenciasModal, getCtlInconsistencias } from "@/components/predial/CtlInconsistenciasModal";
-import type { Inmueble, GestionPredial } from "@/types/inmueble";
+import type { Inmueble } from "@/types/inmueble";
 
 const getFiduciariaName = (inmueble: Inmueble) => {
   return (inmueble as any).Fiduciaria__r?.Name ?? inmueble.Fiduciaria__c ?? "—";
@@ -31,6 +33,7 @@ const Index = () => {
   const { data: inmuebles = [], isLoading: loadingInmuebles } = useInmuebles();
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
   const { data: recibos = [] } = useRecibos();
+  const { data: notas = [] } = useNotas();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
@@ -164,7 +167,7 @@ const Index = () => {
     }
     if (conReciboFilter && !hasAnyRecibo(i.Id)) return false;
     return true;
-  });
+  }).sort((a, b) => (a.Name ?? "").localeCompare(b.Name ?? "", "es"));
 
   const selected = inmuebles.find((i) => i.Id === selectedId) ?? null;
 
@@ -181,18 +184,58 @@ const Index = () => {
     }
 
     const paid = hasPago(sfId, tipo);
-    const incluidoParq = tipo === "parqueadero" && pagoIncluidoParq[sfId];
-    const incluidoDep = tipo === "deposito" && pagoIncluidoDep[sfId];
+    const incluidoParq = tipo === "parqueadero" && (pagoIncluidoParq[sfId] || !needsSeparatePaymentParq(inmueble));
+    const incluidoDep = tipo === "deposito" && (pagoIncluidoDep[sfId] || !needsSeparatePaymentDep(inmueble));
     const isIncluido = incluidoParq || incluidoDep;
 
     if (paid || isIncluido) {
-      return <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-green bg-duppla-green-light px-2.5 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> {isIncluido ? "Incluido en Inmueble" : "Pagado"}</span>;
+      return <span className="inline-flex items-center gap-1 text-xs font-medium text-duppla-green bg-duppla-green-light px-2.5 py-0.5 rounded-full"><CheckCircle2 className="w-3 h-3" /> {paid ? "Pagado" : "Incluido en Inmueble"}</span>;
     }
-    return <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>;
+    return <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pago Pendiente</span>;
   };
 
   const hasRecibo = (sfId: string, tipo: TipoPredio) =>
     recibos.some((r) => r.salesforce_id === sfId && r.tipo_predio === tipo && r.anio_vigencia === vigencia);
+
+  // Tipo doc maps for preview
+  const pagoDocMap: Record<string, string> = {
+    inmueble: "factura_impuesto_predial_r2o",
+    parqueadero: "factura_de_impuesto_predial_parqueadero_r2o",
+    deposito: "factura_impuesto_predial_deposito_r2o",
+  };
+  const reciboDocMap: Record<string, string> = {
+    inmueble: "recibo_pago_predial_r2o",
+    parqueadero: "recibo_pago_del_predial_del_parqueadero_r2o",
+    deposito: "recibo_pago_predial_deposito_r2o",
+  };
+
+  // Preview doc button - calls Alejandría to open the document for the selected vigencia
+  const PreviewDocButton = ({ salesforceId, tipoDoc, label }: { salesforceId: string; tipoDoc: string; label: string }) => {
+    const [loading, setLoading] = useState(false);
+    const handleClick = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("preview-predial-alejandria", {
+          body: { id_inmueble: salesforceId, tipo_doc: tipoDoc, vigencia: String(vigencia) },
+        });
+        if (error || !data?.found) {
+          toast.error("Documento no encontrado en Alejandría");
+          return;
+        }
+        // TODO: Reemplazar URL cuando ing. de sistemas provea endpoint de signed URL
+        window.open(`https://back.duppla.co/app-administraciones/documento/${data.documento_id}/url`, "_blank");
+      } catch {
+        toast.error("Error al buscar documento");
+      } finally {
+        setLoading(false);
+      }
+    };
+    return (
+      <Button size="sm" variant="ghost" onClick={handleClick} disabled={loading} className="px-1.5 h-7" title={label}>
+        {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
+      </Button>
+    );
+  };
 
   // Action buttons column
   const ActionButtons = ({ tipoPredio, sfId }: { tipoPredio: TipoPredio; sfId: string }) => {
@@ -204,25 +247,24 @@ const Index = () => {
           <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
         </Button>
         <div className="flex gap-1">
-          <Button size="sm" variant="ghost" onClick={() => openModal("recibo", tipoPredio)} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
-            <Upload className="w-3 h-3 mr-1" /> Recibo
+          <Button size="sm" variant="outline" onClick={() => openModal("verPago", tipoPredio)} className="flex-1 text-xs">
+            <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
           </Button>
+          <PreviewDocButton salesforceId={sfId} tipoDoc={pagoDocMap[tipoPredio]} label="Ver factura" />
+        </div>
+        <div className="flex gap-1">
           <Button
             size="sm"
-            variant={reciboExists ? "default" : "outline"}
-            onClick={() => openModal("verRecibo", tipoPredio)}
-            className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
-            title={reciboExists ? "Recibo cargado" : "Sin recibo"}
+            variant={reciboExists ? "default" : "ghost"}
+            onClick={() => reciboExists ? openModal("verRecibo", tipoPredio) : openModal("recibo", tipoPredio)}
+            className={cn("flex-1 text-xs", reciboExists ? "bg-duppla-green hover:bg-duppla-green/90" : "border border-dashed border-muted-foreground/40")}
           >
-            <Receipt className="w-3 h-3" />
-            {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
+            {reciboExists ? <><Receipt className="w-3 h-3 mr-1" /> Recibo</> : <><Upload className="w-3 h-3 mr-1" /> Recibo</>}
           </Button>
+          <PreviewDocButton salesforceId={sfId} tipoDoc={reciboDocMap[tipoPredio]} label="Ver recibo" />
         </div>
-        <Button size="sm" variant="outline" onClick={() => openModal("verPago", tipoPredio)} className="w-full text-xs">
-          <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
-        </Button>
         <Button size="sm" variant="secondary" onClick={() => openModal("notas", tipoPredio)} className="w-full text-xs">
-          <FileText className="w-3 h-3 mr-1" /> Notas
+          <MessageSquare className="w-3 h-3 mr-1" /> Notas
         </Button>
       </div>
     );
@@ -373,7 +415,7 @@ const Index = () => {
                         <SelectValue placeholder="Desde año" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Desde</SelectItem>
+                        <SelectItem value="all">Escritura desde</SelectItem>
                         {aniosDisponibles.map((y) => (
                           <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                         ))}
@@ -384,7 +426,7 @@ const Index = () => {
                         <SelectValue placeholder="Hasta año" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Hasta</SelectItem>
+                        <SelectItem value="all">Escritura hasta</SelectItem>
                         {aniosDisponibles.map((y) => (
                           <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                         ))}
@@ -537,38 +579,33 @@ const Index = () => {
                               <Button size="sm" onClick={() => openModal("pago", "parqueadero")} className="w-full bg-primary hover:bg-primary/90 text-xs">
                                 <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
                               </Button>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="outline" onClick={() => openModal("verPago", "parqueadero")} className="flex-1 text-xs">
+                                  <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+                                </Button>
+                                <PreviewDocButton salesforceId={selected.Id} tipoDoc={pagoDocMap.parqueadero} label="Ver factura" />
+                              </div>
                               {(() => {
                                 const reciboExists = hasRecibo(selected.Id, "parqueadero");
                                 return (
                                   <div className="flex gap-1">
-                                    <Button size="sm" variant="ghost" onClick={() => openModal("recibo", "parqueadero")} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
-                                      <Upload className="w-3 h-3 mr-1" /> Recibo
-                                    </Button>
                                     <Button
                                       size="sm"
-                                      variant={reciboExists ? "default" : "outline"}
-                                      onClick={() => openModal("verRecibo", "parqueadero")}
-                                      className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
-                                      title={reciboExists ? "Recibo cargado" : "Sin recibo"}
+                                      variant={reciboExists ? "default" : "ghost"}
+                                      onClick={() => reciboExists ? openModal("verRecibo", "parqueadero") : openModal("recibo", "parqueadero")}
+                                      className={cn("flex-1 text-xs", reciboExists ? "bg-duppla-green hover:bg-duppla-green/90" : "border border-dashed border-muted-foreground/40")}
                                     >
-                                      <Receipt className="w-3 h-3" />
-                                      {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
+                                      {reciboExists ? <><Receipt className="w-3 h-3 mr-1" /> Recibo</> : <><Upload className="w-3 h-3 mr-1" /> Recibo</>}
                                     </Button>
+                                    <PreviewDocButton salesforceId={selected.Id} tipoDoc={reciboDocMap.parqueadero} label="Ver recibo" />
                                   </div>
                                 );
                               })()}
-                              <Button size="sm" variant="outline" onClick={() => openModal("verPago", "parqueadero")} className="w-full text-xs">
-                                <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
-                              </Button>
                               <Button size="sm" variant="secondary" onClick={() => openModal("notas", "parqueadero")} className="w-full text-xs">
-                                <FileText className="w-3 h-3 mr-1" /> Notas
+                                <MessageSquare className="w-3 h-3 mr-1" /> Notas
                               </Button>
                             </div>
-                            ) : (
-                              <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
-                                <p className="text-xs text-muted-foreground text-center">Predial incluido en inmueble</p>
-                              </div>
-                            )}
+                            ) : null}
                           </div>
                           {/* CTL Parqueadero */}
                           {showCtlParqueadero(selected) && (
@@ -620,38 +657,33 @@ const Index = () => {
                               <Button size="sm" onClick={() => openModal("pago", "deposito")} className="w-full bg-primary hover:bg-primary/90 text-xs">
                                 <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
                               </Button>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="outline" onClick={() => openModal("verPago", "deposito")} className="flex-1 text-xs">
+                                  <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
+                                </Button>
+                                <PreviewDocButton salesforceId={selected.Id} tipoDoc={pagoDocMap.deposito} label="Ver factura" />
+                              </div>
                               {(() => {
                                 const reciboExists = hasRecibo(selected.Id, "deposito");
                                 return (
                                   <div className="flex gap-1">
-                                    <Button size="sm" variant="ghost" onClick={() => openModal("recibo", "deposito")} className="flex-1 text-xs border border-dashed border-muted-foreground/40">
-                                      <Upload className="w-3 h-3 mr-1" /> Recibo
-                                    </Button>
                                     <Button
                                       size="sm"
-                                      variant={reciboExists ? "default" : "outline"}
-                                      onClick={() => openModal("verRecibo", "deposito")}
-                                      className={cn("text-xs px-2", reciboExists && "bg-duppla-green hover:bg-duppla-green/90")}
-                                      title={reciboExists ? "Recibo cargado" : "Sin recibo"}
+                                      variant={reciboExists ? "default" : "ghost"}
+                                      onClick={() => reciboExists ? openModal("verRecibo", "deposito") : openModal("recibo", "deposito")}
+                                      className={cn("flex-1 text-xs", reciboExists ? "bg-duppla-green hover:bg-duppla-green/90" : "border border-dashed border-muted-foreground/40")}
                                     >
-                                      <Receipt className="w-3 h-3" />
-                                      {reciboExists && <CheckCircle2 className="w-3 h-3 ml-0.5" />}
+                                      {reciboExists ? <><Receipt className="w-3 h-3 mr-1" /> Recibo</> : <><Upload className="w-3 h-3 mr-1" /> Recibo</>}
                                     </Button>
+                                    <PreviewDocButton salesforceId={selected.Id} tipoDoc={reciboDocMap.deposito} label="Ver recibo" />
                                   </div>
                                 );
                               })()}
-                              <Button size="sm" variant="outline" onClick={() => openModal("verPago", "deposito")} className="w-full text-xs">
-                                <ExternalLink className="w-3 h-3 mr-1" /> Ver Pago
-                              </Button>
                               <Button size="sm" variant="secondary" onClick={() => openModal("notas", "deposito")} className="w-full text-xs">
-                                <FileText className="w-3 h-3 mr-1" /> Notas
+                                <MessageSquare className="w-3 h-3 mr-1" /> Notas
                               </Button>
                             </div>
-                            ) : (
-                              <div className="w-[180px] flex-shrink-0 border-l pl-5 flex items-center justify-center">
-                                <p className="text-xs text-muted-foreground text-center">Predial incluido en inmueble</p>
-                              </div>
-                            )}
+                            ) : null}
                           </div>
                           {/* CTL Depósito */}
                           {showCtlDeposito(selected) && (
@@ -671,6 +703,9 @@ const Index = () => {
                         </>
                       )}
                     </div>
+
+                    {/* Notas Block - collapsible */}
+                    <NotasBlock salesforceId={selected.Id} notas={notas} />
                   </div>
                 )}
               </div>
@@ -701,6 +736,60 @@ const Index = () => {
     </div>
   );
 };
+
+function NotasBlock({ salesforceId, notas }: { salesforceId: string; notas: { id: string; salesforce_id: string; tipo_predio: string; nota: string; created_at: string }[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const notasInmueble = notas.filter((n) => n.salesforce_id === salesforceId);
+  const count = notasInmueble.length;
+  const tipoLabels: Record<string, string> = { inmueble: "Inmueble", parqueadero: "Parqueadero", deposito: "Depósito" };
+
+  const grouped: Record<string, typeof notasInmueble> = {};
+  notasInmueble.forEach((n) => {
+    const key = n.tipo_predio || "inmueble";
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(n);
+  });
+
+  return (
+    <div className="bg-card rounded-xl border">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors rounded-xl"
+      >
+        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+          <MessageSquare className="w-4 h-4 text-primary" /> Notas
+          {count > 0 && (
+            <Badge variant="secondary" className="text-xs px-1.5 py-0">{count}</Badge>
+          )}
+        </h3>
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
+      </button>
+      {expanded && (
+        <div className="px-4 pb-4 space-y-2">
+          {count === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-2">Sin notas registradas</p>
+          ) : (
+            Object.entries(grouped).map(([tipo, items]) => (
+              <div key={tipo} className="space-y-2">
+                {Object.keys(grouped).length > 1 && (
+                  <p className="text-xs font-medium text-muted-foreground">{tipoLabels[tipo] || tipo}</p>
+                )}
+                {items.map((n) => (
+                  <div key={n.id} className="bg-muted/50 rounded-lg px-3 py-2 space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(n.created_at).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    <p className="text-sm text-foreground">{n.nota}</p>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function DItem({ label, value, icon: Icon }: { label: string; value?: string | null; icon: any }) {
   return (

@@ -53,7 +53,7 @@ export function NotasModal({ open, onClose, salesforceId, tipoPredio, nombreInmu
       } as any);
       if (error) throw error;
       setNuevaNota("");
-      queryClient.invalidateQueries({ queryKey: ["notas_predial", salesforceId, tipoPredio] });
+      queryClient.invalidateQueries({ queryKey: ["notas_predial"] });
       toast.success("Nota guardada");
     } catch (err: any) {
       toast.error(err.message || "Error al guardar nota");
@@ -68,7 +68,7 @@ export function NotasModal({ open, onClose, salesforceId, tipoPredio, nombreInmu
     try {
       const { error } = await supabase.from("notas_predial").delete().eq("id", id);
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["notas_predial", salesforceId, tipoPredio] });
+      queryClient.invalidateQueries({ queryKey: ["notas_predial"] });
       toast.success("Nota eliminada");
     } catch (err: any) {
       toast.error(err.message || "Error al eliminar");
