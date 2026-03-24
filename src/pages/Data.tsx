@@ -357,17 +357,15 @@ export default function DataPage() {
   /* ─── KPIs ─── */
   const kpis = useMemo(() => {
     let alta = 0, media = 0, baja = 0, ctlPendiente = 0;
-    inmuebles.forEach((i) => {
-      let tieneCtl = false;
+    inmuebles.forEach((i) =>
       i.discrepancias.forEach((d) => {
         const s = (d.severidad || "baja").toLowerCase();
         if (s === "alta") alta++;
         else if (s === "media") media++;
         else baja++;
-        if (d.tipo === "CTL") tieneCtl = true;
-      });
-      if (tieneCtl) ctlPendiente++;
-    });
+        if (d.tipo === "CTL") ctlPendiente++;
+      })
+    );
     return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente };
   }, [inmuebles, rawInmuebles]);
 
