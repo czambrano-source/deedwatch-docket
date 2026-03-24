@@ -127,13 +127,13 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
     }
   }
 
-  // CTL pendiente: >90 días desde entrega sin CTL Fiducia en Alejandría
+  // CTL pendiente: sin CTL Fiducia en Alejandría después de la entrega
   const hoy = new Date();
   for (const i of inmuebles) {
     const fechaEntrega = (i as any).Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
     if (!fechaEntrega) continue;
     const dias = Math.floor((hoy.getTime() - new Date(fechaEntrega).getTime()) / (1000 * 60 * 60 * 24));
-    if (dias > 90 && !(i as any).tiene_ctl_fiducia) {
+    if (dias > 0 && !(i as any).tiene_ctl_fiducia) {
       const p = ensure(i);
       p.discrepancias.push({
         tipo: "CTL",
@@ -141,6 +141,39 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         campo: "CTL Fiducia pendiente",
         descripcion: `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
       });
+    }
+    // CTL Parqueadero pendiente (solo si tiene parqueadero con matrícula/chip propio)
+    if (dias > 0 && !(i as any).tiene_ctl_parqueadero) {
+      const parqCount = (i as any).Parqueadero__c;
+      const matParq = ((i as any).No_Matricula_Inmo_Parqueadero__c || "").trim().toUpperCase();
+      const chipParq = ((i as any).chip_parqueadero__c || "").trim().toUpperCase();
+      const sinFolioParq = matParq === "SIN_MATRICULA" && (chipParq === "SIN_CHIP" || chipParq === "-" || !chipParq);
+      if (parqCount != null && parqCount > 0 && !sinFolioParq) {
+        const p = ensure(i);
+        p.discrepancias.push({
+          tipo: "CTL",
+          severidad: "alta",
+          campo: "CTL Parqueadero pendiente",
+          descripcion: `${dias} días desde entrega sin CTL Parqueadero en Alejandría`,
+        });
+      }
+    }
+    // CTL Bodega/Depósito pendiente (solo si tiene depósito con matrícula/chip propio)
+    if (dias > 0 && !(i as any).tiene_ctl_bodega) {
+      const depVal = (i as any).Deposito__c;
+      const hasDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
+      const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim().toUpperCase();
+      const chipDep = ((i as any).chip_deposito__c || "").trim().toUpperCase();
+      const sinFolioDep = matDep === "SIN_MATRICULA" && (chipDep === "SIN_CHIP" || chipDep === "-" || !chipDep);
+      if (hasDep && !sinFolioDep) {
+        const p = ensure(i);
+        p.discrepancias.push({
+          tipo: "CTL",
+          severidad: "alta",
+          campo: "CTL Bodega pendiente",
+          descripcion: `${dias} días desde entrega sin CTL Bodega en Alejandría`,
+        });
+      }
     }
   }
 
@@ -330,7 +363,7 @@ export default function DataPage() {
         if (s === "alta") alta++;
         else if (s === "media") media++;
         else baja++;
-        if (d.campo === "CTL Fiducia pendiente") ctlPendiente++;
+        if (d.tipo === "CTL") ctlPendiente++;
       })
     );
     return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente };
@@ -338,7 +371,7 @@ export default function DataPage() {
 
   const generateCtlPendientePDF = useCallback(() => {
     const ctlItems = inmuebles.filter((i) =>
-      i.discrepancias.some((d) => d.campo === "CTL Fiducia pendiente")
+      i.discrepancias.some((d) => d.tipo === "CTL")
     );
     if (ctlItems.length === 0) return;
 
@@ -346,7 +379,7 @@ export default function DataPage() {
     const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
 
     doc.setFontSize(16);
-    doc.text("Reporte CTL Fiducia Pendiente", 14, 20);
+    doc.text("Reporte CTL Pendientes", 14, 20);
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Generado: ${now} — Total: ${ctlItems.length} inmuebles`, 14, 28);
@@ -354,15 +387,15 @@ export default function DataPage() {
 
     autoTable(doc, {
       startY: 34,
-      head: [["Inmueble", "Oportunidad", "Chip Apartamento", "Matricula Inmobiliaria", "Dias sin CTL"]],
+      head: [["Inmueble", "Oportunidad", "CTL Pendientes", "Dias desde entrega"]],
       body: ctlItems.map((i) => {
-        const d = i.discrepancias.find((d) => d.campo === "CTL Fiducia pendiente");
-        const dias = d?.descripcion?.match(/(\d+) días/)?.[1] || "—";
+        const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
+        const dias = ctlDiscs[0]?.descripcion?.match(/(\d+) días/)?.[1] || "—";
+        const tipos = ctlDiscs.map(d => d.campo.replace(" pendiente", "")).join(", ");
         return [
           i.codigo,
           i.oportunidad || "—",
-          i.raw.chip_apartamento__c || "—",
-          i.raw.Numero_matricula_inmobiliaria__c || "—",
+          tipos,
           dias,
         ];
       }),
@@ -424,7 +457,7 @@ export default function DataPage() {
         result = result.filter((i) => i.discrepancias.length > 0);
       } else if (severidadFilter === "ctl_pendiente") {
         result = result.filter((i) =>
-          i.discrepancias.some((d) => d.campo === "CTL Fiducia pendiente")
+          i.discrepancias.some((d) => d.tipo === "CTL")
         );
       } else {
         result = result.filter((i) =>
@@ -1158,7 +1191,7 @@ export default function DataPage() {
                   <KpiCard
                     title="CTL Pendiente"
                     value={kpis.ctlPendiente}
-                    subtitle=">90 días sin CTL Fiducia"
+                    subtitle="CTL sin subir a Alejandría"
                     icon={Clock}
                     iconBg="bg-duppla-red-light"
                     iconColor="text-destructive"
@@ -2041,7 +2074,7 @@ export default function DataPage() {
             <div className="flex items-center justify-between">
               <DialogTitle className="flex items-center gap-2 text-base">
                 <AlertTriangle className="w-5 h-5 text-duppla-orange" />
-                CTL Fiducia Pendiente
+                CTL Pendientes
               </DialogTitle>
               <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={generateCtlPendientePDF}>
                 <Download className="w-3.5 h-3.5" /> Generar Reporte PDF
@@ -2051,22 +2084,23 @@ export default function DataPage() {
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
             {(() => {
               const ctlItems = inmuebles.filter((i) =>
-                i.discrepancias.some((d) => d.campo === "CTL Fiducia pendiente")
+                i.discrepancias.some((d) => d.tipo === "CTL")
               );
               if (ctlItems.length === 0) return (
                 <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
                   <CheckCircle2 className="w-10 h-10 text-duppla-green" />
-                  <p className="text-sm text-muted-foreground font-medium">No hay inmuebles con CTL Fiducia pendiente.</p>
+                  <p className="text-sm text-muted-foreground font-medium">No hay inmuebles con CTL pendiente.</p>
                 </div>
               );
               return (
                 <>
                   <p className="text-xs text-muted-foreground mb-3">
-                    Se encontraron <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s) con mas de 90 dias sin CTL Fiducia.
+                    Se encontraron <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s) con CTL sin subir a Alejandría.
                   </p>
                   {ctlItems.map((i) => {
-                    const d = i.discrepancias.find((d) => d.campo === "CTL Fiducia pendiente");
-                    const dias = d?.descripcion?.match(/(\d+) días/)?.[1] || "—";
+                    const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
+                    const dias = ctlDiscs[0]?.descripcion?.match(/(\d+) días/)?.[1] || "—";
+                    const tiposPendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", "")).join(", ");
                     return (
                       <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-1 bg-card cursor-pointer transition-colors hover:bg-accent/50"
                         onClick={() => {
@@ -2083,6 +2117,9 @@ export default function DataPage() {
                           <p className="text-sm font-semibold text-foreground">{i.codigo}</p>
                           <Badge variant="outline" className="text-xs">{dias} dias</Badge>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          Pendiente: {tiposPendientes}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           Chip: {i.raw.chip_apartamento__c || "—"} · Matricula: {i.raw.Numero_matricula_inmobiliaria__c || "—"}
                         </p>
