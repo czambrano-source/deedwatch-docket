@@ -135,54 +135,45 @@ function buildProblemas(inmuebles: Inmueble[], ctlSourceMap: Record<string, Reco
     if (!fechaEntrega) continue;
     const dias = Math.floor((hoy.getTime() - new Date(fechaEntrega).getTime()) / (1000 * 60 * 60 * 24));
     const ctlInfo = ctlSourceMap[i.Id] || {};
-    if (dias > 90 && !(i as any).tiene_ctl_fiducia) {
-      const comprado = !!ctlInfo.inmueble?.fecha;
+    if (dias > 90 && !(i as any).tiene_ctl_fiducia && !ctlInfo.inmueble?.fecha) {
       const p = ensure(i);
       p.discrepancias.push({
         tipo: "CTL",
-        severidad: comprado ? "ctl_comprado" : "alta",
+        severidad: "alta",
         campo: "CTL Fiducia pendiente",
-        descripcion: comprado
-          ? `CTL comprado (${ctlInfo.inmueble.fecha}), pendiente de registro — ${dias} días desde entrega`
-          : `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
+        descripcion: `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
       });
     }
     // CTL Parqueadero pendiente (solo si tiene matrícula propia distinta al apto)
-    if (dias > 90 && !(i as any).tiene_ctl_parqueadero) {
+    if (dias > 90 && !(i as any).tiene_ctl_parqueadero && !ctlInfo.parqueadero?.fecha) {
       const parqCount = (i as any).Parqueadero__c;
       const matParq = ((i as any).No_Matricula_Inmo_Parqueadero__c || "").trim();
       const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
       const tieneMatriculaPropia = matParq && matParq.toUpperCase() !== "SIN_MATRICULA" && matParq !== matApto;
       if (parqCount != null && parqCount > 0 && tieneMatriculaPropia) {
-        const comprado = !!ctlInfo.parqueadero?.fecha;
         const p = ensure(i);
         p.discrepancias.push({
           tipo: "CTL",
-          severidad: comprado ? "ctl_comprado" : "alta",
+          severidad: "alta",
           campo: "CTL Parqueadero pendiente",
-          descripcion: comprado
-            ? `CTL comprado (${ctlInfo.parqueadero.fecha}), pendiente de registro — ${dias} días desde entrega`
-            : `${dias} días desde entrega sin CTL Parqueadero en Alejandría`,
+          descripcion: `${dias} días desde entrega sin CTL Parqueadero en Alejandría`,
         });
       }
     }
     // CTL Bodega/Depósito pendiente (solo si tiene matrícula propia distinta al apto)
-    if (dias > 90 && !(i as any).tiene_ctl_bodega) {
+    if (dias > 90 && !(i as any).tiene_ctl_bodega && !ctlInfo.bodega?.fecha) {
       const depVal = (i as any).Deposito__c;
       const hasDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
       const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim();
       const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
       const tieneMatriculaPropia = matDep && matDep.toUpperCase() !== "SIN_MATRICULA" && matDep !== matApto;
       if (hasDep && tieneMatriculaPropia) {
-        const comprado = !!ctlInfo.bodega?.fecha;
         const p = ensure(i);
         p.discrepancias.push({
           tipo: "CTL",
-          severidad: comprado ? "ctl_comprado" : "alta",
+          severidad: "alta",
           campo: "CTL Bodega pendiente",
-          descripcion: comprado
-            ? `CTL comprado (${ctlInfo.bodega.fecha}), pendiente de registro — ${dias} días desde entrega`
-            : `${dias} días desde entrega sin CTL Bodega en Alejandría`,
+          descripcion: `${dias} días desde entrega sin CTL Bodega en Alejandría`,
         });
       }
     }
@@ -195,7 +186,6 @@ function buildProblemas(inmuebles: Inmueble[], ctlSourceMap: Record<string, Reco
 const severidadColor = (sev: string) => {
   const s = (sev || "").toLowerCase();
   if (s === "alta") return "bg-destructive text-destructive-foreground";
-  if (s === "ctl_comprado") return "bg-yellow-400/20 text-yellow-700";
   if (s === "media") return "bg-accent text-accent-foreground";
   if (s === "normalizacion") return "bg-blue-500/15 text-blue-600";
   return "bg-muted text-muted-foreground";
@@ -1351,7 +1341,7 @@ export default function DataPage() {
                                       <div className="space-y-1 text-xs">
                                         {inm.discrepancias.map((d, idx) => (
                                           <div key={idx} className="flex items-start gap-1.5">
-                                            <span className={cn("mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0", (d.severidad || "").toLowerCase() === "alta" ? "bg-destructive" : (d.severidad || "").toLowerCase() === "ctl_comprado" ? "bg-yellow-500" : (d.severidad || "").toLowerCase() === "media" ? "bg-duppla-orange" : "bg-muted-foreground")} />
+                                            <span className={cn("mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0", (d.severidad || "").toLowerCase() === "alta" ? "bg-destructive" : (d.severidad || "").toLowerCase() === "media" ? "bg-duppla-orange" : "bg-muted-foreground")} />
                                             <span><strong>{d.campo}</strong>{d.descripcion ? `: ${d.descripcion}` : ""}</span>
                                           </div>
                                         ))}
@@ -2192,10 +2182,7 @@ export default function DataPage() {
                         <div className="flex gap-1.5 flex-wrap">
                           {ctlDiscs.map(d => {
                             const t = d.campo.replace(" pendiente", "").replace("CTL ", "");
-                            const comprado = d.severidad === "ctl_comprado";
-                            return comprado
-                              ? <span key={t} className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-700">{t} — Comprado</span>
-                              : <Badge key={t} variant="destructive" className="text-xs">{t} — Sin comprar</Badge>;
+                            return <Badge key={t} variant="destructive" className="text-xs">{t}</Badge>;
                           })}
                         </div>
                       </div>
