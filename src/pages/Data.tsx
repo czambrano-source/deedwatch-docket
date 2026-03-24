@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useInmuebles } from "@/hooks/useInmuebles";
 import { getInconsistencias } from "@/components/predial/InconsistenciasModal";
 import { getCtlInconsistencias } from "@/components/predial/CtlInconsistenciasModal";
+import { NotasDataSfBlock } from "@/components/predial/NotasDataSf";
 import type { Inmueble } from "@/types/inmueble";
 
 /* ─── Types ─── */
@@ -1555,6 +1556,10 @@ export default function DataPage() {
                                   );
                                 })()}
                                   </div>
+
+                                  {/* Notas del inmueble */}
+                                  <NotasDataSfBlock salesforceId={inm.salesforce_id} />
+
                                   </div>
 
                                   {/* Right: IA Analysis panel */}
