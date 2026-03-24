@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
@@ -73,7 +73,7 @@ interface HistorialCambio {
 }
 
 /* ─── Build local inconsistencies from inmuebles ─── */
-function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
+function buildProblemas(inmuebles: Inmueble[], ctlSourceMap: Record<string, Record<string, { tipo: string; fecha: string | null }>>): InmuebleProblema[] {
   const map = new Map<string, InmuebleProblema>();
 
   const ensure = (i: Inmueble): InmuebleProblema => {
@@ -134,13 +134,17 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
     const fechaEntrega = (i as any).Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
     if (!fechaEntrega) continue;
     const dias = Math.floor((hoy.getTime() - new Date(fechaEntrega).getTime()) / (1000 * 60 * 60 * 24));
+    const ctlInfo = ctlSourceMap[i.Id] || {};
     if (dias > 90 && !(i as any).tiene_ctl_fiducia) {
+      const comprado = !!ctlInfo.inmueble?.fecha;
       const p = ensure(i);
       p.discrepancias.push({
         tipo: "CTL",
-        severidad: "alta",
+        severidad: comprado ? "ctl_comprado" : "alta",
         campo: "CTL Fiducia pendiente",
-        descripcion: `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
+        descripcion: comprado
+          ? `CTL comprado (${ctlInfo.inmueble.fecha}), pendiente de registro — ${dias} días desde entrega`
+          : `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
       });
     }
     // CTL Parqueadero pendiente (solo si tiene matrícula propia distinta al apto)
@@ -150,12 +154,15 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
       const tieneMatriculaPropia = matParq && matParq.toUpperCase() !== "SIN_MATRICULA" && matParq !== matApto;
       if (parqCount != null && parqCount > 0 && tieneMatriculaPropia) {
+        const comprado = !!ctlInfo.parqueadero?.fecha;
         const p = ensure(i);
         p.discrepancias.push({
           tipo: "CTL",
-          severidad: "alta",
+          severidad: comprado ? "ctl_comprado" : "alta",
           campo: "CTL Parqueadero pendiente",
-          descripcion: `${dias} días desde entrega sin CTL Parqueadero en Alejandría`,
+          descripcion: comprado
+            ? `CTL comprado (${ctlInfo.parqueadero.fecha}), pendiente de registro — ${dias} días desde entrega`
+            : `${dias} días desde entrega sin CTL Parqueadero en Alejandría`,
         });
       }
     }
@@ -167,12 +174,15 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
       const tieneMatriculaPropia = matDep && matDep.toUpperCase() !== "SIN_MATRICULA" && matDep !== matApto;
       if (hasDep && tieneMatriculaPropia) {
+        const comprado = !!ctlInfo.bodega?.fecha;
         const p = ensure(i);
         p.discrepancias.push({
           tipo: "CTL",
-          severidad: "alta",
+          severidad: comprado ? "ctl_comprado" : "alta",
           campo: "CTL Bodega pendiente",
-          descripcion: `${dias} días desde entrega sin CTL Bodega en Alejandría`,
+          descripcion: comprado
+            ? `CTL comprado (${ctlInfo.bodega.fecha}), pendiente de registro — ${dias} días desde entrega`
+            : `${dias} días desde entrega sin CTL Bodega en Alejandría`,
         });
       }
     }
@@ -185,6 +195,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
 const severidadColor = (sev: string) => {
   const s = (sev || "").toLowerCase();
   if (s === "alta") return "bg-destructive text-destructive-foreground";
+  if (s === "ctl_comprado") return "bg-yellow-400/20 text-yellow-700";
   if (s === "media") return "bg-accent text-accent-foreground";
   if (s === "normalizacion") return "bg-blue-500/15 text-blue-600";
   return "bg-muted text-muted-foreground";
@@ -246,6 +257,25 @@ export default function DataPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: rawInmuebles = [], isLoading, isFetching } = useInmuebles();
+
+  // CTL source data (fecha compra por bloque)
+  const { data: allCtlSources = [] } = useQuery<{ salesforce_id: string; bloque: string; tipo_ctl: string; fecha_ctl: string | null }[]>({
+    queryKey: ["ctl_source_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("ctl_source").select("salesforce_id,bloque,tipo_ctl,fecha_ctl");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const ctlSourceMap = useMemo(() => {
+    const map: Record<string, Record<string, { tipo: string; fecha: string | null }>> = {};
+    allCtlSources.forEach(r => {
+      if (!map[r.salesforce_id]) map[r.salesforce_id] = {};
+      map[r.salesforce_id][r.bloque] = { tipo: r.tipo_ctl, fecha: r.fecha_ctl };
+    });
+    return map;
+  }, [allCtlSources]);
 
   const [view, setView] = useState<"general" | "historial">("general");
 
@@ -353,7 +383,7 @@ export default function DataPage() {
   const [historialFilterUsuario, setHistorialFilterUsuario] = useState("");
 
   /* ─── Build problems from local data ─── */
-  const inmuebles = useMemo(() => buildProblemas(rawInmuebles), [rawInmuebles]);
+  const inmuebles = useMemo(() => buildProblemas(rawInmuebles, ctlSourceMap), [rawInmuebles, ctlSourceMap]);
 
   /* ─── KPIs ─── */
   const kpis = useMemo(() => {
@@ -1321,7 +1351,7 @@ export default function DataPage() {
                                       <div className="space-y-1 text-xs">
                                         {inm.discrepancias.map((d, idx) => (
                                           <div key={idx} className="flex items-start gap-1.5">
-                                            <span className={cn("mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0", (d.severidad || "").toLowerCase() === "alta" ? "bg-destructive" : (d.severidad || "").toLowerCase() === "media" ? "bg-duppla-orange" : "bg-muted-foreground")} />
+                                            <span className={cn("mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0", (d.severidad || "").toLowerCase() === "alta" ? "bg-destructive" : (d.severidad || "").toLowerCase() === "ctl_comprado" ? "bg-yellow-500" : (d.severidad || "").toLowerCase() === "media" ? "bg-duppla-orange" : "bg-muted-foreground")} />
                                             <span><strong>{d.campo}</strong>{d.descripcion ? `: ${d.descripcion}` : ""}</span>
                                           </div>
                                         ))}
@@ -1432,8 +1462,14 @@ export default function DataPage() {
                                   <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Apto") && "")}>
                                       <div className="flex items-center gap-2 mb-1">
                                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
-                                        {tieneCtlSource('inmueble') ? (
-                                          <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('inmueble') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('inmueble') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('inmueble')}</span>
+                                        {(sel as any).tiene_ctl_fiducia ? (
+                                          tieneCtlSource('inmueble') ? (
+                                            <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('inmueble') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('inmueble') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('inmueble')}</span>
+                                          ) : (
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
+                                          )
+                                        ) : ctlSources.inmueble?.fecha ? (
+                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-400/20 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Comprado, pendiente registro</span>
                                         ) : !sel.nombre_ctl_inmueble__c && !sel.nit_ctl_inmueble__c ? (
                                           <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                         ) : null}
@@ -1479,8 +1515,14 @@ export default function DataPage() {
                                           <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Parqueadero") && "")}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
-                                                {tieneCtlSource('parqueadero') ? (
-                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('parqueadero') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('parqueadero') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('parqueadero')}</span>
+                                                {(sel as any).tiene_ctl_parqueadero ? (
+                                                  tieneCtlSource('parqueadero') ? (
+                                                    <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('parqueadero') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('parqueadero') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('parqueadero')}</span>
+                                                  ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
+                                                  )
+                                                ) : ctlSources.parqueadero?.fecha ? (
+                                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-400/20 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Comprado, pendiente registro</span>
                                                 ) : !sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
@@ -1529,8 +1571,14 @@ export default function DataPage() {
                                           <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Bodega") && "")}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
-                                                {tieneCtlSource('bodega') ? (
-                                                  <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
+                                                {(sel as any).tiene_ctl_bodega ? (
+                                                  tieneCtlSource('bodega') ? (
+                                                    <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
+                                                  ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
+                                                  )
+                                                ) : ctlSources.bodega?.fecha ? (
+                                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-400/20 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Comprado, pendiente registro</span>
                                                 ) : !sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
@@ -2124,7 +2172,6 @@ export default function DataPage() {
                     const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("pendiente"));
                     const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
                     const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
-                    const pendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", ""));
                     return (
                       <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-1 bg-card cursor-pointer transition-colors hover:bg-accent/50"
                         onClick={() => {
@@ -2141,11 +2188,15 @@ export default function DataPage() {
                           <p className="text-sm font-semibold text-foreground">{i.codigo}</p>
                           <Badge variant="outline" className="text-xs">{dias} días</Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">Entrega: {fechaEnt}</p>
+                        <p className="text-xs text-muted-foreground">Entrega: {fechaEnt || "—"}</p>
                         <div className="flex gap-1.5 flex-wrap">
-                          {pendientes.map(t => (
-                            <Badge key={t} variant="destructive" className="text-xs">{t}</Badge>
-                          ))}
+                          {ctlDiscs.map(d => {
+                            const t = d.campo.replace(" pendiente", "").replace("CTL ", "");
+                            const comprado = d.severidad === "ctl_comprado";
+                            return comprado
+                              ? <span key={t} className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-700">{t} — Comprado</span>
+                              : <Badge key={t} variant="destructive" className="text-xs">{t} — Sin comprar</Badge>;
+                          })}
                         </div>
                       </div>
                     );
