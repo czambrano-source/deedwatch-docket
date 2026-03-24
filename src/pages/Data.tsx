@@ -370,33 +370,47 @@ export default function DataPage() {
   }, [inmuebles, rawInmuebles]);
 
   const generateCtlPendientePDF = useCallback(() => {
-    const ctlItems = inmuebles.filter((i) =>
-      i.discrepancias.some((d) => d.tipo === "CTL")
-    );
+    const ctlItems = inmuebles
+      .filter((i) => i.discrepancias.some((d) => d.tipo === "CTL"))
+      .sort((a, b) => {
+        const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+        const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+        return fa.localeCompare(fb);
+      });
     if (ctlItems.length === 0) return;
 
     const doc = new jsPDF({ orientation: "landscape" });
     const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+    const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.tipo === "CTL").length, 0);
 
     doc.setFontSize(16);
     doc.text("Reporte CTL Pendientes", 14, 20);
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Generado: ${now} — Total: ${ctlItems.length} inmuebles`, 14, 28);
+    doc.text(`Generado: ${now} — ${ctlItems.length} inmuebles, ${totalCtl} CTL pendientes`, 14, 28);
     doc.setTextColor(0);
 
     autoTable(doc, {
       startY: 34,
-      head: [["Inmueble", "Oportunidad", "CTL Pendientes", "Dias desde entrega"]],
+      head: [["Inmueble", "Oportunidad", "Fecha Entrega", "Dias", "CTL Inmueble", "CTL Parq.", "CTL Bodega"]],
       body: ctlItems.map((i) => {
         const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
         const dias = ctlDiscs[0]?.descripcion?.match(/(\d+) días/)?.[1] || "—";
-        const tipos = ctlDiscs.map(d => d.campo.replace(" pendiente", "")).join(", ");
+        const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "—";
+        const hasFiducia = ctlDiscs.some(d => d.campo === "CTL Fiducia pendiente");
+        const hasParq = ctlDiscs.some(d => d.campo === "CTL Parqueadero pendiente");
+        const hasBodega = ctlDiscs.some(d => d.campo === "CTL Bodega pendiente");
+        const tieneParq = i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0;
+        const depVal = i.raw.Deposito__c;
+        const tieneDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
         return [
           i.codigo,
           i.oportunidad || "—",
-          tipos,
+          fechaEnt,
           dias,
+          hasFiducia ? "PENDIENTE" : "OK",
+          !tieneParq ? "N/A" : hasParq ? "PENDIENTE" : "OK",
+          !tieneDep ? "N/A" : hasBodega ? "PENDIENTE" : "OK",
         ];
       }),
       styles: { fontSize: 8, cellPadding: 3 },
@@ -2083,26 +2097,34 @@ export default function DataPage() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
             {(() => {
-              const ctlItems = inmuebles.filter((i) =>
-                i.discrepancias.some((d) => d.tipo === "CTL")
-              );
+              const ctlItems = inmuebles
+                .filter((i) => i.discrepancias.some((d) => d.tipo === "CTL"))
+                .sort((a, b) => {
+                  const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+                  const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+                  return fa.localeCompare(fb);
+                });
               if (ctlItems.length === 0) return (
                 <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
                   <CheckCircle2 className="w-10 h-10 text-duppla-green" />
                   <p className="text-sm text-muted-foreground font-medium">No hay inmuebles con CTL pendiente.</p>
                 </div>
               );
+              const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.tipo === "CTL").length, 0);
               return (
                 <>
                   <p className="text-xs text-muted-foreground mb-3">
-                    Se encontraron <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s) con CTL sin subir a Alejandría.
+                    <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s), <span className="font-semibold text-foreground">{totalCtl}</span> CTL sin subir a Alejandría.
                   </p>
                   {ctlItems.map((i) => {
                     const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
                     const dias = ctlDiscs[0]?.descripcion?.match(/(\d+) días/)?.[1] || "—";
-                    const tiposPendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", "")).join(", ");
+                    const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "—";
+                    const hasFiducia = ctlDiscs.some(d => d.campo === "CTL Fiducia pendiente");
+                    const hasParq = ctlDiscs.some(d => d.campo === "CTL Parqueadero pendiente");
+                    const hasBodega = ctlDiscs.some(d => d.campo === "CTL Bodega pendiente");
                     return (
-                      <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-1 bg-card cursor-pointer transition-colors hover:bg-accent/50"
+                      <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-2 bg-card cursor-pointer transition-colors hover:bg-accent/50"
                         onClick={() => {
                           setShowCtlPendienteModal(false);
                           setSeveridadFilter("ctl_pendiente");
@@ -2115,14 +2137,30 @@ export default function DataPage() {
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-semibold text-foreground">{i.codigo}</p>
-                          <Badge variant="outline" className="text-xs">{dias} dias</Badge>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Entrega: {fechaEnt}</span>
+                            <Badge variant="outline" className="text-xs">{dias} dias</Badge>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Pendiente: {tiposPendientes}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Chip: {i.raw.chip_apartamento__c || "—"} · Matricula: {i.raw.Numero_matricula_inmobiliaria__c || "—"}
-                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge variant={hasFiducia ? "destructive" : "secondary"} className="text-xs">
+                            Inmueble: {hasFiducia ? "Pendiente" : "OK"}
+                          </Badge>
+                          {(i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0) && (
+                            <Badge variant={hasParq ? "destructive" : "secondary"} className="text-xs">
+                              Parqueadero: {hasParq ? "Pendiente" : "OK"}
+                            </Badge>
+                          )}
+                          {(() => {
+                            const dv = i.raw.Deposito__c;
+                            const hasDep = dv != null && String(dv).toLowerCase() !== "no" && String(dv) !== "0";
+                            return hasDep ? (
+                              <Badge variant={hasBodega ? "destructive" : "secondary"} className="text-xs">
+                                Deposito: {hasBodega ? "Pendiente" : "OK"}
+                              </Badge>
+                            ) : null;
+                          })()}
+                        </div>
                       </div>
                     );
                   })}
