@@ -359,11 +359,14 @@ export default function DataPage() {
     let alta = 0, media = 0, baja = 0, ctlPendiente = 0;
     inmuebles.forEach((i) =>
       i.discrepancias.forEach((d) => {
-        const s = (d.severidad || "baja").toLowerCase();
-        if (s === "alta") alta++;
-        else if (s === "media") media++;
-        else baja++;
-        if (d.campo.includes("pendiente")) ctlPendiente++;
+        if (d.campo.includes("pendiente")) {
+          ctlPendiente++;
+        } else {
+          const s = (d.severidad || "baja").toLowerCase();
+          if (s === "alta") alta++;
+          else if (s === "media") media++;
+          else baja++;
+        }
       })
     );
     return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente };
