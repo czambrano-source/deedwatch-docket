@@ -395,8 +395,8 @@ export default function DataPage() {
       head: [["Inmueble", "Oportunidad", "Fecha Entrega", "Dias", "CTL Inmueble", "CTL Parq.", "CTL Bodega"]],
       body: ctlItems.map((i) => {
         const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
-        const dias = ctlDiscs[0]?.descripcion?.match(/(\d+) días/)?.[1] || "—";
-        const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "—";
+        const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+        const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
         const hasFiducia = ctlDiscs.some(d => d.campo === "CTL Fiducia pendiente");
         const hasParq = ctlDiscs.some(d => d.campo === "CTL Parqueadero pendiente");
         const hasBodega = ctlDiscs.some(d => d.campo === "CTL Bodega pendiente");
@@ -2118,8 +2118,8 @@ export default function DataPage() {
                   </p>
                   {ctlItems.map((i) => {
                     const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
-                    const dias = ctlDiscs[0]?.descripcion?.match(/(\d+) días/)?.[1] || "—";
-                    const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "—";
+                    const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+                    const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
                     const pendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", ""));
                     return (
                       <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-1 bg-card cursor-pointer transition-colors hover:bg-accent/50"
