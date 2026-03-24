@@ -363,7 +363,7 @@ export default function DataPage() {
         if (s === "alta") alta++;
         else if (s === "media") media++;
         else baja++;
-        if (d.tipo === "CTL") ctlPendiente++;
+        if (d.campo.includes("pendiente")) ctlPendiente++;
       })
     );
     return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente };
@@ -371,7 +371,7 @@ export default function DataPage() {
 
   const generateCtlPendientePDF = useCallback(() => {
     const ctlItems = inmuebles
-      .filter((i) => i.discrepancias.some((d) => d.tipo === "CTL"))
+      .filter((i) => i.discrepancias.some((d) => d.campo.includes("pendiente")))
       .sort((a, b) => {
         const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
         const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
@@ -381,7 +381,7 @@ export default function DataPage() {
 
     const doc = new jsPDF({ orientation: "landscape" });
     const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
-    const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.tipo === "CTL").length, 0);
+    const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.campo.includes("pendiente")).length, 0);
 
     doc.setFontSize(16);
     doc.text("Reporte CTL Pendientes", 14, 20);
@@ -394,7 +394,7 @@ export default function DataPage() {
       startY: 34,
       head: [["Inmueble", "Oportunidad", "Fecha Entrega", "Días desde entrega", "CTL Pendientes"]],
       body: ctlItems.map((i) => {
-        const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
+        const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("pendiente"));
         const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
         const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
         const pendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", "")).join(", ");
@@ -464,7 +464,7 @@ export default function DataPage() {
         result = result.filter((i) => i.discrepancias.length > 0);
       } else if (severidadFilter === "ctl_pendiente") {
         result = result.filter((i) =>
-          i.discrepancias.some((d) => d.tipo === "CTL")
+          i.discrepancias.some((d) => d.campo.includes("pendiente"))
         );
       } else {
         result = result.filter((i) =>
@@ -2091,7 +2091,7 @@ export default function DataPage() {
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
             {(() => {
               const ctlItems = inmuebles
-                .filter((i) => i.discrepancias.some((d) => d.tipo === "CTL"))
+                .filter((i) => i.discrepancias.some((d) => d.campo.includes("pendiente")))
                 .sort((a, b) => {
                   const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
                   const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
@@ -2103,14 +2103,14 @@ export default function DataPage() {
                   <p className="text-sm text-muted-foreground font-medium">No hay inmuebles con CTL pendiente.</p>
                 </div>
               );
-              const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.tipo === "CTL").length, 0);
+              const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.campo.includes("pendiente")).length, 0);
               return (
                 <>
                   <p className="text-xs text-muted-foreground mb-3">
                     <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s), <span className="font-semibold text-foreground">{totalCtl}</span> CTL sin subir a Alejandría.
                   </p>
                   {ctlItems.map((i) => {
-                    const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
+                    const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("pendiente"));
                     const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
                     const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
                     const pendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", ""));
