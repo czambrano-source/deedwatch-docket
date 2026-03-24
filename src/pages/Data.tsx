@@ -127,13 +127,13 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
     }
   }
 
-  // CTL pendiente: sin CTL Fiducia en Alejandría después de la entrega
+  // CTL compra pendiente: >90 días desde entrega sin CTL en Alejandría
   const hoy = new Date();
   for (const i of inmuebles) {
     const fechaEntrega = (i as any).Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
     if (!fechaEntrega) continue;
     const dias = Math.floor((hoy.getTime() - new Date(fechaEntrega).getTime()) / (1000 * 60 * 60 * 24));
-    if (dias > 0 && !(i as any).tiene_ctl_fiducia) {
+    if (dias > 90 && !(i as any).tiene_ctl_fiducia) {
       const p = ensure(i);
       p.discrepancias.push({
         tipo: "CTL",
@@ -143,7 +143,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       });
     }
     // CTL Parqueadero pendiente (solo si tiene parqueadero con matrícula/chip propio)
-    if (dias > 0 && !(i as any).tiene_ctl_parqueadero) {
+    if (dias > 90 && !(i as any).tiene_ctl_parqueadero) {
       const parqCount = (i as any).Parqueadero__c;
       const matParq = ((i as any).No_Matricula_Inmo_Parqueadero__c || "").trim().toUpperCase();
       const chipParq = ((i as any).chip_parqueadero__c || "").trim().toUpperCase();
@@ -159,7 +159,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       }
     }
     // CTL Bodega/Depósito pendiente (solo si tiene depósito con matrícula/chip propio)
-    if (dias > 0 && !(i as any).tiene_ctl_bodega) {
+    if (dias > 90 && !(i as any).tiene_ctl_bodega) {
       const depVal = (i as any).Deposito__c;
       const hasDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
       const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim().toUpperCase();
@@ -357,15 +357,17 @@ export default function DataPage() {
   /* ─── KPIs ─── */
   const kpis = useMemo(() => {
     let alta = 0, media = 0, baja = 0, ctlPendiente = 0;
-    inmuebles.forEach((i) =>
+    inmuebles.forEach((i) => {
+      let tieneCtl = false;
       i.discrepancias.forEach((d) => {
         const s = (d.severidad || "baja").toLowerCase();
         if (s === "alta") alta++;
         else if (s === "media") media++;
         else baja++;
-        if (d.tipo === "CTL") ctlPendiente++;
-      })
-    );
+        if (d.tipo === "CTL") tieneCtl = true;
+      });
+      if (tieneCtl) ctlPendiente++;
+    });
     return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente };
   }, [inmuebles, rawInmuebles]);
 
@@ -1205,7 +1207,7 @@ export default function DataPage() {
                   <KpiCard
                     title="CTL Pendiente"
                     value={kpis.ctlPendiente}
-                    subtitle="CTL sin subir a Alejandría"
+                    subtitle=">90 días sin CTL compra"
                     icon={Clock}
                     iconBg="bg-duppla-red-light"
                     iconColor="text-destructive"
