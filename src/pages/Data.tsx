@@ -392,25 +392,18 @@ export default function DataPage() {
 
     autoTable(doc, {
       startY: 34,
-      head: [["Inmueble", "Oportunidad", "Fecha Entrega", "Dias", "CTL Inmueble", "CTL Parq.", "CTL Bodega"]],
+      head: [["Inmueble", "Oportunidad", "Fecha Entrega", "Días desde entrega", "CTL Pendientes"]],
       body: ctlItems.map((i) => {
         const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
         const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
         const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
-        const hasFiducia = ctlDiscs.some(d => d.campo === "CTL Fiducia pendiente");
-        const hasParq = ctlDiscs.some(d => d.campo === "CTL Parqueadero pendiente");
-        const hasBodega = ctlDiscs.some(d => d.campo === "CTL Bodega pendiente");
-        const tieneParq = i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0;
-        const depVal = i.raw.Deposito__c;
-        const tieneDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
+        const pendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", "")).join(", ");
         return [
           i.codigo,
           i.oportunidad || "—",
-          fechaEnt,
+          fechaEnt || "—",
           dias,
-          hasFiducia ? "PENDIENTE" : "OK",
-          !tieneParq ? "N/A" : hasParq ? "PENDIENTE" : "OK",
-          !tieneDep ? "N/A" : hasBodega ? "PENDIENTE" : "OK",
+          pendientes,
         ];
       }),
       styles: { fontSize: 8, cellPadding: 3 },
