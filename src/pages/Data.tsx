@@ -392,18 +392,16 @@ export default function DataPage() {
 
     autoTable(doc, {
       startY: 34,
-      head: [["Inmueble", "Oportunidad", "Fecha Entrega", "Días desde entrega", "CTL Pendientes"]],
+      head: [["Inmueble", "Oportunidad", "Chip Apartamento", "Matricula Inmobiliaria", "Dias sin CTL"]],
       body: ctlItems.map((i) => {
-        const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("pendiente"));
         const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
         const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
-        const pendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", "")).join(", ");
         return [
           i.codigo,
           i.oportunidad || "—",
-          fechaEnt || "—",
+          i.raw.chip_apartamento__c || "—",
+          i.raw.Numero_matricula_inmobiliaria__c || "—",
           dias,
-          pendientes,
         ];
       }),
       styles: { fontSize: 8, cellPadding: 3 },
