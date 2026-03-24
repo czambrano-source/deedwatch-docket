@@ -142,13 +142,13 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         descripcion: `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
       });
     }
-    // CTL Parqueadero pendiente (solo si tiene parqueadero con matrícula/chip propio)
+    // CTL Parqueadero pendiente (solo si tiene matrícula propia distinta al apto)
     if (dias > 90 && !(i as any).tiene_ctl_parqueadero) {
       const parqCount = (i as any).Parqueadero__c;
-      const matParq = ((i as any).No_Matricula_Inmo_Parqueadero__c || "").trim().toUpperCase();
-      const chipParq = ((i as any).chip_parqueadero__c || "").trim().toUpperCase();
-      const sinFolioParq = matParq === "SIN_MATRICULA" && (chipParq === "SIN_CHIP" || chipParq === "-" || !chipParq);
-      if (parqCount != null && parqCount > 0 && !sinFolioParq) {
+      const matParq = ((i as any).No_Matricula_Inmo_Parqueadero__c || "").trim();
+      const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
+      const tieneMatriculaPropia = matParq && matParq.toUpperCase() !== "SIN_MATRICULA" && matParq !== matApto;
+      if (parqCount != null && parqCount > 0 && tieneMatriculaPropia) {
         const p = ensure(i);
         p.discrepancias.push({
           tipo: "CTL",
@@ -158,14 +158,14 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         });
       }
     }
-    // CTL Bodega/Depósito pendiente (solo si tiene depósito con matrícula/chip propio)
+    // CTL Bodega/Depósito pendiente (solo si tiene matrícula propia distinta al apto)
     if (dias > 90 && !(i as any).tiene_ctl_bodega) {
       const depVal = (i as any).Deposito__c;
       const hasDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
-      const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim().toUpperCase();
-      const chipDep = ((i as any).chip_deposito__c || "").trim().toUpperCase();
-      const sinFolioDep = matDep === "SIN_MATRICULA" && (chipDep === "SIN_CHIP" || chipDep === "-" || !chipDep);
-      if (hasDep && !sinFolioDep) {
+      const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim();
+      const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
+      const tieneMatriculaPropia = matDep && matDep.toUpperCase() !== "SIN_MATRICULA" && matDep !== matApto;
+      if (hasDep && tieneMatriculaPropia) {
         const p = ensure(i);
         p.discrepancias.push({
           tipo: "CTL",
@@ -2120,11 +2120,9 @@ export default function DataPage() {
                     const ctlDiscs = i.discrepancias.filter((d) => d.tipo === "CTL");
                     const dias = ctlDiscs[0]?.descripcion?.match(/(\d+) días/)?.[1] || "—";
                     const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "—";
-                    const hasFiducia = ctlDiscs.some(d => d.campo === "CTL Fiducia pendiente");
-                    const hasParq = ctlDiscs.some(d => d.campo === "CTL Parqueadero pendiente");
-                    const hasBodega = ctlDiscs.some(d => d.campo === "CTL Bodega pendiente");
+                    const pendientes = ctlDiscs.map(d => d.campo.replace(" pendiente", "").replace("CTL ", ""));
                     return (
-                      <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-2 bg-card cursor-pointer transition-colors hover:bg-accent/50"
+                      <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-1 bg-card cursor-pointer transition-colors hover:bg-accent/50"
                         onClick={() => {
                           setShowCtlPendienteModal(false);
                           setSeveridadFilter("ctl_pendiente");
@@ -2137,29 +2135,13 @@ export default function DataPage() {
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-semibold text-foreground">{i.codigo}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Entrega: {fechaEnt}</span>
-                            <Badge variant="outline" className="text-xs">{dias} dias</Badge>
-                          </div>
+                          <Badge variant="outline" className="text-xs">{dias} días</Badge>
                         </div>
-                        <div className="flex gap-2 flex-wrap">
-                          <Badge variant={hasFiducia ? "destructive" : "secondary"} className="text-xs">
-                            Inmueble: {hasFiducia ? "Pendiente" : "OK"}
-                          </Badge>
-                          {(i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0) && (
-                            <Badge variant={hasParq ? "destructive" : "secondary"} className="text-xs">
-                              Parqueadero: {hasParq ? "Pendiente" : "OK"}
-                            </Badge>
-                          )}
-                          {(() => {
-                            const dv = i.raw.Deposito__c;
-                            const hasDep = dv != null && String(dv).toLowerCase() !== "no" && String(dv) !== "0";
-                            return hasDep ? (
-                              <Badge variant={hasBodega ? "destructive" : "secondary"} className="text-xs">
-                                Deposito: {hasBodega ? "Pendiente" : "OK"}
-                              </Badge>
-                            ) : null;
-                          })()}
+                        <p className="text-xs text-muted-foreground">Entrega: {fechaEnt}</p>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {pendientes.map(t => (
+                            <Badge key={t} variant="destructive" className="text-xs">{t}</Badge>
+                          ))}
                         </div>
                       </div>
                     );
