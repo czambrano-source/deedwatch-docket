@@ -392,17 +392,19 @@ export default function DataPage() {
 
     autoTable(doc, {
       startY: 34,
-      head: [["Inmueble", "Oportunidad", "Chip Apartamento", "Matricula Inmobiliaria", "Dias sin CTL"]],
-      body: ctlItems.map((i) => {
+      head: [["Inmueble", "Oportunidad", "Tipo CTL", "Chip", "Matricula", "Dias sin CTL"]],
+      body: ctlItems.flatMap((i) => {
+        const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("pendiente"));
         const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
         const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
-        return [
-          i.codigo,
-          i.oportunidad || "—",
-          i.raw.chip_apartamento__c || "—",
-          i.raw.Numero_matricula_inmobiliaria__c || "—",
-          dias,
-        ];
+        return ctlDiscs.map(d => {
+          const tipo = d.campo.replace(" pendiente", "").replace("CTL ", "");
+          const isParq = tipo === "Parqueadero";
+          const isBodega = tipo === "Bodega";
+          const chip = isParq ? i.raw.chip_parqueadero__c : isBodega ? i.raw.chip_deposito__c : i.raw.chip_apartamento__c;
+          const mat = isParq ? i.raw.No_Matricula_Inmo_Parqueadero__c : isBodega ? i.raw.No_Matricula_Inmo_Deposito__c : i.raw.Numero_matricula_inmobiliaria__c;
+          return [i.codigo, i.oportunidad || "—", tipo, chip || "—", mat || "—", dias];
+        });
       }),
       styles: { fontSize: 8, cellPadding: 3 },
       headStyles: { fillColor: [41, 98, 255] },
