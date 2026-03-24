@@ -355,11 +355,11 @@ export default function DataPage() {
       await supabase.from("ctl_source").upsert({
         salesforce_id: sfId,
         bloque,
-        tipo_ctl: existing?.tipo || "compra",
+        tipo_ctl: existing?.tipo || "fiducia",
         fecha_ctl: fecha || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "salesforce_id,bloque" });
-      setCtlSources(prev => ({ ...prev, [bloque]: { ...prev[bloque], tipo: existing?.tipo || "compra", fecha: fecha || null } }));
+      setCtlSources(prev => ({ ...prev, [bloque]: { ...prev[bloque], tipo: existing?.tipo || "fiducia", fecha: fecha || null } }));
       toast({ title: "Fecha CTL guardada", description: `Bloque ${bloque}: ${fecha}` });
     } catch (err: any) {
       toast({ title: "Error al guardar fecha", description: err.message, variant: "destructive" });
