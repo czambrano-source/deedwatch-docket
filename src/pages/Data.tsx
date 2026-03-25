@@ -322,10 +322,8 @@ export default function DataPage() {
       }
     } catch {}
     try {
-      const { data: notasDep } = await supabase.from("notas_predial").select("nota").eq("salesforce_id", sfId).eq("tipo_predio", "deposito").order("created_at", { ascending: false }).limit(5);
-      const depNota = notasDep?.find((n: any) => n.nota?.startsWith("Número de depósito:"));
-      if (depNota) setNumDepositoLocal(depNota.nota.replace("Número de depósito: ", ""));
-      else setNumDepositoLocal("");
+      const { data: depRow } = await (supabase as any).from("numero_deposito").select("numero").eq("salesforce_id", sfId).maybeSingle();
+      setNumDepositoLocal(depRow?.numero || "");
     } catch { setNumDepositoLocal(""); }
   };
 
@@ -958,14 +956,13 @@ export default function DataPage() {
       const valorNormalizado = normalizeFixValor(campoCorregido, fixValorNuevo);
       const valorNormalizadoTexto = String(valorNormalizado);
 
-      // numero_deposito__c doesn't exist in SF yet — save to Supabase notas_predial instead
+      // numero_deposito__c doesn't exist in SF yet — save to Supabase dedicated table
       if (campoCorregido === "numero_deposito__c") {
-        await supabase.from("notas_predial").insert({
+        await (supabase as any).from("numero_deposito").upsert({
           salesforce_id: selectedInmueble.salesforce_id,
-          nombre_inmueble: selectedInmueble.codigo,
-          tipo_predio: "deposito",
-          nota: `Número de depósito: ${valorNormalizadoTexto}`,
-        });
+          numero: valorNormalizadoTexto,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "salesforce_id" });
         setNumDepositoLocal(valorNormalizadoTexto);
       } else {
         const payload = {
