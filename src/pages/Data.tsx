@@ -390,22 +390,26 @@ export default function DataPage() {
 
   /* ─── KPIs ─── */
   const kpis = useMemo(() => {
-    let alta = 0, media = 0, baja = 0, ctlPendiente = 0, ctlProximo = 0;
+    let escritura = 0, media = 0, baja = 0, ctlPendiente = 0, ctlProximo = 0;
     inmuebles.forEach((i) =>
       i.discrepancias.forEach((d) => {
         if (d.campo.includes("pendiente")) {
           ctlPendiente++;
         } else if (d.campo.includes("próximo")) {
           ctlProximo++;
+        } else if (d.tipo === "Escritura") {
+          escritura++;
         } else {
           const s = (d.severidad || "baja").toLowerCase();
-          if (s === "alta") alta++;
-          else if (s === "media") media++;
+          if (s === "media") media++;
           else baja++;
         }
       })
     );
-    return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente, ctlProximo };
+    // CTL Faltante: inmuebles con campos CTL vacíos en SF
+    const isCtlEmpty = (v: any) => !v || String(v).trim() === "";
+    const ctlFaltante = rawInmuebles.filter(r => isCtlEmpty((r as any).nombre_ctl_inmueble__c) && isCtlEmpty((r as any).nit_ctl_inmueble__c)).length;
+    return { total: rawInmuebles.length, conProblemas: inmuebles.length, ctlFaltante, escritura, media, baja, ctlPendiente, ctlProximo };
   }, [inmuebles, rawInmuebles]);
 
   const generateCtlPendientePDF = useCallback(() => {
@@ -556,6 +560,15 @@ export default function DataPage() {
       } else if (severidadFilter === "ctl_proximo") {
         result = result.filter((i) =>
           i.discrepancias.some((d) => d.campo.includes("próximo"))
+        );
+      } else if (severidadFilter === "ctl_faltante") {
+        const empty = (v: any) => !v || String(v).trim() === "";
+        result = result.filter((i) =>
+          empty((i.raw as any).nombre_ctl_inmueble__c) && empty((i.raw as any).nit_ctl_inmueble__c)
+        );
+      } else if (severidadFilter === "escritura") {
+        result = result.filter((i) =>
+          i.discrepancias.some((d) => d.tipo === "Escritura")
         );
       } else {
         result = result.filter((i) =>
@@ -1301,24 +1314,24 @@ export default function DataPage() {
                     active={severidadFilter === "all"}
                   />
                   <KpiCard
-                    title="Con Problemas"
-                    value={kpis.conProblemas}
-                    subtitle="Datos faltantes o inconsistentes"
-                    icon={AlertTriangle}
-                    iconBg="bg-duppla-orange-light"
-                    iconColor="text-duppla-orange"
-                    onClick={() => setSeveridadFilter(severidadFilter === "con_problemas" ? "all" : "con_problemas")}
-                    active={severidadFilter === "con_problemas"}
-                  />
-                  <KpiCard
-                    title="Severidad Alta"
-                    value={kpis.alta}
-                    subtitle="CTL faltante, escritura sin fecha"
+                    title="CTL Faltante"
+                    value={kpis.ctlFaltante}
+                    subtitle="Sin datos en CTL (inm/parq/dep)"
                     icon={ShieldAlert}
                     iconBg="bg-duppla-red-light"
                     iconColor="text-destructive"
-                    onClick={() => setSeveridadFilter(severidadFilter === "alta" ? "all" : "alta")}
-                    active={severidadFilter === "alta"}
+                    onClick={() => setSeveridadFilter(severidadFilter === "ctl_faltante" ? "all" : "ctl_faltante")}
+                    active={severidadFilter === "ctl_faltante"}
+                  />
+                  <KpiCard
+                    title="Sin Escritura"
+                    value={kpis.escritura}
+                    subtitle="Sin fecha firma escritura"
+                    icon={FileText}
+                    iconBg="bg-duppla-red-light"
+                    iconColor="text-destructive"
+                    onClick={() => setSeveridadFilter(severidadFilter === "escritura" ? "all" : "escritura")}
+                    active={severidadFilter === "escritura"}
                   />
                   <KpiCard
                     title="Severidad Media"
@@ -1371,7 +1384,8 @@ export default function DataPage() {
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="con_problemas">Con problemas ({kpis.conProblemas})</SelectItem>
-                        <SelectItem value="alta">Severidad Alta ({kpis.alta})</SelectItem>
+                        <SelectItem value="ctl_faltante">CTL Faltante ({kpis.ctlFaltante})</SelectItem>
+                        <SelectItem value="escritura">Sin Escritura ({kpis.escritura})</SelectItem>
                         <SelectItem value="media">Severidad Media ({kpis.media})</SelectItem>
                         <SelectItem value="baja">Severidad Baja ({kpis.baja})</SelectItem>
                       </SelectContent>
