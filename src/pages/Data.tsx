@@ -871,13 +871,14 @@ export default function DataPage() {
 
     const normalized = normalizeFixText(disc);
 
-    // Depósito booleano (Si/No)
-    if (normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip")) {
+    // Depósito booleano (Si/No) — but not "numero deposito"
+    if (normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip") && !normalized.includes("numero")) {
       return "Deposito__c";
     }
 
     // Mapeo por palabras clave en campo + descripción
     const keywordMap: [string[], string][] = [
+      [["numero", "deposito"], "numero_deposito__c"],
       [["numero", "parqueadero"], "numero_del_parqueadero__c"],
       [["chip", "parqueadero"], "chip_parqueadero__c"],
       [["matricula", "parqueadero"], "No_Matricula_Inmo_Parqueadero__c"],
