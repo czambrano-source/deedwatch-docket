@@ -307,6 +307,7 @@ export default function DataPage() {
   const [fixNumeroParqueadero, setFixNumeroParqueadero] = useState("");
   const [fixValorSecundario, setFixValorSecundario] = useState("");
   const [fixNumeroDeposito, setFixNumeroDeposito] = useState("");
+  const [fixDepositoSiNo, setFixDepositoSiNo] = useState("");
   const [fixFechaCtl, setFixFechaCtl] = useState("");
 
   // CTL source tracking
@@ -863,6 +864,11 @@ export default function DataPage() {
     return isDepositoBooleanDiscrepancia(disc);
   };
 
+  const isNumeroDepositoField = (disc?: Discrepancia | null) => {
+    const campo = (disc?.campo || disc?.campo_sf || "").toLowerCase();
+    return campo.includes("numero") && campo.includes("deposito");
+  };
+
   const resolveCampoDiscrepancia = (disc?: Discrepancia | null) => {
     const rawCampo = (disc?.campo || "").trim();
     if (/__c$/i.test(rawCampo)) return rawCampo;
@@ -934,7 +940,8 @@ export default function DataPage() {
     setFixTipoParqueadero("");
     setFixNumeroParqueadero(isParqueaderoNumeroField(disc) ? (disc.valor_documento || "") : "");
     setFixValorSecundario((disc as any).valor_documento_secundario || "");
-    setFixNumeroDeposito("");
+    setFixNumeroDeposito(isNumeroDepositoField(disc) ? (disc.valor_documento || "") : "");
+    setFixDepositoSiNo("");
     // Convertir fecha DD-MM-YYYY a YYYY-MM-DD para input date
     const rawFecha = (disc as any).fecha_ctl || "";
     const fechaParts = rawFecha.match(/^(\d{2})-(\d{2})-(\d{4})$/);
@@ -956,14 +963,29 @@ export default function DataPage() {
       const valorNormalizado = normalizeFixValor(campoCorregido, fixValorNuevo);
       const valorNormalizadoTexto = String(valorNormalizado);
 
-      // numero_deposito__c doesn't exist in SF yet — save to Supabase dedicated table
+      // numero_deposito__c: save Si/No to SF + number to Supabase
       if (campoCorregido === "numero_deposito__c") {
-        await (supabase as any).from("numero_deposito").upsert({
-          salesforce_id: selectedInmueble.salesforce_id,
-          numero: valorNormalizadoTexto,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "salesforce_id" });
-        setNumDepositoLocal(valorNormalizadoTexto);
+        // Update Deposito__c Si/No in SF if selected
+        if (fixDepositoSiNo) {
+          await supabase.functions.invoke("fix-discrepancia-sf", {
+            body: { inmueble_id: selectedInmueble.salesforce_id, campo: "Deposito__c", valor_nuevo: fixDepositoSiNo, fuente: "Análisis IA", aprobado_por: fixAprobadorEmail }
+          });
+          await supabase.from("historial_cambios_sf").insert({
+            codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
+            campo_corregido: "Deposito__c", valor_anterior: null, valor_nuevo: fixDepositoSiNo,
+            fuente: "Análisis IA", aprobado_por: fixAprobadorEmail,
+          });
+        }
+        // Save number to Supabase dedicated table
+        const numDep = fixNumeroDeposito || valorNormalizadoTexto;
+        if (numDep) {
+          await (supabase as any).from("numero_deposito").upsert({
+            salesforce_id: selectedInmueble.salesforce_id,
+            numero: numDep,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "salesforce_id" });
+          setNumDepositoLocal(numDep);
+        }
       } else {
         const payload = {
           inmueble_id: selectedInmueble.salesforce_id,
@@ -2297,6 +2319,31 @@ export default function DataPage() {
                     placeholder="Ej: 101, B-3"
                   />
                 </div>
+              )}
+              {isNumeroDepositoField(fixDiscrepancia) && (
+                <>
+                <div>
+                  <label className="text-xs text-muted-foreground">Deposito Si/No (SF: Deposito__c)</label>
+                  <Select value={fixDepositoSiNo} onValueChange={setFixDepositoSiNo}>
+                    <SelectTrigger className="mt-1 text-sm">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Si">Si</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Numero de deposito (Supabase — campo SF pendiente)</label>
+                  <Input
+                    value={fixNumeroDeposito}
+                    onChange={(e) => setFixNumeroDeposito(e.target.value)}
+                    className="mt-1 text-sm"
+                    placeholder="Ej: 27, D-05"
+                  />
+                </div>
+                </>
               )}
               </>
               )}
