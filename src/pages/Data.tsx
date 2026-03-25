@@ -2210,8 +2210,8 @@ export default function DataPage() {
       <Dialog open={fixModalOpen} onOpenChange={setFixModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar corrección en Salesforce</DialogTitle>
-            <DialogDescription>Se actualizará el siguiente campo en Salesforce.</DialogDescription>
+            <DialogTitle>{isNumeroDepositoField(fixDiscrepancia) ? "Corregir Depósito" : "Confirmar corrección en Salesforce"}</DialogTitle>
+            <DialogDescription>{isNumeroDepositoField(fixDiscrepancia) ? "Se actualizará Deposito__c en SF y el número en Supabase." : "Se actualizará el siguiente campo en Salesforce."}</DialogDescription>
           </DialogHeader>
           {fixDiscrepancia && (
             <div className="space-y-4 py-2">
@@ -2250,12 +2250,15 @@ export default function DataPage() {
                 </>
               ) : (
               <>
+              {!isNumeroDepositoField(fixDiscrepancia) && (
               <div>
                 <label className="text-xs text-muted-foreground">Valor actual (SF)</label>
                 <p className="font-mono text-sm text-muted-foreground bg-muted px-2 py-1 rounded mt-1">
                   {fixDiscrepancia.valor_actual || "vacío"}
                 </p>
               </div>
+              )}
+              {!isNumeroDepositoField(fixDiscrepancia) && (
               <div>
                 <label className="text-xs text-muted-foreground">{isParqueaderoNumeroField(fixDiscrepancia) ? "Cant. Parqueadero (SF: Parqueadero__c)" : isDepositoBooleanDiscrepancia(fixDiscrepancia) ? "Deposito (SF: Deposito__c)" : `${resolveCampoDiscrepancia(fixDiscrepancia) || "Valor nuevo"}`}</label>
                 {isDepositoBooleanDiscrepancia(fixDiscrepancia) ? (
@@ -2283,6 +2286,7 @@ export default function DataPage() {
                   <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="mt-1 text-sm" />
                 )}
               </div>
+              )}
               {isParqueaderoNumeroField(fixDiscrepancia) && (
                 <div>
                   <label className="text-xs text-muted-foreground">Número del parqueadero (SF: numero_del_parqueadero__c)</label>
