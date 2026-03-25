@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Database, Search, Loader2, AlertTriangle, CheckCircle2, RefreshCw,
   Wrench, Eye, History, LayoutDashboard, FileText, FileX, TrendingUp,
@@ -73,7 +73,7 @@ interface HistorialCambio {
 }
 
 /* ─── Build local inconsistencies from inmuebles ─── */
-function buildProblemas(inmuebles: Inmueble[], ctlSourceMap: Record<string, Record<string, { tipo: string; fecha: string | null }>>): InmuebleProblema[] {
+function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
   const map = new Map<string, InmuebleProblema>();
 
   const ensure = (i: Inmueble): InmuebleProblema => {
@@ -134,8 +134,7 @@ function buildProblemas(inmuebles: Inmueble[], ctlSourceMap: Record<string, Reco
     const fechaEntrega = (i as any).Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
     if (!fechaEntrega) continue;
     const dias = Math.floor((hoy.getTime() - new Date(fechaEntrega).getTime()) / (1000 * 60 * 60 * 24));
-    const ctlInfo = ctlSourceMap[i.Id] || {};
-    if (dias > 90 && !(i as any).tiene_ctl_fiducia && !ctlInfo.inmueble?.fecha) {
+    if (dias > 90 && !(i as any).tiene_ctl_fiducia) {
       const p = ensure(i);
       p.discrepancias.push({
         tipo: "CTL",
@@ -145,7 +144,7 @@ function buildProblemas(inmuebles: Inmueble[], ctlSourceMap: Record<string, Reco
       });
     }
     // CTL Parqueadero pendiente (solo si tiene matrícula propia distinta al apto)
-    if (dias > 90 && !(i as any).tiene_ctl_parqueadero && !ctlInfo.parqueadero?.fecha) {
+    if (dias > 90 && !(i as any).tiene_ctl_parqueadero) {
       const parqCount = (i as any).Parqueadero__c;
       const matParq = ((i as any).No_Matricula_Inmo_Parqueadero__c || "").trim();
       const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
@@ -161,7 +160,7 @@ function buildProblemas(inmuebles: Inmueble[], ctlSourceMap: Record<string, Reco
       }
     }
     // CTL Bodega/Depósito pendiente (solo si tiene matrícula propia distinta al apto)
-    if (dias > 90 && !(i as any).tiene_ctl_bodega && !ctlInfo.bodega?.fecha) {
+    if (dias > 90 && !(i as any).tiene_ctl_bodega) {
       const depVal = (i as any).Deposito__c;
       const hasDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
       const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim();
@@ -247,25 +246,6 @@ export default function DataPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: rawInmuebles = [], isLoading, isFetching } = useInmuebles();
-
-  // CTL source data (fecha compra por bloque)
-  const { data: allCtlSources = [] } = useQuery<{ salesforce_id: string; bloque: string; tipo_ctl: string; fecha_ctl: string | null }[]>({
-    queryKey: ["ctl_source_all"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("ctl_source").select("salesforce_id,bloque,tipo_ctl,fecha_ctl");
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
-  });
-
-  const ctlSourceMap = useMemo(() => {
-    const map: Record<string, Record<string, { tipo: string; fecha: string | null }>> = {};
-    allCtlSources.forEach(r => {
-      if (!map[r.salesforce_id]) map[r.salesforce_id] = {};
-      map[r.salesforce_id][r.bloque] = { tipo: r.tipo_ctl, fecha: r.fecha_ctl };
-    });
-    return map;
-  }, [allCtlSources]);
 
   const [view, setView] = useState<"general" | "historial">("general");
 
@@ -373,7 +353,7 @@ export default function DataPage() {
   const [historialFilterUsuario, setHistorialFilterUsuario] = useState("");
 
   /* ─── Build problems from local data ─── */
-  const inmuebles = useMemo(() => buildProblemas(rawInmuebles, ctlSourceMap), [rawInmuebles, ctlSourceMap]);
+  const inmuebles = useMemo(() => buildProblemas(rawInmuebles), [rawInmuebles]);
 
   /* ─── KPIs ─── */
   const kpis = useMemo(() => {
@@ -1070,6 +1050,12 @@ export default function DataPage() {
       toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado a "${valorNormalizadoTexto}".` });
       setFixModalOpen(false);
 
+      // Dismiss the fixed discrepancia so the card closes immediately
+      if (selectedInmueble) {
+        const key = `${selectedInmueble.salesforce_id}::${campoCorregido}`;
+        setDismissedKeys(prev => { const next = new Set(prev); next.add(key); return next; });
+      }
+
       // Campos relacionados a quitar si parq=0 o dep=No
       const parqCamposRelacionados = ["numero_del_parqueadero__c", "No_Matricula_Inmo_Parqueadero__c", "chip_parqueadero__c", "nombre_ctl_parqueadero__c", "nit_ctl_parqueadero__c"];
       const depCamposRelacionados = ["No_Matricula_Inmo_Deposito__c", "chip_deposito__c", "nombre_ctl_bodega__c", "nit_ctl_bodega__c"];
@@ -1458,8 +1444,6 @@ export default function DataPage() {
                                           ) : (
                                             <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
                                           )
-                                        ) : ctlSources.inmueble?.fecha ? (
-                                          <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-400/20 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Comprado, pendiente registro</span>
                                         ) : !sel.nombre_ctl_inmueble__c && !sel.nit_ctl_inmueble__c ? (
                                           <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                         ) : null}
@@ -1511,8 +1495,6 @@ export default function DataPage() {
                                                   ) : (
                                                     <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
                                                   )
-                                                ) : ctlSources.parqueadero?.fecha ? (
-                                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-400/20 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Comprado, pendiente registro</span>
                                                 ) : !sel.nombre_ctl_parqueadero__c && !sel.nit_ctl_parqueadero__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
@@ -1567,8 +1549,6 @@ export default function DataPage() {
                                                   ) : (
                                                     <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
                                                   )
-                                                ) : ctlSources.bodega?.fecha ? (
-                                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-400/20 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Comprado, pendiente registro</span>
                                                 ) : !sel.nombre_ctl_bodega__c && !sel.nit_ctl_bodega__c ? (
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
