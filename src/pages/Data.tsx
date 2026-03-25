@@ -957,16 +957,26 @@ export default function DataPage() {
       const valorNormalizado = normalizeFixValor(campoCorregido, fixValorNuevo);
       const valorNormalizadoTexto = String(valorNormalizado);
 
-      const payload = {
-        inmueble_id: selectedInmueble.salesforce_id,
-        campo: campoCorregido,
-        valor_nuevo: valorNormalizado,
-        fuente: fixDiscrepancia.fuente || "Escritura",
-        aprobado_por: fixAprobadorEmail,
-      };
-      const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
-      if (error) throw new Error(error.message);
-      if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
+      // numero_deposito__c doesn't exist in SF yet — save to Supabase notas_predial instead
+      if (campoCorregido === "numero_deposito__c") {
+        await supabase.from("notas_predial").insert({
+          salesforce_id: selectedInmueble.salesforce_id,
+          nombre_inmueble: selectedInmueble.codigo,
+          tipo_predio: "deposito",
+          nota: `Número de depósito: ${valorNormalizadoTexto}`,
+        });
+      } else {
+        const payload = {
+          inmueble_id: selectedInmueble.salesforce_id,
+          campo: campoCorregido,
+          valor_nuevo: valorNormalizado,
+          fuente: fixDiscrepancia.fuente || "Escritura",
+          aprobado_por: fixAprobadorEmail,
+        };
+        const { data, error } = await supabase.functions.invoke("fix-discrepancia-sf", { body: payload });
+        if (error) throw new Error(error.message);
+        if ((data as any)?.ok === false) throw new Error((data as any).error ?? "Error");
+      }
 
       // Si es parqueadero: actualizar Parqueadero__c (cantidad) con el valor numerico
       if (isParqueaderoNumeroField(fixDiscrepancia)) {
