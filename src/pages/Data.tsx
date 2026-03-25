@@ -236,8 +236,13 @@ const CAMPO_TO_LABEL: Record<string, string> = {
   // Special campos
   "Fecha firma escritura": "Fecha Firma Escritura",
   "CTL Fiducia pendiente": "CTL Apto",
+  "CTL Fiducia próximo": "CTL Apto",
   "CTL Inmueble": "CTL Apto",
+  "CTL Parqueadero pendiente": "CTL Parqueadero",
+  "CTL Parqueadero próximo": "CTL Parqueadero",
   "CTL Parqueadero": "CTL Parqueadero",
+  "CTL Bodega pendiente": "CTL Bodega",
+  "CTL Bodega próximo": "CTL Bodega",
   "CTL Depósito": "CTL Bodega",
 };
 
@@ -1163,8 +1168,14 @@ export default function DataPage() {
 
       // Dismiss the fixed discrepancia so the card closes immediately
       if (selectedInmueble) {
-        const key = `${selectedInmueble.salesforce_id}::${campoCorregido}`;
-        setDismissedKeys(prev => { const next = new Set(prev); next.add(key); return next; });
+        setDismissedKeys(prev => {
+          const next = new Set(prev);
+          next.add(`${selectedInmueble.salesforce_id}::${campoCorregido}`);
+          if ((fixDiscrepancia as any).dismiss_label) {
+            next.add(`${selectedInmueble.salesforce_id}::${(fixDiscrepancia as any).dismiss_label}`);
+          }
+          return next;
+        });
       }
 
       // Campos relacionados a quitar si parq=0 o dep=No
@@ -1973,6 +1984,7 @@ export default function DataPage() {
                                                                         fecha_ctl: fecha?.valor_extraido || null,
                                                                         label_principal: 'Nombre (SF: ' + (nombre?.campo_sf || '') + ')',
                                                                         label_secundario: 'NIT (SF: ' + (nit?.campo_sf || '') + ')',
+                                                                        dismiss_label: campo.label,
                                                                       });
                                                                     }}>
                                                                       <Wrench className="w-3 h-3" /> Corregir
@@ -2527,7 +2539,7 @@ export default function DataPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setFixModalOpen(false)} disabled={fixingInProgress}>Cancelar</Button>
-            <Button onClick={handleConfirmFix} disabled={fixingInProgress || (!fixValorNuevo && !fixValorSecundario) || !fixAprobadorEmail}>
+            <Button onClick={handleConfirmFix} disabled={fixingInProgress || (!fixValorNuevo && !fixValorSecundario && !fixDepositoSiNo && !fixNumeroDeposito) || !fixAprobadorEmail}>
               {fixingInProgress && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Confirmar corrección
             </Button>
