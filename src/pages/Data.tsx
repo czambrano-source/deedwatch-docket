@@ -848,7 +848,7 @@ export default function DataPage() {
 
   const isDepositoBooleanDiscrepancia = (disc?: Discrepancia | null) => {
     const normalized = normalizeFixText(disc);
-    return normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip");
+    return normalized.includes("deposito") && !normalized.includes("matricula") && !normalized.includes("chip") && !normalized.includes("numero");
   };
 
   const isNumericFixField = (campo?: string) => {
