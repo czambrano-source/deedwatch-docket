@@ -142,14 +142,22 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         campo: "CTL Fiducia pendiente",
         descripcion: `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
       });
+    } else if (dias >= 45 && dias <= 90 && !(i as any).tiene_ctl_fiducia) {
+      const p = ensure(i);
+      p.discrepancias.push({
+        tipo: "CTL",
+        severidad: "media",
+        campo: "CTL Fiducia próximo",
+        descripcion: `${dias} días desde entrega sin CTL Fiducia en Alejandría`,
+      });
     }
     // CTL Parqueadero pendiente (solo si tiene matrícula propia distinta al apto)
+    const parqCount = (i as any).Parqueadero__c;
+    const matParq = ((i as any).No_Matricula_Inmo_Parqueadero__c || "").trim();
+    const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
+    const tieneMatriculaPropiaParq = matParq && matParq.toUpperCase() !== "SIN_MATRICULA" && matParq !== matApto;
     if (dias > 90 && !(i as any).tiene_ctl_parqueadero) {
-      const parqCount = (i as any).Parqueadero__c;
-      const matParq = ((i as any).No_Matricula_Inmo_Parqueadero__c || "").trim();
-      const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
-      const tieneMatriculaPropia = matParq && matParq.toUpperCase() !== "SIN_MATRICULA" && matParq !== matApto;
-      if (parqCount != null && parqCount > 0 && tieneMatriculaPropia) {
+      if (parqCount != null && parqCount > 0 && tieneMatriculaPropiaParq) {
         const p = ensure(i);
         p.discrepancias.push({
           tipo: "CTL",
@@ -158,20 +166,40 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
           descripcion: `${dias} días desde entrega sin CTL Parqueadero en Alejandría`,
         });
       }
+    } else if (dias >= 45 && dias <= 90 && !(i as any).tiene_ctl_parqueadero) {
+      if (parqCount != null && parqCount > 0 && tieneMatriculaPropiaParq) {
+        const p = ensure(i);
+        p.discrepancias.push({
+          tipo: "CTL",
+          severidad: "media",
+          campo: "CTL Parqueadero próximo",
+          descripcion: `${dias} días desde entrega sin CTL Parqueadero en Alejandría`,
+        });
+      }
     }
     // CTL Bodega/Depósito pendiente (solo si tiene matrícula propia distinta al apto)
+    const depVal = (i as any).Deposito__c;
+    const hasDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
+    const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim();
+    const matAptoD = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
+    const tieneMatriculaPropiaDep = matDep && matDep.toUpperCase() !== "SIN_MATRICULA" && matDep !== matAptoD;
     if (dias > 90 && !(i as any).tiene_ctl_bodega) {
-      const depVal = (i as any).Deposito__c;
-      const hasDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
-      const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim();
-      const matApto = ((i as any).Numero_matricula_inmobiliaria__c || "").trim();
-      const tieneMatriculaPropia = matDep && matDep.toUpperCase() !== "SIN_MATRICULA" && matDep !== matApto;
-      if (hasDep && tieneMatriculaPropia) {
+      if (hasDep && tieneMatriculaPropiaDep) {
         const p = ensure(i);
         p.discrepancias.push({
           tipo: "CTL",
           severidad: "alta",
           campo: "CTL Bodega pendiente",
+          descripcion: `${dias} días desde entrega sin CTL Bodega en Alejandría`,
+        });
+      }
+    } else if (dias >= 45 && dias <= 90 && !(i as any).tiene_ctl_bodega) {
+      if (hasDep && tieneMatriculaPropiaDep) {
+        const p = ensure(i);
+        p.discrepancias.push({
+          tipo: "CTL",
+          severidad: "media",
+          campo: "CTL Bodega próximo",
           descripcion: `${dias} días desde entrega sin CTL Bodega en Alejandría`,
         });
       }
@@ -260,6 +288,7 @@ export default function DataPage() {
   const [problemasInmueble, setProblemasInmueble] = useState<InmuebleProblema | null>(null);
   const [problemasSheetOpen, setProblemasSheetOpen] = useState(false);
   const [showCtlPendienteModal, setShowCtlPendienteModal] = useState(false);
+  const [showCtlProximoModal, setShowCtlProximoModal] = useState(false);
 
   // Expanded row for inmueble details
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -356,11 +385,13 @@ export default function DataPage() {
 
   /* ─── KPIs ─── */
   const kpis = useMemo(() => {
-    let alta = 0, media = 0, baja = 0, ctlPendiente = 0;
+    let alta = 0, media = 0, baja = 0, ctlPendiente = 0, ctlProximo = 0;
     inmuebles.forEach((i) =>
       i.discrepancias.forEach((d) => {
         if (d.campo.includes("pendiente")) {
           ctlPendiente++;
+        } else if (d.campo.includes("próximo")) {
+          ctlProximo++;
         } else {
           const s = (d.severidad || "baja").toLowerCase();
           if (s === "alta") alta++;
@@ -369,7 +400,7 @@ export default function DataPage() {
         }
       })
     );
-    return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente };
+    return { total: rawInmuebles.length, conProblemas: inmuebles.length, alta, media, baja, ctlPendiente, ctlProximo };
   }, [inmuebles, rawInmuebles]);
 
   const generateCtlPendientePDF = useCallback(() => {
@@ -415,6 +446,51 @@ export default function DataPage() {
     });
 
     doc.save(`ctl_pendiente_${new Date().toISOString().slice(0, 10)}.pdf`);
+  }, [inmuebles]);
+
+  const generateCtlProximoPDF = useCallback(() => {
+    const ctlItems = inmuebles
+      .filter((i) => i.discrepancias.some((d) => d.campo.includes("próximo")))
+      .sort((a, b) => {
+        const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+        const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+        return fa.localeCompare(fb);
+      });
+    if (ctlItems.length === 0) return;
+
+    const doc = new jsPDF({ orientation: "landscape" });
+    const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+    const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.campo.includes("próximo")).length, 0);
+
+    doc.setFontSize(16);
+    doc.text("Reporte CTL Próximos (45–90 días)", 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generado: ${now} — ${ctlItems.length} inmuebles, ${totalCtl} CTL próximos a vencer`, 14, 28);
+    doc.setTextColor(0);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [["Inmueble", "Oportunidad", "Tipo CTL", "Chip", "Matricula", "Dias sin CTL"]],
+      body: ctlItems.flatMap((i) => {
+        const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("próximo"));
+        const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+        const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
+        return ctlDiscs.map(d => {
+          const tipo = d.campo.replace(" próximo", "").replace("CTL ", "");
+          const isParq = tipo === "Parqueadero";
+          const isBodega = tipo === "Bodega";
+          const chip = isParq ? i.raw.chip_parqueadero__c : isBodega ? i.raw.chip_deposito__c : i.raw.chip_apartamento__c;
+          const mat = isParq ? i.raw.No_Matricula_Inmo_Parqueadero__c : isBodega ? i.raw.No_Matricula_Inmo_Deposito__c : i.raw.Numero_matricula_inmobiliaria__c;
+          return [i.codigo, i.oportunidad || "—", tipo, chip || "—", mat || "—", dias];
+        });
+      }),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [202, 138, 4] },
+      alternateRowStyles: { fillColor: [254, 252, 232] },
+    });
+
+    doc.save(`ctl_proximo_${new Date().toISOString().slice(0, 10)}.pdf`);
   }, [inmuebles]);
 
   /* ─── Filters ─── */
@@ -471,6 +547,10 @@ export default function DataPage() {
       } else if (severidadFilter === "ctl_pendiente") {
         result = result.filter((i) =>
           i.discrepancias.some((d) => d.campo.includes("pendiente"))
+        );
+      } else if (severidadFilter === "ctl_proximo") {
+        result = result.filter((i) =>
+          i.discrepancias.some((d) => d.campo.includes("próximo"))
         );
       } else {
         result = result.filter((i) =>
@@ -1198,7 +1278,7 @@ export default function DataPage() {
             {view === "general" && (
               <div className="space-y-6">
                 {/* KPI Cards — clickeables para filtrar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                   <KpiCard
                     title="Total Inmuebles"
                     value={kpis.total}
@@ -1248,6 +1328,16 @@ export default function DataPage() {
                     iconColor="text-destructive"
                     onClick={() => kpis.ctlPendiente > 0 ? setShowCtlPendienteModal(true) : setSeveridadFilter(severidadFilter === "ctl_pendiente" ? "all" : "ctl_pendiente")}
                     active={severidadFilter === "ctl_pendiente"}
+                  />
+                  <KpiCard
+                    title="CTL Próximo"
+                    value={kpis.ctlProximo}
+                    subtitle="45–90 días sin CTL compra"
+                    icon={Clock}
+                    iconBg="bg-yellow-100"
+                    iconColor="text-yellow-600"
+                    onClick={() => kpis.ctlProximo > 0 ? setShowCtlProximoModal(true) : setSeveridadFilter(severidadFilter === "ctl_proximo" ? "all" : "ctl_proximo")}
+                    active={severidadFilter === "ctl_proximo"}
                   />
                 </div>
 
@@ -2194,6 +2284,78 @@ export default function DataPage() {
                           {ctlDiscs.map(d => {
                             const t = d.campo.replace(" pendiente", "").replace("CTL ", "");
                             return <Badge key={t} variant="destructive" className="text-xs">{t}</Badge>;
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── CTL Próximo Modal ─── */}
+      <Dialog open={showCtlProximoModal} onOpenChange={(v) => !v && setShowCtlProximoModal(false)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <Clock className="w-5 h-5 text-yellow-600" />
+                CTL Próximos (45–90 días)
+              </DialogTitle>
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={generateCtlProximoPDF}>
+                <Download className="w-3.5 h-3.5" /> Generar Reporte PDF
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+            {(() => {
+              const ctlItems = inmuebles
+                .filter((i) => i.discrepancias.some((d) => d.campo.includes("próximo")))
+                .sort((a, b) => {
+                  const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+                  const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+                  return fa.localeCompare(fb);
+                });
+              if (ctlItems.length === 0) return (
+                <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                  <CheckCircle2 className="w-10 h-10 text-duppla-green" />
+                  <p className="text-sm text-muted-foreground font-medium">No hay inmuebles con CTL próximo a vencer.</p>
+                </div>
+              );
+              const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.campo.includes("próximo")).length, 0);
+              return (
+                <>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s), <span className="font-semibold text-foreground">{totalCtl}</span> CTL entre 45 y 90 días sin subir a Alejandría.
+                  </p>
+                  {ctlItems.map((i) => {
+                    const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("próximo"));
+                    const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+                    const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
+                    return (
+                      <div key={i.salesforce_id} className="border rounded-lg p-4 space-y-1 bg-card cursor-pointer transition-colors hover:bg-accent/50"
+                        onClick={() => {
+                          setShowCtlProximoModal(false);
+                          setSeveridadFilter("ctl_proximo");
+                          setExpandedId(i.salesforce_id);
+                          fetchCtlSources(i.salesforce_id);
+                          setTimeout(() => {
+                            document.getElementById(`inm-${i.salesforce_id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }, 100);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-foreground">{i.codigo}</p>
+                          <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-700">{dias} días</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Entrega: {fechaEnt || "—"}</p>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {ctlDiscs.map(d => {
+                            const t = d.campo.replace(" próximo", "").replace("CTL ", "");
+                            return <Badge key={t} className="text-xs bg-yellow-100 text-yellow-800 hover:bg-yellow-200">{t}</Badge>;
                           })}
                         </div>
                       </div>
