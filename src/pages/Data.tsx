@@ -965,6 +965,7 @@ export default function DataPage() {
           tipo_predio: "deposito",
           nota: `Número de depósito: ${valorNormalizadoTexto}`,
         });
+        setNumDepositoLocal(valorNormalizadoTexto);
       } else {
         const payload = {
           inmueble_id: selectedInmueble.salesforce_id,
