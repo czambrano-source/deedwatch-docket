@@ -567,15 +567,6 @@ const Index = () => {
                             {needsSeparatePaymentParq(selected) ? (
                             <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
                               <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                              {!hasPago(selected.Id, "parqueadero") && (
-                                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                                  <Checkbox
-                                    checked={!!pagoIncluidoParq[selected.Id]}
-                                    onCheckedChange={(v) => setPagoIncluidoParq((prev) => ({ ...prev, [selected.Id]: !!v }))}
-                                  />
-                                  Pago incluido en inmueble
-                                </label>
-                              )}
                               <Button size="sm" onClick={() => openModal("pago", "parqueadero")} className="w-full bg-primary hover:bg-primary/90 text-xs">
                                 <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
                               </Button>
@@ -645,15 +636,6 @@ const Index = () => {
                             {needsSeparatePaymentDep(selected) ? (
                             <div className="w-[180px] flex-shrink-0 border-l pl-5 flex flex-col gap-2 justify-center">
                               <p className="text-xs text-muted-foreground font-medium mb-1">Gestión Predial</p>
-                              {!hasPago(selected.Id, "deposito") && (
-                                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                                  <Checkbox
-                                    checked={!!pagoIncluidoDep[selected.Id]}
-                                    onCheckedChange={(v) => setPagoIncluidoDep((prev) => ({ ...prev, [selected.Id]: !!v }))}
-                                  />
-                                  Pago incluido en inmueble
-                                </label>
-                              )}
                               <Button size="sm" onClick={() => openModal("pago", "deposito")} className="w-full bg-primary hover:bg-primary/90 text-xs">
                                 <DollarSign className="w-3 h-3 mr-1" /> Registrar Pago
                               </Button>
