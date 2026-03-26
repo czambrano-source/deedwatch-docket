@@ -304,7 +304,9 @@ export default function DataPage() {
   const [analyzingIA, setAnalyzingIA] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const cancelAnalysisRef = useRef(false);
+  const pendingRefreshRef = useRef(false);
   const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(new Set());
+  const [localFixes, setLocalFixes] = useState<Record<string, Record<string, string>>>({});
 
   const getDiscKey = (d: Discrepancia, idx?: number) => d.campo || d.campo_sf || d.descripcion || `disc-${idx ?? 0}`;
 
@@ -575,6 +577,18 @@ export default function DataPage() {
           i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
         );
       }
+      // Filter discrepancias within each inmueble to only show relevant alerts
+      result = result.map(i => ({
+        ...i,
+        discrepancias: i.discrepancias.filter(d => {
+          if (severidadFilter === "con_problemas") return true;
+          if (severidadFilter === "ctl_pendiente") return d.campo.includes("pendiente");
+          if (severidadFilter === "ctl_proximo") return d.campo.includes("próximo");
+          if (severidadFilter === "ctl_faltante") return d.tipo === "CTL";
+          if (severidadFilter === "escritura") return d.tipo === "Escritura";
+          return (d.severidad || "baja").toLowerCase() === severidadFilter;
+        }),
+      }));
     }
     if (parqueaderoFilter !== "all") {
       result = result.filter((i) => {
@@ -616,6 +630,14 @@ export default function DataPage() {
   useEffect(() => {
     if (view === "historial") fetchHistorial();
   }, [view]);
+
+  // Refrescar datos de SF cuando cambia el filtro y hay correcciones pendientes
+  useEffect(() => {
+    if (pendingRefreshRef.current) {
+      pendingRefreshRef.current = false;
+      queryClient.invalidateQueries({ queryKey: ["inmuebles"], refetchType: "all" });
+    }
+  }, [severidadFilter]);
 
   /* ─── Filter AI discrepancias: disabled — always show all, even if SF says no parking/deposit ─── */
 
@@ -1179,7 +1201,7 @@ export default function DataPage() {
       toast({ title: "Corregido", description: `Campo "${campoCorregido}" actualizado a "${valorNormalizadoTexto}".` });
       setFixModalOpen(false);
 
-      // Dismiss the fixed discrepancia so the card closes immediately
+      // Dismiss solo la card individual corregida (el panel del inmueble queda abierto)
       if (selectedInmueble) {
         setDismissedKeys(prev => {
           const next = new Set(prev);
@@ -1189,6 +1211,32 @@ export default function DataPage() {
           }
           return next;
         });
+      }
+
+      // Guardar correcciones locales para mostrar en el panel sin afectar el filtro
+      if (selectedInmueble) {
+        const updatedFields: Record<string, string> = { [campoCorregido]: valorNormalizadoTexto };
+        // Campo secundario (ej: NIT en CTL doble)
+        if ((fixDiscrepancia as any).es_ctl_doble && (fixDiscrepancia as any).campo_sf_secundario && fixValorSecundario) {
+          updatedFields[(fixDiscrepancia as any).campo_sf_secundario] = fixValorSecundario;
+        }
+        // Deposito Si/No
+        if (campoCorregido === "numero_deposito__c" && fixDepositoSiNo) {
+          updatedFields["Deposito__c"] = fixDepositoSiNo;
+        }
+        // Parqueadero numero + tipo
+        if (isParqueaderoNumeroField(fixDiscrepancia)) {
+          updatedFields["Parqueadero__c"] = valorNormalizadoTexto;
+          if (fixNumeroParqueadero) updatedFields["numero_del_parqueadero__c"] = fixNumeroParqueadero;
+          if (fixTipoParqueadero) updatedFields["Tipo_de_parqueadero__c"] = fixTipoParqueadero;
+        }
+        setLocalFixes(prev => ({
+          ...prev,
+          [selectedInmueble.salesforce_id]: {
+            ...(prev[selectedInmueble.salesforce_id] || {}),
+            ...updatedFields,
+          },
+        }));
       }
 
       // Campos relacionados a quitar si parq=0 o dep=No
@@ -1220,10 +1268,8 @@ export default function DataPage() {
       });
       fetchHistorial();
       if (selectedInmueble) fetchCtlSources(selectedInmueble.salesforce_id);
-      // Esperar 3s para que SF propague el cambio, luego refrescar
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["inmuebles"], refetchType: "all" });
-      }, 3000);
+      // Marcar que hay cambios pendientes — se refresca al colapsar el inmueble o cambiar filtro
+      pendingRefreshRef.current = true;
     } catch (err: any) {
       toast({ title: "Error al corregir", description: err.message, variant: "destructive" });
     } finally {
@@ -1249,15 +1295,19 @@ export default function DataPage() {
     return result;
   }, [historial, historialFilterInmueble, historialFilterUsuario]);
 
-  const severityCounts = (discs: Discrepancia[]) => {
-    let alta = 0, media = 0, baja = 0;
+  const categoryCounts = (discs: Discrepancia[]) => {
+    let escritura = 0, ctlFaltante = 0, ctlPendiente = 0, ctlProximo = 0, media = 0;
     discs.forEach((d) => {
-      const s = (d.severidad || "baja").toLowerCase();
-      if (s === "alta") alta++;
-      else if (s === "media") media++;
-      else baja++;
+      if (d.tipo === "Escritura") { escritura++; return; }
+      if (d.campo?.includes("pendiente")) { ctlPendiente++; return; }
+      if (d.campo?.includes("próximo")) { ctlProximo++; return; }
+      if (d.tipo === "CTL") { ctlFaltante++; return; }
+      if ((d.severidad || "baja").toLowerCase() === "media") { media++; return; }
+      // fallback: treat as ctlFaltante if alta, media otherwise
+      if ((d.severidad || "baja").toLowerCase() === "alta") ctlFaltante++;
+      else media++;
     });
-    return { alta, media, baja };
+    return { escritura, ctlFaltante, ctlPendiente, ctlProximo, media };
   };
 
   return (
@@ -1432,7 +1482,7 @@ export default function DataPage() {
                 ) : (
                   <div className="bg-card rounded-xl border overflow-hidden divide-y">
                     {filteredInmuebles.map((inm) => {
-                      const counts = severityCounts(inm.discrepancias);
+                      const counts = categoryCounts(inm.discrepancias);
                       const totalProblems = inm.discrepancias.length;
                       const isExpanded = expandedId === inm.salesforce_id;
                       return (
@@ -1445,16 +1495,31 @@ export default function DataPage() {
                               <p className="font-semibold text-sm text-foreground truncate">{inm.codigo}</p>
                               <p className="text-xs text-muted-foreground truncate">{inm.oportunidad || "—"}</p>
                             </div>
-                            {/* Badges por severidad con tooltip */}
+                            {/* Badges por categoría con tooltip — mismos iconos que los KPI */}
                             <div className="inline-flex items-center gap-1.5 flex-shrink-0">
                               {totalProblems > 0 ? (
                                 <TooltipProvider delayDuration={200}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <button onClick={() => { setProblemasInmueble(inm); setProblemasSheetOpen(true); }} className="inline-flex items-center gap-1.5 cursor-pointer">
-                                        {counts.alta > 0 && (
+                                        {counts.ctlFaltante > 0 && (
                                           <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-destructive bg-destructive/10">
-                                            <ShieldAlert className="w-3 h-3" /> {counts.alta}
+                                            <ShieldAlert className="w-3 h-3" /> {counts.ctlFaltante}
+                                          </span>
+                                        )}
+                                        {counts.escritura > 0 && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-destructive bg-destructive/10">
+                                            <FileText className="w-3 h-3" /> {counts.escritura}
+                                          </span>
+                                        )}
+                                        {counts.ctlPendiente > 0 && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-destructive bg-destructive/10">
+                                            <Clock className="w-3 h-3" /> {counts.ctlPendiente}
+                                          </span>
+                                        )}
+                                        {counts.ctlProximo > 0 && (
+                                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-yellow-600 bg-yellow-100">
+                                            <Clock className="w-3 h-3" /> {counts.ctlProximo}
                                           </span>
                                         )}
                                         {counts.media > 0 && (
@@ -1462,21 +1527,24 @@ export default function DataPage() {
                                             <Shield className="w-3 h-3" /> {counts.media}
                                           </span>
                                         )}
-                                        {counts.baja > 0 && (
-                                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md text-muted-foreground bg-muted">
-                                            {counts.baja}
-                                          </span>
-                                        )}
                                       </button>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-xs">
                                       <div className="space-y-1 text-xs">
-                                        {inm.discrepancias.map((d, idx) => (
-                                          <div key={idx} className="flex items-start gap-1.5">
-                                            <span className={cn("mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0", (d.severidad || "").toLowerCase() === "alta" ? "bg-destructive" : (d.severidad || "").toLowerCase() === "media" ? "bg-duppla-orange" : "bg-muted-foreground")} />
-                                            <span><strong>{d.campo}</strong>{d.descripcion ? `: ${d.descripcion}` : ""}</span>
-                                          </div>
-                                        ))}
+                                        {inm.discrepancias.map((d, idx) => {
+                                          const dotColor = d.tipo === "Escritura" ? "bg-destructive"
+                                            : d.campo?.includes("pendiente") ? "bg-destructive"
+                                            : d.campo?.includes("próximo") ? "bg-yellow-500"
+                                            : d.tipo === "CTL" ? "bg-destructive"
+                                            : (d.severidad || "").toLowerCase() === "media" ? "bg-duppla-orange"
+                                            : "bg-muted-foreground";
+                                          return (
+                                            <div key={idx} className="flex items-start gap-1.5">
+                                              <span className={cn("mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0", dotColor)} />
+                                              <span><strong>{d.campo}</strong>{d.descripcion ? `: ${d.descripcion}` : ""}</span>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </TooltipContent>
                                   </Tooltip>
@@ -1501,7 +1569,20 @@ export default function DataPage() {
                             })()}
                             {/* Chevron to expand inmueble details */}
                             <button
-                              onClick={() => { setExpandedId(isExpanded ? null : inm.salesforce_id); if (!isExpanded) fetchCtlSources(inm.salesforce_id); }}
+                              onClick={() => {
+                                if (isExpanded && pendingRefreshRef.current) {
+                                  pendingRefreshRef.current = false;
+                                  setTimeout(() => queryClient.invalidateQueries({ queryKey: ["inmuebles"], refetchType: "all" }), 500);
+                                }
+                                setExpandedId(isExpanded ? null : inm.salesforce_id);
+                                // Cerrar panel de análisis IA y limpiar correcciones locales al cambiar de inmueble
+                                setSheetOpen(false);
+                                setAnalisisIA(null);
+                                setAnalyzingIA(false);
+                                cancelAnalysisRef.current = true;
+                                setLocalFixes(prev => { const next = { ...prev }; delete next[inm.salesforce_id]; return next; });
+                                if (!isExpanded) fetchCtlSources(inm.salesforce_id);
+                              }}
                               className="flex-shrink-0 text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
                             >
                               {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -1510,7 +1591,8 @@ export default function DataPage() {
 
                           {/* Expanded: inmueble details */}
                           {isExpanded && (() => {
-                            const sel = inm.raw;
+                            const fixes = localFixes[inm.salesforce_id] || {};
+                            const sel = Object.keys(fixes).length > 0 ? { ...inm.raw, ...fixes } as typeof inm.raw : inm.raw;
                             const alertMap = buildAlertMap(inm.discrepancias);
                             const getAlert = (label: string) => alertMap.get(label) || null;
                             const isValidField = (val?: string | number | null) => {
