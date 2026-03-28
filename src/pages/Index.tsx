@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, X, Upload, Receipt, Eye, MessageSquare, ChevronDown } from "lucide-react";
 import { useInmuebles, usePagos, useRecibos, useNotas } from "@/hooks/useInmuebles";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,25 @@ const Index = () => {
   // Pago incluido state (local toggle per session, in real app could be persisted)
   const [pagoIncluidoParq, setPagoIncluidoParq] = useState<Record<string, boolean>>({});
   const [pagoIncluidoDep, setPagoIncluidoDep] = useState<Record<string, boolean>>({});
+
+  // CTL source (compra vs fiducia) from Supabase
+  const [ctlSources, setCtlSources] = useState<Record<string, any>>({});
+  useEffect(() => {
+    if (!selectedId) { setCtlSources({}); return; }
+    (async () => {
+      try {
+        const { data } = await supabase.from("ctl_source").select("bloque,tipo_ctl,fecha_ctl").eq("salesforce_id", selectedId);
+        if (data) {
+          const map: Record<string, any> = {};
+          data.forEach((r: any) => { map[r.bloque] = { tipo: r.tipo_ctl, fecha: r.fecha_ctl }; });
+          setCtlSources(map);
+        }
+      } catch {}
+    })();
+  }, [selectedId]);
+  const esCtlR2O = (bloque: string) => ctlSources[bloque]?.tipo === 'fiducia';
+  const ctlLabel = (bloque: string) => esCtlR2O(bloque) ? 'CTL actualizado R2O' : 'Información CTL de compra, no registra CTL actualizado R2O';
+  const tieneCtlSource = (bloque: string) => !!ctlSources[bloque];
 
   const isLoading = loadingInmuebles || loadingPagos;
   const total = inmuebles.length;
@@ -534,10 +553,16 @@ const Index = () => {
                       {showCtlInmueble(selected) && (
                         <div className="border-t border-border/40 pt-3 mt-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl apto r2o</h3>
-                            {!selected.nombre_ctl_inmueble__c && !selected.nit_ctl_inmueble__c && (
+                            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
+                            {((selected as any).tiene_ctl_fiducia || tieneCtlSource('inmueble')) ? (
+                              tieneCtlSource('inmueble') ? (
+                                <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('inmueble') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('inmueble') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('inmueble')}</span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
+                              )
+                            ) : !selected.nombre_ctl_inmueble__c && !selected.nit_ctl_inmueble__c ? (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                            )}
+                            ) : null}
                           </div>
                           <div className="space-y-1">
                             <DItem label="Nombre" value={selected.nombre_ctl_inmueble__c} icon={FileText} />
@@ -602,10 +627,16 @@ const Index = () => {
                           {showCtlParqueadero(selected) && (
                             <div className="border-t border-border/40 pt-3 mt-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Parqueadero</h3>
-                                {!selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c && (
+                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
+                                {((selected as any).tiene_ctl_parqueadero || tieneCtlSource('parqueadero')) ? (
+                                  tieneCtlSource('parqueadero') ? (
+                                    <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('parqueadero') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('parqueadero') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('parqueadero')}</span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
+                                  )
+                                ) : !selected.nombre_ctl_parqueadero__c && !selected.nit_ctl_parqueadero__c ? (
                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                                )}
+                                ) : null}
                               </div>
                               <div className="space-y-1">
                                 <DItem label="Nombre" value={selected.nombre_ctl_parqueadero__c} icon={FileText} />
@@ -671,10 +702,16 @@ const Index = () => {
                           {showCtlDeposito(selected) && (
                             <div className="border-t border-border/40 pt-3 mt-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> Ctl Bodega</h3>
-                                {!selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c && (
+                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
+                                {((selected as any).tiene_ctl_bodega || tieneCtlSource('bodega')) ? (
+                                  tieneCtlSource('bodega') ? (
+                                    <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full text-primary bg-duppla-green-light"><CheckCircle2 className="w-3 h-3" /> En Alejandría</span>
+                                  )
+                                ) : !selected.nombre_ctl_bodega__c && !selected.nit_ctl_bodega__c ? (
                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
-                                )}
+                                ) : null}
                               </div>
                               <div className="space-y-1">
                                 <DItem label="Nombre" value={selected.nombre_ctl_bodega__c} icon={FileText} />

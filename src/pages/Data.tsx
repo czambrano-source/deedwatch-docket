@@ -393,21 +393,23 @@ export default function DataPage() {
   /* ─── KPIs ─── */
   const kpis = useMemo(() => {
     let escritura = 0, media = 0, baja = 0, ctlPendiente = 0, ctlProximo = 0;
-    inmuebles.forEach((i) =>
+    inmuebles.forEach((i) => {
+      // Count inmuebles (not individual discrepancias) for CTL pendiente/próximo
+      const hasPendiente = i.discrepancias.some((d) => d.campo.includes("pendiente"));
+      const hasProximo = i.discrepancias.some((d) => d.campo.includes("próximo"));
+      if (hasPendiente) ctlPendiente++;
+      if (hasProximo) ctlProximo++;
       i.discrepancias.forEach((d) => {
-        if (d.campo.includes("pendiente")) {
-          ctlPendiente++;
-        } else if (d.campo.includes("próximo")) {
-          ctlProximo++;
-        } else if (d.tipo === "Escritura") {
+        if (d.campo.includes("pendiente") || d.campo.includes("próximo")) return;
+        if (d.tipo === "Escritura") {
           escritura++;
         } else {
           const s = (d.severidad || "baja").toLowerCase();
           if (s === "media") media++;
           else baja++;
         }
-      })
-    );
+      });
+    });
     // CTL Faltante: inmuebles con campos CTL vacíos en SF
     const isCtlEmpty = (v: any) => !v || String(v).trim() === "";
     const ctlFaltante = rawInmuebles.filter(r => isCtlEmpty((r as any).nombre_ctl_inmueble__c) && isCtlEmpty((r as any).nit_ctl_inmueble__c)).length;
@@ -573,8 +575,12 @@ export default function DataPage() {
           i.discrepancias.some((d) => d.tipo === "Escritura")
         );
       } else {
+        // "media" filter: exclude CTL pendiente/próximo (they have their own KPIs)
+        const isMediaOnly = (d: Discrepancia) =>
+          (d.severidad || "baja").toLowerCase() === severidadFilter &&
+          !d.campo?.includes("pendiente") && !d.campo?.includes("próximo");
         result = result.filter((i) =>
-          i.discrepancias.some((d) => (d.severidad || "baja").toLowerCase() === severidadFilter)
+          i.discrepancias.some(isMediaOnly)
         );
       }
       // Filter discrepancias within each inmueble to only show relevant alerts
@@ -586,7 +592,9 @@ export default function DataPage() {
           if (severidadFilter === "ctl_proximo") return d.campo.includes("próximo");
           if (severidadFilter === "ctl_faltante") return d.tipo === "CTL";
           if (severidadFilter === "escritura") return d.tipo === "Escritura";
-          return (d.severidad || "baja").toLowerCase() === severidadFilter;
+          // "media" filter: exclude CTL pendiente/próximo
+          return (d.severidad || "baja").toLowerCase() === severidadFilter &&
+            !d.campo?.includes("pendiente") && !d.campo?.includes("próximo");
         }),
       }));
     }
@@ -1666,7 +1674,7 @@ export default function DataPage() {
                                   <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Apto") && "")}>
                                       <div className="flex items-center gap-2 mb-1">
                                         <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Apto</h3>
-                                        {(sel as any).tiene_ctl_fiducia ? (
+                                        {((sel as any).tiene_ctl_fiducia || tieneCtlSource('inmueble')) ? (
                                           tieneCtlSource('inmueble') ? (
                                             <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('inmueble') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('inmueble') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('inmueble')}</span>
                                           ) : (
@@ -1717,7 +1725,7 @@ export default function DataPage() {
                                           <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Parqueadero") && "")}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Parqueadero</h3>
-                                                {(sel as any).tiene_ctl_parqueadero ? (
+                                                {((sel as any).tiene_ctl_parqueadero || tieneCtlSource('parqueadero')) ? (
                                                   tieneCtlSource('parqueadero') ? (
                                                     <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('parqueadero') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('parqueadero') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('parqueadero')}</span>
                                                   ) : (
@@ -1771,7 +1779,7 @@ export default function DataPage() {
                                           <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Bodega") && "")}>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
-                                                {(sel as any).tiene_ctl_bodega ? (
+                                                {((sel as any).tiene_ctl_bodega || tieneCtlSource('bodega')) ? (
                                                   tieneCtlSource('bodega') ? (
                                                     <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
                                                   ) : (
@@ -1949,10 +1957,16 @@ export default function DataPage() {
                                             // OLD format: campos with sf, escritura, ctl_compra, ctl_fiducia
                                             const sections = [...new Set(rawItems.map((c: any) => c.seccion || 'General'))];
 
+                                            // Normalize values for comparison:
+                                            // - Strip SF prefixes: CS (casa), AP (apto), LT (lote), LC (local), BG (bodega), DP (deposito), etc.
+                                            // - Strip CHIP suffixes: COD (codigo catastral suffix in CTLs)
+                                            const normalizeCompare = (val: string) => val.replace(/^(CS|AP|LT|LC|BG|DP|IN|ED)\s+/i, '').replace(/\s*COD\s*$/i, '').trim();
+                                            const valuesMatch = (a: string, b: string) => normalizeCompare(a.toLowerCase()) === normalizeCompare(b.toLowerCase());
+
                                             const renderSource = (src: any, sfVal?: string) => {
                                               if (!src) return <span className="text-muted-foreground">—</span>;
                                               if (src.status === 'ok' && src.value) {
-                                                const matches = sfVal && src.value.toLowerCase() === String(sfVal).toLowerCase();
+                                                const matches = sfVal && valuesMatch(src.value, String(sfVal));
                                                 return <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", matches ? "bg-duppla-green/20" : sfVal ? "bg-destructive/10" : "bg-muted")}>{src.value}</span>;
                                               }
                                               if (src.status === 'vacio') return <span className="font-medium text-foreground bg-duppla-orange/15 px-2 py-0.5 rounded">No encontrado</span>;
@@ -1986,8 +2000,8 @@ export default function DataPage() {
                                                 .map((s: any) => s.value.toLowerCase());
                                               if (docValues.length === 0) return 'sin_datos';
                                               if (!campo.sf && campo.sf !== 0) return 'falta_sf';
-                                              const sfLower = String(campo.sf).toLowerCase();
-                                              const allMatch = docValues.every((v: string) => v === sfLower);
+                                              const sfStr = String(campo.sf);
+                                              const allMatch = docValues.every((v: string) => valuesMatch(v, sfStr));
                                               if (allMatch) return 'coincide';
                                               return 'diferencia';
                                             };
@@ -2111,7 +2125,7 @@ export default function DataPage() {
                                                               <div className="space-y-1.5 text-xs">
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">SF:</span>
-                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, (campo as any).escritura_parq, (campo as any).escritura_bodega, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && s.value.toLowerCase() === String(campo.sf).toLowerCase()) ? "bg-duppla-green/20" : "bg-muted")}>{campo.sf || 'vacío'}</span>
+                                                                  <span className={cn("font-medium text-foreground px-2 py-0.5 rounded", !campo.sf ? "bg-duppla-orange/15" : [campo.escritura, (campo as any).escritura_parq, (campo as any).escritura_bodega, campo.ctl_compra, campo.ctl_fiducia].some((s: any) => s?.status === 'ok' && s.value && valuesMatch(s.value, String(campo.sf))) ? "bg-duppla-green/20" : "bg-muted")}>{campo.sf || 'vacío'}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                   <span className="text-foreground w-[80px] flex-shrink-0 text-right font-medium">{((campo as any).escritura_parq || (campo as any).escritura_bodega) ? 'Est. Títulos Apto' : 'Est. Títulos'}:</span>
