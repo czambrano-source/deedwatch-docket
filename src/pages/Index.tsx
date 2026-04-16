@@ -228,21 +228,33 @@ const Index = () => {
     deposito: "recibo_pago_predial_deposito_r2o",
   };
 
-  // Preview doc button - calls Alejandría to open the document for the selected vigencia
+  // Preview doc button - fetches the document binary from Alejandría and opens it in a new tab
   const PreviewDocButton = ({ salesforceId, tipoDoc, label }: { salesforceId: string; tipoDoc: string; label: string }) => {
     const [loading, setLoading] = useState(false);
     const handleClick = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke("preview-predial-alejandria", {
-          body: { id_inmueble: salesforceId, tipo_doc: tipoDoc, vigencia: String(vigencia) },
+        const SUPABASE_URL = "https://nekswrhqiqzsqlwbsups.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5la3N3cmhxaXF6c3Fsd2JzdXBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4MDA1ODMsImV4cCI6MjA1NzM3NjU4M30.1L7hhpE_VHLO4dkyoLaza7JOiMpMsqZYIeGMLqCCIps";
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/preview-predial-alejandria`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ id_inmueble: salesforceId, tipo_doc: tipoDoc, vigencia: String(vigencia) }),
         });
-        if (error || !data?.found) {
+        const contentType = resp.headers.get("Content-Type") || "";
+        if (!resp.ok || contentType.includes("application/json")) {
           toast.error("Documento no encontrado en Alejandría");
           return;
         }
-        // TODO: Reemplazar URL cuando ing. de sistemas provea endpoint de signed URL
-        window.open(`https://back.duppla.co/app-administraciones/documento/${data.documento_id}/url`, "_blank");
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        // Release memory after a short delay to let the browser open the tab
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
       } catch {
         toast.error("Error al buscar documento");
       } finally {
