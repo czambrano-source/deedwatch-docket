@@ -17,6 +17,7 @@ import { VerReciboModal } from "@/components/predial/VerReciboModal";
 import { NotasModal } from "@/components/predial/NotasModal";
 import { VerPagoModal } from "@/components/predial/VerPagoModal";
 import { InconsistenciasModal, getInconsistencias } from "@/components/predial/InconsistenciasModal";
+import { PreviewDocModal } from "@/components/predial/PreviewDocModal";
 import { SinFechaEscrituraModal, getSinFechaEscritura } from "@/components/predial/SinFechaEscrituraModal";
 import { CtlInconsistenciasModal, getCtlInconsistencias } from "@/components/predial/CtlInconsistenciasModal";
 import type { Inmueble } from "@/types/inmueble";
@@ -228,7 +229,10 @@ const Index = () => {
     deposito: "recibo_pago_predial_deposito_r2o",
   };
 
-  // Preview doc button - fetches the document binary from Alejandría and opens it in a new tab
+  // Preview state shared across buttons
+  const [previewState, setPreviewState] = useState<{ url: string; title: string; mimeType: string } | null>(null);
+
+  // Preview doc button - fetches the document binary from Alejandría and shows it in a modal
   const PreviewDocButton = ({ salesforceId, tipoDoc, label }: { salesforceId: string; tipoDoc: string; label: string }) => {
     const [loading, setLoading] = useState(false);
     const handleClick = async () => {
@@ -247,14 +251,17 @@ const Index = () => {
         });
         const contentType = resp.headers.get("Content-Type") || "";
         if (!resp.ok || contentType.includes("application/json")) {
-          toast.error("Documento no encontrado en Alejandría");
+          if (resp.status === 413) {
+            const err = await resp.json().catch(() => ({}));
+            toast.error(err.error || "Archivo muy grande para previsualizar");
+          } else {
+            toast.error("Documento no encontrado en Alejandría");
+          }
           return;
         }
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
-        window.open(url, "_blank");
-        // Release memory after a short delay to let the browser open the tab
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        setPreviewState({ url, title: label, mimeType: contentType });
       } catch {
         toast.error("Error al buscar documento");
       } finally {
@@ -266,6 +273,11 @@ const Index = () => {
         {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
       </Button>
     );
+  };
+
+  const closePreview = () => {
+    if (previewState?.url) URL.revokeObjectURL(previewState.url);
+    setPreviewState(null);
   };
 
   // Action buttons column
@@ -764,6 +776,13 @@ const Index = () => {
       <InconsistenciasModal open={showInconsistencias} onClose={() => setShowInconsistencias(false)} inmuebles={inmuebles} onSelectInmueble={setSelectedId} />
       <SinFechaEscrituraModal open={showSinFechaEscritura} onClose={() => setShowSinFechaEscritura(false)} inmuebles={inmuebles} onSelectInmueble={setSelectedId} />
       <CtlInconsistenciasModal open={showCtlInconsistencias} onClose={() => setShowCtlInconsistencias(false)} inmuebles={inmuebles} onSelectInmueble={setSelectedId} />
+      <PreviewDocModal
+        open={!!previewState}
+        onClose={closePreview}
+        blobUrl={previewState?.url ?? null}
+        title={previewState?.title}
+        mimeType={previewState?.mimeType}
+      />
     </div>
   );
 };
