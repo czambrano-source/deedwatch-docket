@@ -14,9 +14,11 @@ export interface Inmueble {
   Fiduciaria__c?: string;
   Parqueadero__c?: number;
   numero_del_parqueadero__c?: string | null;
+  numero_de_parqueadero_adicional__c?: string | null;
   No_Matricula_Inmo_Parqueadero__c?: string | null;
   chip_parqueadero__c?: string;
   Deposito__c?: string;
+  numero_deposito__c?: string | null;
   No_Matricula_Inmo_Deposito__c?: string | null;
   chip_deposito__c?: string;
   Proceso_entrega_inmueble__c?: string;

@@ -128,6 +128,34 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
     }
   }
 
+  // Campos vacíos de parqueadero/depósito
+  for (const i of inmuebles) {
+    const parqCount = (i as any).Parqueadero__c;
+    if (parqCount != null && parqCount >= 1 && !i.numero_del_parqueadero__c) {
+      const p = ensure(i);
+      p.discrepancias.push({
+        tipo: "Parqueadero", severidad: "media", campo: "numero_del_parqueadero__c",
+        descripcion: `Tiene ${parqCount} parqueadero(s) pero no tiene número asignado.`,
+      });
+    }
+    if (parqCount != null && parqCount >= 2 && !(i as any).numero_de_parqueadero_adicional__c) {
+      const p = ensure(i);
+      p.discrepancias.push({
+        tipo: "Parqueadero", severidad: "media", campo: "numero_de_parqueadero_adicional__c",
+        descripcion: `Tiene ${parqCount} parqueaderos pero no tiene número de parqueadero adicional.`,
+      });
+    }
+    const depVal0 = (i as any).Deposito__c;
+    const hasDep0 = depVal0 != null && String(depVal0).toLowerCase() !== "no" && String(depVal0) !== "0";
+    if (hasDep0 && !(i as any).numero_deposito__c) {
+      const p = ensure(i);
+      p.discrepancias.push({
+        tipo: "Depósito", severidad: "media", campo: "numero_deposito__c",
+        descripcion: "Tiene depósito pero no tiene número asignado.",
+      });
+    }
+  }
+
   // CTL compra pendiente: >90 días desde entrega sin CTL en Alejandría
   const hoy = new Date();
   for (const i of inmuebles) {
@@ -177,7 +205,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         });
       }
     }
-    // CTL Bodega/Depósito pendiente (solo si tiene matrícula propia distinta al apto)
+    // CTL Depósito pendiente (solo si tiene matrícula propia distinta al apto)
     const depVal = (i as any).Deposito__c;
     const hasDep = depVal != null && String(depVal).toLowerCase() !== "no" && String(depVal) !== "0";
     const matDep = ((i as any).No_Matricula_Inmo_Deposito__c || "").trim();
@@ -190,7 +218,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
           tipo: "CTL",
           severidad: "alta",
           campo: "CTL Bodega pendiente",
-          descripcion: `${dias} días desde entrega sin CTL Bodega en Alejandría`,
+          descripcion: `${dias} días desde entrega sin CTL Depósito en Alejandría`,
         });
       }
     } else if (dias >= 45 && dias <= 90 && !(i as any).tiene_ctl_bodega) {
@@ -200,9 +228,41 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
           tipo: "CTL",
           severidad: "media",
           campo: "CTL Bodega próximo",
-          descripcion: `${dias} días desde entrega sin CTL Bodega en Alejandría`,
+          descripcion: `${dias} días desde entrega sin CTL Depósito en Alejandría`,
         });
       }
+    }
+
+    // CTL con nombre incorrecto (a nombre de CMA, no de la fiducia)
+    const CMA_NAME = "COMPRA MIENTRAS ALQUILAS";
+    const nombreCtlInm = ((i as any).nombre_ctl_inmueble__c || "").toUpperCase();
+    const nombreCtlParq = ((i as any).nombre_ctl_parqueadero__c || "").toUpperCase();
+    const nombreCtlBod = ((i as any).nombre_ctl_bodega__c || "").toUpperCase();
+    const p2 = ensure(i);
+
+    if (nombreCtlInm.includes(CMA_NAME) && !p2.discrepancias.some(d => d.campo === "CTL Fiducia pendiente")) {
+      p2.discrepancias.push({
+        tipo: "CTL",
+        severidad: "alta",
+        campo: "CTL Inmueble nombre pendiente",
+        descripcion: `CTL a nombre de "${(i as any).nombre_ctl_inmueble__c}" — debe estar a nombre de la fiducia`,
+      });
+    }
+    if (nombreCtlParq.includes(CMA_NAME) && !p2.discrepancias.some(d => d.campo === "CTL Parqueadero pendiente")) {
+      p2.discrepancias.push({
+        tipo: "CTL",
+        severidad: "alta",
+        campo: "CTL Parqueadero nombre pendiente",
+        descripcion: `CTL Parqueadero a nombre de "${(i as any).nombre_ctl_parqueadero__c}" — debe estar a nombre de la fiducia`,
+      });
+    }
+    if (nombreCtlBod.includes(CMA_NAME) && !p2.discrepancias.some(d => d.campo === "CTL Bodega pendiente")) {
+      p2.discrepancias.push({
+        tipo: "CTL",
+        severidad: "alta",
+        campo: "CTL Depósito nombre pendiente",
+        descripcion: `CTL Depósito a nombre de "${(i as any).nombre_ctl_bodega__c}" — debe estar a nombre de la fiducia`,
+      });
     }
   }
 
@@ -233,6 +293,8 @@ const CAMPO_TO_LABEL: Record<string, string> = {
   "chip_deposito__c": "Chip Depósito",
   "No_Matricula_Inmo_Deposito__c": "No. Matricula Inmo Depósito",
   "numero_del_parqueadero__c": "Número del parqueadero",
+  "numero_de_parqueadero_adicional__c": "Número parqueadero adicional",
+  "numero_deposito__c": "Número del depósito",
   // Special campos
   "Fecha firma escritura": "Fecha Firma Escritura",
   "CTL Fiducia pendiente": "CTL Apto",
@@ -241,9 +303,12 @@ const CAMPO_TO_LABEL: Record<string, string> = {
   "CTL Parqueadero pendiente": "CTL Parqueadero",
   "CTL Parqueadero próximo": "CTL Parqueadero",
   "CTL Parqueadero": "CTL Parqueadero",
-  "CTL Bodega pendiente": "CTL Bodega",
-  "CTL Bodega próximo": "CTL Bodega",
-  "CTL Depósito": "CTL Bodega",
+  "CTL Bodega pendiente": "CTL Depósito",
+  "CTL Inmueble nombre pendiente": "CTL Inmueble",
+  "CTL Parqueadero nombre pendiente": "CTL Parqueadero",
+  "CTL Depósito nombre pendiente": "CTL Depósito",
+  "CTL Bodega próximo": "CTL Depósito",
+  "CTL Depósito": "CTL Depósito",
 };
 
 const INCONSISTENCIA_LABEL_MAP: Record<string, Record<string, string>> = {
@@ -285,7 +350,7 @@ export default function DataPage() {
   // Filters
   const [searchFilter, setSearchFilter] = useState("");
   const [severidadFilter, setSeveridadFilter] = useState("all");
-  const [parqueaderoFilter, setParqueaderoFilter] = useState<"all" | "si" | "no">("all");
+  const [parqueaderoFilter, setParqueaderoFilter] = useState<"all" | "1" | "2" | "no">("all");
   const [depositoFilter, setDepositoFilter] = useState<"all" | "si" | "no">("all");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc"); // fecha entrega: últimas primero
 
@@ -348,7 +413,6 @@ export default function DataPage() {
 
   // CTL source tracking
   const [ctlSources, setCtlSources] = useState<Record<string, any>>({});
-  const [numDepositoLocal, setNumDepositoLocal] = useState<string>("");
   const fetchCtlSources = async (sfId: string) => {
     try {
       const { data } = await supabase.from("ctl_source").select("bloque,tipo_ctl,fecha_ctl").eq("salesforce_id", sfId);
@@ -358,10 +422,6 @@ export default function DataPage() {
         setCtlSources(map);
       }
     } catch {}
-    try {
-      const { data: depRow } = await (supabase as any).from("numero_deposito").select("numero").eq("salesforce_id", sfId).maybeSingle();
-      setNumDepositoLocal(depRow?.numero || "");
-    } catch { setNumDepositoLocal(""); }
   };
 
   const handleFechaCtlChange = async (sfId: string, bloque: string, fecha: string) => {
@@ -439,18 +499,23 @@ export default function DataPage() {
 
     autoTable(doc, {
       startY: 34,
-      head: [["Inmueble", "Oportunidad", "Tipo CTL", "Chip", "Matricula", "Dias sin CTL"]],
+      head: [["Fecha Entrega", "Inmueble", "Oportunidad", "Tipo CTL", "Chip", "Matricula", "Dias sin CTL", "Observación"]],
       body: ctlItems.flatMap((i) => {
         const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("pendiente"));
         const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
         const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
         return ctlDiscs.map(d => {
-          const tipo = d.campo.replace(" pendiente", "").replace("CTL ", "");
-          const isParq = tipo === "Parqueadero";
-          const isBodega = tipo === "Bodega";
-          const chip = isParq ? i.raw.chip_parqueadero__c : isBodega ? i.raw.chip_deposito__c : i.raw.chip_apartamento__c;
-          const mat = isParq ? i.raw.No_Matricula_Inmo_Parqueadero__c : isBodega ? i.raw.No_Matricula_Inmo_Deposito__c : i.raw.Numero_matricula_inmobiliaria__c;
-          return [i.codigo, i.oportunidad || "—", tipo, chip || "—", mat || "—", dias];
+          const tipoRaw = d.campo.replace(" pendiente", "").replace(" nombre", "").replace("CTL ", "");
+          const isParq = tipoRaw === "Parqueadero";
+          const isDep = tipoRaw === "Bodega" || tipoRaw === "Depósito";
+          let tipo = tipoRaw;
+          if (tipo === "Fiducia") tipo = "Inmueble";
+          if (tipo === "Bodega") tipo = "Depósito";
+          const chip = isParq ? i.raw.chip_parqueadero__c : isDep ? i.raw.chip_deposito__c : i.raw.chip_apartamento__c;
+          const mat = isParq ? i.raw.No_Matricula_Inmo_Parqueadero__c : isDep ? i.raw.No_Matricula_Inmo_Deposito__c : i.raw.Numero_matricula_inmobiliaria__c;
+          const esNombreIncorrecto = d.campo.includes("nombre");
+          const obs = esNombreIncorrecto ? "Nombre incorrecto (a nombre de CMA)" : "Sin CTL en Alejandría";
+          return [fechaEnt || "—", i.codigo, i.oportunidad || "—", tipo, chip || "—", mat || "—", dias, obs];
         });
       }),
       styles: { fontSize: 8, cellPadding: 3 },
@@ -508,14 +573,15 @@ export default function DataPage() {
 
   /* ─── Filters ─── */
   const filterCounts = useMemo(() => {
-    const conParqueadero = inmuebles.filter(i => i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0).length;
-    const sinParqueadero = inmuebles.length - conParqueadero;
+    const parq1 = inmuebles.filter(i => i.raw.Parqueadero__c != null && i.raw.Parqueadero__c === 1).length;
+    const parq2 = inmuebles.filter(i => i.raw.Parqueadero__c != null && i.raw.Parqueadero__c >= 2).length;
+    const sinParqueadero = inmuebles.length - parq1 - parq2;
     const conDeposito = inmuebles.filter(i => {
       const d = i.raw.Deposito__c;
       return d != null && String(d).toLowerCase() !== "no" && String(d) !== "0";
     }).length;
     const sinDeposito = inmuebles.length - conDeposito;
-    return { conParqueadero, sinParqueadero, conDeposito, sinDeposito };
+    return { parq1, parq2, sinParqueadero, conDeposito, sinDeposito };
   }, [inmuebles]);
 
   // Build full list: ALL inmuebles with their discrepancias (0 or more)
@@ -600,8 +666,10 @@ export default function DataPage() {
     }
     if (parqueaderoFilter !== "all") {
       result = result.filter((i) => {
-        const tiene = i.raw.Parqueadero__c != null && i.raw.Parqueadero__c > 0;
-        return parqueaderoFilter === "si" ? tiene : !tiene;
+        const count = i.raw.Parqueadero__c ?? 0;
+        if (parqueaderoFilter === "1") return count === 1;
+        if (parqueaderoFilter === "2") return count >= 2;
+        return count === 0;
       });
     }
     if (depositoFilter !== "all") {
@@ -801,7 +869,7 @@ export default function DataPage() {
       // Show all discrepancias — even if SF says no parking/deposit
       if (payload?.discrepancias) {
 
-        // If AI confirms parking >= 1 and numero_del_parqueadero is missing, suggest finding it
+        // If parking >= 1 and numero_del_parqueadero is missing
         if (inm.raw.Parqueadero__c != null && inm.raw.Parqueadero__c >= 1 && !inm.raw.numero_del_parqueadero__c) {
           const alreadyHasNumero = payload.discrepancias.some((d: Discrepancia) =>
             (d.campo || "").toLowerCase().includes("numero") && (d.campo || "").toLowerCase().includes("parqueadero")
@@ -871,6 +939,21 @@ export default function DataPage() {
           }
         }
 
+        // PARQUEADERO ADICIONAL: if >= 2 and numero adicional missing
+        if (inm.raw.Parqueadero__c != null && inm.raw.Parqueadero__c >= 2 && !inm.raw.numero_de_parqueadero_adicional__c) {
+          if (!hasDisc("numero_de_parqueadero_adicional__c")) {
+            payload.discrepancias.push({
+              tipo: "Parqueadero",
+              severidad: "media",
+              campo: "numero_de_parqueadero_adicional__c",
+              descripcion: `El inmueble tiene ${inm.raw.Parqueadero__c} parqueaderos pero no tiene número de parqueadero adicional. Revise la escritura.`,
+              valor_actual: "vacío",
+              valor_documento: null,
+              fuente: "Análisis automático",
+            });
+          }
+        }
+
         // DEPOSITO: detect missing chip/matricula
         const depVal2 = inm.raw.Deposito__c;
         const hasDeposit = depVal2 && !["no", "0"].includes(depVal2.trim().toLowerCase());
@@ -907,6 +990,21 @@ export default function DataPage() {
               tipo: "Depósito", severidad: "alta", campo: "No_Matricula_Inmo_Deposito__c",
               descripcion: "Tiene depósito pero falta matrícula. No hay documentos para verificar.",
               valor_actual: matDep || "vacío", valor_documento: null, fuente: "Validación automática",
+            });
+          }
+        }
+
+        // DEPOSITO NUMERO: if has deposit but numero missing
+        if (hasDeposit && !inm.raw.numero_deposito__c) {
+          if (!hasDisc("numero_deposito__c")) {
+            payload.discrepancias.push({
+              tipo: "Depósito",
+              severidad: "media",
+              campo: "numero_deposito__c",
+              descripcion: "El inmueble tiene depósito pero no tiene número asignado. Revise la escritura o documentos.",
+              valor_actual: "vacío",
+              valor_documento: null,
+              fuente: "Análisis automático",
             });
           }
         }
@@ -985,7 +1083,7 @@ export default function DataPage() {
 
   const isParqueaderoNumeroField = (disc?: Discrepancia | null) => {
     const campo = (disc?.campo || disc?.campo_sf || "").toLowerCase();
-    return campo.includes("numero") && campo.includes("parqueadero");
+    return campo.includes("numero") && campo.includes("parqueadero") && !campo.includes("adicional");
   };
 
   const isDepositoNumeroOrBoolean = (disc?: Discrepancia | null) => {
@@ -1011,6 +1109,7 @@ export default function DataPage() {
     // Mapeo por palabras clave en campo + descripción
     const keywordMap: [string[], string][] = [
       [["numero", "deposito"], "numero_deposito__c"],
+      [["numero", "parqueadero", "adicional"], "numero_de_parqueadero_adicional__c"],
       [["numero", "parqueadero"], "numero_del_parqueadero__c"],
       [["chip", "parqueadero"], "chip_parqueadero__c"],
       [["matricula", "parqueadero"], "No_Matricula_Inmo_Parqueadero__c"],
@@ -1091,9 +1190,8 @@ export default function DataPage() {
       const valorNormalizado = normalizeFixValor(campoCorregido, fixValorNuevo);
       const valorNormalizadoTexto = String(valorNormalizado);
 
-      // numero_deposito__c: save Si/No to SF + number to Supabase
+      // numero_deposito__c: save Si/No + number to SF
       if (campoCorregido === "numero_deposito__c") {
-        // Update Deposito__c Si/No in SF if selected
         if (fixDepositoSiNo) {
           await supabase.functions.invoke("fix-discrepancia-sf", {
             body: { inmueble_id: selectedInmueble.salesforce_id, campo: "Deposito__c", valor_nuevo: fixDepositoSiNo, fuente: "Análisis IA", aprobado_por: fixAprobadorEmail }
@@ -1104,15 +1202,16 @@ export default function DataPage() {
             fuente: "Análisis IA", aprobado_por: fixAprobadorEmail,
           });
         }
-        // Save number to Supabase dedicated table
         const numDep = fixNumeroDeposito || valorNormalizadoTexto;
         if (numDep) {
-          await (supabase as any).from("numero_deposito").upsert({
-            salesforce_id: selectedInmueble.salesforce_id,
-            numero: numDep,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "salesforce_id" });
-          setNumDepositoLocal(numDep);
+          await supabase.functions.invoke("fix-discrepancia-sf", {
+            body: { inmueble_id: selectedInmueble.salesforce_id, campo: "numero_deposito__c", valor_nuevo: numDep, fuente: "Análisis IA", aprobado_por: fixAprobadorEmail }
+          });
+          await supabase.from("historial_cambios_sf").insert({
+            codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
+            campo_corregido: "numero_deposito__c", valor_anterior: null, valor_nuevo: numDep,
+            fuente: "Análisis IA", aprobado_por: fixAprobadorEmail,
+          });
         }
       } else {
         const payload = {
@@ -1188,11 +1287,13 @@ export default function DataPage() {
       }
 
       if (isDepositoNumeroOrBoolean(fixDiscrepancia) && fixNumeroDeposito) {
-        await supabase.from("notas_predial").insert({
-          salesforce_id: selectedInmueble.salesforce_id,
-          nombre_inmueble: selectedInmueble.codigo,
-          tipo_predio: "deposito",
-          nota: `Número de depósito: ${fixNumeroDeposito}`,
+        await supabase.functions.invoke("fix-discrepancia-sf", {
+          body: { inmueble_id: selectedInmueble.salesforce_id, campo: "numero_deposito__c", valor_nuevo: fixNumeroDeposito, fuente: "Corrección manual", aprobado_por: fixAprobadorEmail }
+        });
+        await supabase.from("historial_cambios_sf").insert({
+          codigo_inmueble: selectedInmueble.codigo, salesforce_id: selectedInmueble.salesforce_id,
+          campo_corregido: "numero_deposito__c", valor_anterior: null, valor_nuevo: fixNumeroDeposito,
+          fuente: "Corrección manual", aprobado_por: fixAprobadorEmail,
         });
       }
 
@@ -1228,9 +1329,12 @@ export default function DataPage() {
         if ((fixDiscrepancia as any).es_ctl_doble && (fixDiscrepancia as any).campo_sf_secundario && fixValorSecundario) {
           updatedFields[(fixDiscrepancia as any).campo_sf_secundario] = fixValorSecundario;
         }
-        // Deposito Si/No
+        // Deposito Si/No + numero
         if (campoCorregido === "numero_deposito__c" && fixDepositoSiNo) {
           updatedFields["Deposito__c"] = fixDepositoSiNo;
+        }
+        if (isDepositoNumeroOrBoolean(fixDiscrepancia) && fixNumeroDeposito) {
+          updatedFields["numero_deposito__c"] = fixNumeroDeposito;
         }
         // Parqueadero numero + tipo
         if (isParqueaderoNumeroField(fixDiscrepancia)) {
@@ -1248,8 +1352,8 @@ export default function DataPage() {
       }
 
       // Campos relacionados a quitar si parq=0 o dep=No
-      const parqCamposRelacionados = ["numero_del_parqueadero__c", "No_Matricula_Inmo_Parqueadero__c", "chip_parqueadero__c", "nombre_ctl_parqueadero__c", "nit_ctl_parqueadero__c"];
-      const depCamposRelacionados = ["No_Matricula_Inmo_Deposito__c", "chip_deposito__c", "nombre_ctl_bodega__c", "nit_ctl_bodega__c"];
+      const parqCamposRelacionados = ["numero_del_parqueadero__c", "numero_de_parqueadero_adicional__c", "No_Matricula_Inmo_Parqueadero__c", "chip_parqueadero__c", "nombre_ctl_parqueadero__c", "nit_ctl_parqueadero__c"];
+      const depCamposRelacionados = ["numero_deposito__c", "No_Matricula_Inmo_Deposito__c", "chip_deposito__c", "nombre_ctl_bodega__c", "nit_ctl_bodega__c"];
       const esParqCero = isParqueaderoNumeroField(fixDiscrepancia) && Number(valorNormalizado) === 0;
       const esDepNo = isDepositoNumeroOrBoolean(fixDiscrepancia) && valorNormalizadoTexto.toLowerCase() === "no";
 
@@ -1454,7 +1558,8 @@ export default function DataPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Parqueadero — Todos</SelectItem>
-                        <SelectItem value="si">Con parqueadero ({filterCounts.conParqueadero})</SelectItem>
+                        <SelectItem value="1">1 parqueadero ({filterCounts.parq1})</SelectItem>
+                        <SelectItem value="2">2+ parqueaderos ({filterCounts.parq2})</SelectItem>
                         <SelectItem value="no">Sin parqueadero ({filterCounts.sinParqueadero})</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1689,7 +1794,7 @@ export default function DataPage() {
                                       )}
                                       <div className="space-y-1">
                                         <DItem label="Nombre" value={sel.nombre_ctl_inmueble__c} icon={FileText} />
-                                        <DItem label="NIT" value={sel.nit_ctl_inmueble__c} icon={Hash} />
+                                        <DItem label="NIT/CC" value={sel.nit_ctl_inmueble__c} icon={Hash} />
                                         <div className="space-y-1">
                                           <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Fecha CTL</p>
                                           <input
@@ -1718,6 +1823,9 @@ export default function DataPage() {
                                           <div className="space-y-1.5">
                                             <DItem label="Parqueadero" value={`Sí (${sel.Parqueadero__c})`} icon={Car} />
                                             <DItem label="Número del parqueadero" value={sel.numero_del_parqueadero__c} icon={Hash} alert={getAlert("Número del parqueadero")} />
+                                            {sel.numero_de_parqueadero_adicional__c && (
+                                              <DItem label="Número parqueadero adicional" value={sel.numero_de_parqueadero_adicional__c} icon={Hash} alert={getAlert("Número parqueadero adicional")} />
+                                            )}
                                             <DItem label="No. Matricula Inmo Parqueadero" value={sel.No_Matricula_Inmo_Parqueadero__c} icon={FileText} alert={getAlert("No. Matricula Inmo Parqueadero")} />
                                             <DItem label="Chip Parqueadero" value={sel.chip_parqueadero__c} icon={Hash} alert={getAlert("Chip Parqueadero")} />
                                           </div>
@@ -1740,7 +1848,7 @@ export default function DataPage() {
                                               )}
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_parqueadero__c} icon={FileText} />
-                                                <DItem label="NIT" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
+                                                <DItem label="NIT/CC" value={sel.nit_ctl_parqueadero__c} icon={Hash} />
                                                 <div className="space-y-1">
                                                   <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Fecha CTL</p>
                                                   <input
@@ -1771,7 +1879,7 @@ export default function DataPage() {
                                         <>
                                           <div className="space-y-1.5">
                                             <DItem label="Depósito" value={sel.Deposito__c || "—"} icon={Package} />
-                                            <DItem label="Número del depósito" value={(sel as any).numero_del_deposito__c || numDepositoLocal || "—"} icon={Hash} />
+                                            <DItem label="Número del depósito" value={sel.numero_deposito__c || "—"} icon={Hash} alert={getAlert("Número del depósito")} />
                                             <DItem label="No. Matricula Inmo Depósito" value={sel.No_Matricula_Inmo_Deposito__c} icon={FileText} alert={getAlert("No. Matricula Inmo Depósito")} />
                                             <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} alert={getAlert("Chip Depósito")} />
                                           </div>
@@ -1794,7 +1902,7 @@ export default function DataPage() {
                                               )}
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
-                                                <DItem label="NIT" value={sel.nit_ctl_bodega__c} icon={Hash} />
+                                                <DItem label="NIT/CC" value={sel.nit_ctl_bodega__c} icon={Hash} />
                                                 <div className="space-y-1">
                                                   <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Fecha CTL</p>
                                                   <input
@@ -2053,7 +2161,7 @@ export default function DataPage() {
                                                                     <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                                                                       {sub.label === 'Fecha CTL' && <CalendarIcon className="w-3 h-3" />}
                                                                       {sub.label === 'Nombre' && <FileText className="w-3 h-3" />}
-                                                                      {sub.label === 'NIT' && <Hash className="w-3 h-3" />}
+                                                                      {sub.label === 'NIT/CC' && <Hash className="w-3 h-3" />}
                                                                       {sub.label}
                                                                     </p>
                                                                     {sub.solo_lectura ? (
@@ -2079,7 +2187,7 @@ export default function DataPage() {
                                                                   <div className="flex gap-2 mt-1">
                                                                     <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => {
                                                                       const nombre = campo.campos_ctl.find((s: any) => s.label === 'Nombre');
-                                                                      const nit = campo.campos_ctl.find((s: any) => s.label === 'NIT');
+                                                                      const nit = campo.campos_ctl.find((s: any) => s.label === 'NIT/CC');
                                                                       const fecha = campo.campos_ctl.find((s: any) => s.label === 'Fecha CTL');
                                                                       openFixModal({
                                                                         campo: nombre?.campo_sf || campo.campos_ctl[0]?.campo_sf,
@@ -2093,7 +2201,7 @@ export default function DataPage() {
                                                                         es_ctl_doble: true,
                                                                         fecha_ctl: fecha?.valor_extraido || null,
                                                                         label_principal: 'Nombre (SF: ' + (nombre?.campo_sf || '') + ')',
-                                                                        label_secundario: 'NIT (SF: ' + (nit?.campo_sf || '') + ')',
+                                                                        label_secundario: 'NIT/CC (SF: ' + (nit?.campo_sf || '') + ')',
                                                                         dismiss_label: campo.label,
                                                                       });
                                                                     }}>
@@ -2404,8 +2512,11 @@ export default function DataPage() {
                         <p className="text-xs text-muted-foreground">Entrega: {fechaEnt || "—"}</p>
                         <div className="flex gap-1.5 flex-wrap">
                           {ctlDiscs.map(d => {
-                            const t = d.campo.replace(" pendiente", "").replace("CTL ", "");
-                            return <Badge key={t} variant="destructive" className="text-xs">{t}</Badge>;
+                            let t = d.campo.replace(" pendiente", "").replace(" nombre", "").replace("CTL ", "");
+                            if (t === "Fiducia") t = "Inmueble";
+                            if (t === "Bodega") t = "Depósito";
+                            const esNombre = d.campo.includes("nombre");
+                            return <Badge key={d.campo} variant="destructive" className="text-xs">{t}{esNombre ? " (nombre)" : ""}</Badge>;
                           })}
                         </div>
                       </div>
@@ -2517,7 +2628,7 @@ export default function DataPage() {
                     <Input value={fixValorNuevo} onChange={(e) => setFixValorNuevo(e.target.value)} className="text-sm" />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground">{(fixDiscrepancia as any).label_secundario || 'NIT'}</label>
+                    <label className="text-xs text-muted-foreground">{(fixDiscrepancia as any).label_secundario || 'NIT/CC'}</label>
                     <p className="font-mono text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded mt-0.5 mb-1">SF: {(fixDiscrepancia as any).valor_actual_secundario || 'vacío'}</p>
                     <Input value={fixValorSecundario} onChange={(e) => setFixValorSecundario(e.target.value)} className="text-sm" />
                   </div>
@@ -2599,7 +2710,7 @@ export default function DataPage() {
               )}
               {isDepositoNumeroOrBoolean(fixDiscrepancia) && (
                 <div>
-                  <label className="text-xs text-muted-foreground">Numero de deposito (se guarda local, SF aun no tiene campo)</label>
+                  <label className="text-xs text-muted-foreground">Número del depósito (SF: numero_deposito__c)</label>
                   <Input
                     value={fixNumeroDeposito}
                     onChange={(e) => setFixNumeroDeposito(e.target.value)}

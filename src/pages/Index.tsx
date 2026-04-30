@@ -590,7 +590,7 @@ const Index = () => {
                           </div>
                           <div className="space-y-1">
                             <DItem label="Nombre" value={selected.nombre_ctl_inmueble__c} icon={FileText} />
-                            <DItem label="NIT" value={selected.nit_ctl_inmueble__c} icon={Hash} />
+                            <DItem label="NIT/CC" value={selected.nit_ctl_inmueble__c} icon={Hash} />
                           </div>
                         </div>
                       )}
@@ -610,6 +610,9 @@ const Index = () => {
                             <div className="flex-1 space-y-1.5">
                               <DItem label="Parqueadero" value={`Sí (${selected.Parqueadero__c})`} icon={Car} />
                               <DItem label="Número del parqueadero" value={selected.numero_del_parqueadero__c} icon={Hash} />
+                              {selected.numero_de_parqueadero_adicional__c && (
+                                <DItem label="Número parqueadero adicional" value={selected.numero_de_parqueadero_adicional__c} icon={Hash} />
+                              )}
                               <DItem label="No. Matricula Inmo Parqueadero" value={selected.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
                               <DItem label="Chip Parqueadero" value={selected.chip_parqueadero__c} icon={Hash} />
                             </div>
@@ -664,7 +667,7 @@ const Index = () => {
                               </div>
                               <div className="space-y-1">
                                 <DItem label="Nombre" value={selected.nombre_ctl_parqueadero__c} icon={FileText} />
-                                <DItem label="NIT" value={selected.nit_ctl_parqueadero__c} icon={Hash} />
+                                <DItem label="NIT/CC" value={selected.nit_ctl_parqueadero__c} icon={Hash} />
                               </div>
                             </div>
                           )}
@@ -685,6 +688,7 @@ const Index = () => {
                           <div className="flex gap-4 items-start">
                             <div className="flex-1 space-y-1.5">
                               <DItem label="Depósito" value={selected.Deposito__c} icon={Package} />
+                              <DItem label="Número del depósito" value={selected.numero_deposito__c || "—"} icon={Hash} />
                               <DItem label="No. Matricula Inmo Depósito" value={selected.No_Matricula_Inmo_Deposito__c} icon={FileText} />
                               <DItem label="Chip Depósito" value={selected.chip_deposito__c} icon={Hash} />
                             </div>
@@ -739,7 +743,7 @@ const Index = () => {
                               </div>
                               <div className="space-y-1">
                                 <DItem label="Nombre" value={selected.nombre_ctl_bodega__c} icon={FileText} />
-                                <DItem label="NIT" value={selected.nit_ctl_bodega__c} icon={Hash} />
+                                <DItem label="NIT/CC" value={selected.nit_ctl_bodega__c} icon={Hash} />
                               </div>
                             </div>
                           )}
