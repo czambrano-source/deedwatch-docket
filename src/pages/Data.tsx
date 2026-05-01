@@ -245,7 +245,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       p2.discrepancias.push({
         tipo: "CTL",
         severidad: "alta",
-        campo: "CTL Inmueble nombre pendiente",
+        campo: "CTL Inmueble nombre CMA",
         descripcion: `CTL a nombre de "${(i as any).nombre_ctl_inmueble__c}" — debe estar a nombre de la fiducia`,
       });
     }
@@ -253,7 +253,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       p2.discrepancias.push({
         tipo: "CTL",
         severidad: "alta",
-        campo: "CTL Parqueadero nombre pendiente",
+        campo: "CTL Parqueadero nombre CMA",
         descripcion: `CTL Parqueadero a nombre de "${(i as any).nombre_ctl_parqueadero__c}" — debe estar a nombre de la fiducia`,
       });
     }
@@ -261,7 +261,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       p2.discrepancias.push({
         tipo: "CTL",
         severidad: "alta",
-        campo: "CTL Depósito nombre pendiente",
+        campo: "CTL Depósito nombre CMA",
         descripcion: `CTL Depósito a nombre de "${(i as any).nombre_ctl_bodega__c}" — debe estar a nombre de la fiducia`,
       });
     }
@@ -305,9 +305,9 @@ const CAMPO_TO_LABEL: Record<string, string> = {
   "CTL Parqueadero próximo": "CTL Parqueadero",
   "CTL Parqueadero": "CTL Parqueadero",
   "CTL Bodega pendiente": "CTL Depósito",
-  "CTL Inmueble nombre pendiente": "CTL Inmueble",
-  "CTL Parqueadero nombre pendiente": "CTL Parqueadero",
-  "CTL Depósito nombre pendiente": "CTL Depósito",
+  "CTL Inmueble nombre CMA": "CTL Inmueble",
+  "CTL Parqueadero nombre CMA": "CTL Parqueadero",
+  "CTL Depósito nombre CMA": "CTL Depósito",
   "CTL Bodega próximo": "CTL Depósito",
   "CTL Depósito": "CTL Depósito",
 };
@@ -456,12 +456,12 @@ export default function DataPage() {
     let escritura = 0, media = 0, baja = 0, ctlPendiente = 0, ctlProximo = 0;
     inmuebles.forEach((i) => {
       // Count inmuebles (not individual discrepancias) for CTL pendiente/próximo
-      const hasPendiente = i.discrepancias.some((d) => d.campo.includes("pendiente"));
+      const hasPendiente = i.discrepancias.some((d) => d.campo.includes("pendiente") || d.campo.includes("nombre CMA"));
       const hasProximo = i.discrepancias.some((d) => d.campo.includes("próximo"));
       if (hasPendiente) ctlPendiente++;
       if (hasProximo) ctlProximo++;
       i.discrepancias.forEach((d) => {
-        if (d.campo.includes("pendiente") || d.campo.includes("próximo")) return;
+        if (d.campo.includes("pendiente") || d.campo.includes("nombre CMA") || d.campo.includes("próximo")) return;
         if (d.tipo === "Escritura") {
           escritura++;
         } else {
@@ -471,15 +471,30 @@ export default function DataPage() {
         }
       });
     });
-    // CTL Faltante: inmuebles con campos CTL vacíos en SF
+    // CTL Faltante: inmuebles con campos CTL vacíos (inmueble, parqueadero o depósito)
     const isCtlEmpty = (v: any) => !v || String(v).trim() === "";
-    const ctlFaltante = rawInmuebles.filter(r => isCtlEmpty((r as any).nombre_ctl_inmueble__c) || isCtlEmpty((r as any).nit_ctl_inmueble__c)).length;
+    const isValid = (v: any) => {
+      if (!v) return false;
+      const n = String(v).trim().toLowerCase();
+      return n !== "" && n !== "n/a" && n !== "no tiene" && n !== "-" && n !== "sin_chip" && n !== "sin_matricula";
+    };
+    const ctlFaltante = rawInmuebles.filter(r => {
+      const ri = r as any;
+      const inmFalta = (isValid(ri.Numero_matricula_inmobiliaria__c) || isValid(ri.chip_apartamento__c)) && (isCtlEmpty(ri.nombre_ctl_inmueble__c) || isCtlEmpty(ri.nit_ctl_inmueble__c));
+      const hasParq = ri.Parqueadero__c != null && ri.Parqueadero__c >= 1;
+      const parqFalta = hasParq && (isValid(ri.No_Matricula_Inmo_Parqueadero__c) || isValid(ri.chip_parqueadero__c)) && (isCtlEmpty(ri.nombre_ctl_parqueadero__c) || isCtlEmpty(ri.nit_ctl_parqueadero__c));
+      const depVal = ri.Deposito__c;
+      const hasDep = !!depVal && !["no", "0"].includes(String(depVal).trim().toLowerCase());
+      const depFalta = hasDep && (isValid(ri.No_Matricula_Inmo_Deposito__c) || isValid(ri.chip_deposito__c)) && (isCtlEmpty(ri.nombre_ctl_bodega__c) || isCtlEmpty(ri.nit_ctl_bodega__c));
+      return inmFalta || parqFalta || depFalta;
+    }).length;
     return { total: rawInmuebles.length, conProblemas: inmuebles.length, ctlFaltante, escritura, media, baja, ctlPendiente, ctlProximo };
   }, [inmuebles, rawInmuebles]);
 
   const generateCtlPendientePDF = useCallback(() => {
+    const isCtlPendiente = (d: Discrepancia) => d.campo.includes("pendiente") || d.campo.includes("nombre CMA");
     const ctlItems = inmuebles
-      .filter((i) => i.discrepancias.some((d) => d.campo.includes("pendiente")))
+      .filter((i) => i.discrepancias.some(isCtlPendiente))
       .sort((a, b) => {
         const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
         const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
@@ -489,7 +504,7 @@ export default function DataPage() {
 
     const doc = new jsPDF({ orientation: "landscape" });
     const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
-    const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.campo.includes("pendiente")).length, 0);
+    const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(isCtlPendiente).length, 0);
 
     doc.setFontSize(16);
     doc.text("Reporte CTL Pendientes", 14, 20);
@@ -502,11 +517,11 @@ export default function DataPage() {
       startY: 34,
       head: [["Fecha Entrega", "Inmueble", "Oportunidad", "Tipo CTL", "Chip", "Matricula", "Dias sin CTL", "Observación"]],
       body: ctlItems.flatMap((i) => {
-        const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("pendiente"));
+        const ctlDiscs = i.discrepancias.filter(isCtlPendiente);
         const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
         const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
         return ctlDiscs.map(d => {
-          const tipoRaw = d.campo.replace(" pendiente", "").replace(" nombre", "").replace("CTL ", "");
+          const tipoRaw = d.campo.replace(" pendiente", "").replace(" nombre CMA", "").replace("CTL ", "");
           const isParq = tipoRaw === "Parqueadero";
           const isDep = tipoRaw === "Bodega" || tipoRaw === "Depósito";
           let tipo = tipoRaw;
@@ -514,8 +529,8 @@ export default function DataPage() {
           if (tipo === "Bodega") tipo = "Depósito";
           const chip = isParq ? i.raw.chip_parqueadero__c : isDep ? i.raw.chip_deposito__c : i.raw.chip_apartamento__c;
           const mat = isParq ? i.raw.No_Matricula_Inmo_Parqueadero__c : isDep ? i.raw.No_Matricula_Inmo_Deposito__c : i.raw.Numero_matricula_inmobiliaria__c;
-          const esNombreIncorrecto = d.campo.includes("nombre");
-          const obs = esNombreIncorrecto ? "Nombre incorrecto (a nombre de CMA)" : "Sin CTL en Alejandría";
+          const esCMA = d.campo.includes("nombre CMA");
+          const obs = esCMA ? "Nombre incorrecto (a nombre de CMA)" : "Sin CTL en Alejandría";
           return [fechaEnt || "—", i.codigo, i.oportunidad || "—", tipo, chip || "—", mat || "—", dias, obs];
         });
       }),
@@ -626,7 +641,7 @@ export default function DataPage() {
         result = result.filter((i) => i.discrepancias.length > 0);
       } else if (severidadFilter === "ctl_pendiente") {
         result = result.filter((i) =>
-          i.discrepancias.some((d) => d.campo.includes("pendiente"))
+          i.discrepancias.some((d) => d.campo.includes("pendiente") || d.campo.includes("nombre CMA"))
         );
       } else if (severidadFilter === "ctl_proximo") {
         result = result.filter((i) =>
@@ -634,9 +649,17 @@ export default function DataPage() {
         );
       } else if (severidadFilter === "ctl_faltante") {
         const empty = (v: any) => !v || String(v).trim() === "";
-        result = result.filter((i) =>
-          empty((i.raw as any).nombre_ctl_inmueble__c) || empty((i.raw as any).nit_ctl_inmueble__c)
-        );
+        const valid = (v: any) => { if (!v) return false; const n = String(v).trim().toLowerCase(); return n !== "" && n !== "n/a" && n !== "no tiene" && n !== "-" && n !== "sin_chip" && n !== "sin_matricula"; };
+        result = result.filter((i) => {
+          const ri = i.raw as any;
+          const inmF = (valid(ri.Numero_matricula_inmobiliaria__c) || valid(ri.chip_apartamento__c)) && (empty(ri.nombre_ctl_inmueble__c) || empty(ri.nit_ctl_inmueble__c));
+          const hasP = ri.Parqueadero__c != null && ri.Parqueadero__c >= 1;
+          const parqF = hasP && (valid(ri.No_Matricula_Inmo_Parqueadero__c) || valid(ri.chip_parqueadero__c)) && (empty(ri.nombre_ctl_parqueadero__c) || empty(ri.nit_ctl_parqueadero__c));
+          const dv = ri.Deposito__c;
+          const hasD = !!dv && !["no", "0"].includes(String(dv).trim().toLowerCase());
+          const depF = hasD && (valid(ri.No_Matricula_Inmo_Deposito__c) || valid(ri.chip_deposito__c)) && (empty(ri.nombre_ctl_bodega__c) || empty(ri.nit_ctl_bodega__c));
+          return inmF || parqF || depF;
+        });
       } else if (severidadFilter === "escritura") {
         result = result.filter((i) =>
           i.discrepancias.some((d) => d.tipo === "Escritura")
@@ -645,7 +668,7 @@ export default function DataPage() {
         // "media" filter: exclude CTL pendiente/próximo (they have their own KPIs)
         const isMediaOnly = (d: Discrepancia) =>
           (d.severidad || "baja").toLowerCase() === severidadFilter &&
-          !d.campo?.includes("pendiente") && !d.campo?.includes("próximo");
+          !d.campo?.includes("pendiente") && !d.campo?.includes("nombre CMA") && !d.campo?.includes("próximo");
         result = result.filter((i) =>
           i.discrepancias.some(isMediaOnly)
         );
@@ -655,13 +678,13 @@ export default function DataPage() {
         ...i,
         discrepancias: i.discrepancias.filter(d => {
           if (severidadFilter === "con_problemas") return true;
-          if (severidadFilter === "ctl_pendiente") return d.campo.includes("pendiente");
+          if (severidadFilter === "ctl_pendiente") return d.campo.includes("pendiente") || d.campo.includes("nombre CMA");
           if (severidadFilter === "ctl_proximo") return d.campo.includes("próximo");
           if (severidadFilter === "ctl_faltante") return d.tipo === "CTL";
           if (severidadFilter === "escritura") return d.tipo === "Escritura";
-          // "media" filter: exclude CTL pendiente/próximo
+          // "media" filter: exclude CTL pendiente/próximo/CMA
           return (d.severidad || "baja").toLowerCase() === severidadFilter &&
-            !d.campo?.includes("pendiente") && !d.campo?.includes("próximo");
+            !d.campo?.includes("pendiente") && !d.campo?.includes("nombre CMA") && !d.campo?.includes("próximo");
         }),
       }));
     }
@@ -1411,7 +1434,7 @@ export default function DataPage() {
     let escritura = 0, ctlFaltante = 0, ctlPendiente = 0, ctlProximo = 0, media = 0;
     discs.forEach((d) => {
       if (d.tipo === "Escritura") { escritura++; return; }
-      if (d.campo?.includes("pendiente")) { ctlPendiente++; return; }
+      if (d.campo?.includes("pendiente") || d.campo?.includes("nombre CMA")) { ctlPendiente++; return; }
       if (d.campo?.includes("próximo")) { ctlProximo++; return; }
       if (d.tipo === "CTL") { ctlFaltante++; return; }
       if ((d.severidad || "baja").toLowerCase() === "media") { media++; return; }
@@ -1884,9 +1907,9 @@ export default function DataPage() {
                                             <DItem label="Chip Depósito" value={sel.chip_deposito__c} icon={Hash} alert={getAlert("Chip Depósito")} />
                                           </div>
                                           {!(sel.No_Matricula_Inmo_Deposito__c === 'SIN_MATRICULA' && (sel.chip_deposito__c === 'SIN_CHIP' || sel.chip_deposito__c === '-')) && (
-                                          <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Bodega") && "")}>
+                                          <div className={cn("border-t border-border/40 pt-3 mt-1 rounded-md px-2 -mx-2", getAlert("CTL Depósito") && "")}>
                                               <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
+                                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Depósito</h3>
                                                 {((sel as any).tiene_ctl_bodega || tieneCtlSource('bodega')) ? (
                                                   tieneCtlSource('bodega') ? (
                                                     <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
@@ -1897,8 +1920,8 @@ export default function DataPage() {
                                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2.5 py-0.5 rounded-full"><Clock className="w-3 h-3" /> Pendiente</span>
                                                 ) : null}
                                               </div>
-                                              {getAlert("CTL Bodega") && (
-                                                <p className={cn("text-[11px] flex items-center gap-1 mb-2", getAlert("CTL Bodega")!.severidad === "alta" ? "text-destructive" : "text-duppla-orange")}><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Bodega")!.descripcion}</p>
+                                              {getAlert("CTL Depósito") && (
+                                                <p className={cn("text-[11px] flex items-center gap-1 mb-2", getAlert("CTL Depósito")!.severidad === "alta" ? "text-destructive" : "text-duppla-orange")}><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {getAlert("CTL Depósito")!.descripcion}</p>
                                               )}
                                               <div className="space-y-1">
                                                 <DItem label="Nombre" value={sel.nombre_ctl_bodega__c} icon={FileText} />
@@ -2470,8 +2493,9 @@ export default function DataPage() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
             {(() => {
+              const isCtlPend = (d: Discrepancia) => d.campo.includes("pendiente") || d.campo.includes("nombre CMA");
               const ctlItems = inmuebles
-                .filter((i) => i.discrepancias.some((d) => d.campo.includes("pendiente")))
+                .filter((i) => i.discrepancias.some(isCtlPend))
                 .sort((a, b) => {
                   const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
                   const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
@@ -2483,14 +2507,14 @@ export default function DataPage() {
                   <p className="text-sm text-muted-foreground font-medium">No hay inmuebles con CTL pendiente.</p>
                 </div>
               );
-              const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(d => d.campo.includes("pendiente")).length, 0);
+              const totalCtl = ctlItems.reduce((sum, i) => sum + i.discrepancias.filter(isCtlPend).length, 0);
               return (
                 <>
                   <p className="text-xs text-muted-foreground mb-3">
-                    <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s), <span className="font-semibold text-foreground">{totalCtl}</span> CTL sin subir a Alejandría.
+                    <span className="font-semibold text-foreground">{ctlItems.length}</span> inmueble(s), <span className="font-semibold text-foreground">{totalCtl}</span> CTL pendientes.
                   </p>
                   {ctlItems.map((i) => {
-                    const ctlDiscs = i.discrepancias.filter((d) => d.campo.includes("pendiente"));
+                    const ctlDiscs = i.discrepancias.filter(isCtlPend);
                     const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
                     const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "—";
                     return (

@@ -37,7 +37,7 @@ const Index = () => {
   const { data: notas = [] } = useNotas();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente" | "anio_actual" | "sin_fecha">("all");
   const [fiduciariaFilter, setFiduciariaFilter] = useState<string>("all");
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
   const [anioDesde, setAnioDesde] = useState<string>("all");
@@ -77,6 +77,18 @@ const Index = () => {
 
   const isLoading = loadingInmuebles || loadingPagos;
   const total = inmuebles.length;
+
+  // Inmuebles con entrega antes del 1 de enero del año de vigencia = deben pagar predial
+  const corteVigencia = `${vigencia}-01-01`;
+  const inmVigencia = inmuebles.filter(i => {
+    const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+    return fecha && fecha < corteVigencia;
+  });
+  const inmAnioActual = inmuebles.filter(i => {
+    const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+    return fecha && fecha >= corteVigencia;
+  });
+  const inmSinFechaEntrega = inmuebles.filter(i => !i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c);
 
   // Filter pagos by selected vigencia year
   const pagosVigencia = pagos.filter((p) => p.anio_vigencia === vigencia);
@@ -138,10 +150,10 @@ const Index = () => {
     return "completo";
   };
 
-  // Count using overall status (all blocks must be paid/included)
-  const pagadosCount = inmuebles.filter((i) => getOverallStatus(i) === "completo").length;
-  const pendientes = total - pagadosCount;
-  const pctPagados = total > 0 ? Math.round((pagadosCount / total) * 100) : 0;
+  // Count using overall status — only for inmuebles that must pay this vigencia
+  const pagadosCount = inmVigencia.filter((i) => getOverallStatus(i) === "completo").length;
+  const pendientesCount = inmVigencia.length - pagadosCount;
+  const pctPagados = inmVigencia.length > 0 ? Math.round((pagadosCount / inmVigencia.length) * 100) : 0;
 
   // Unique values for filter dropdowns
   const fiduciarias = useMemo(() => {
@@ -174,8 +186,23 @@ const Index = () => {
     const q = search.toLowerCase();
     const matchesSearch = i.Name?.toLowerCase().includes(q) || i.Id?.toLowerCase().includes(q) || i.Ciudad_Inmueble__c?.toLowerCase().includes(q) || i.Opportunity__r?.Name?.toLowerCase().includes(q) || i.chip_apartamento__c?.toLowerCase().includes(q);
     if (!matchesSearch) return false;
-    if (statusFilter === "pagado" && getOverallStatus(i) !== "completo") return false;
-    if (statusFilter === "pendiente" && getOverallStatus(i) === "completo") return false;
+    if (statusFilter === "pagado") {
+      const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+      if (!fecha || fecha >= corteVigencia) return false;
+      if (getOverallStatus(i) !== "completo") return false;
+    }
+    if (statusFilter === "pendiente") {
+      const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+      if (!fecha || fecha >= corteVigencia) return false;
+      if (getOverallStatus(i) === "completo") return false;
+    }
+    if (statusFilter === "anio_actual") {
+      const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
+      if (!fecha || fecha < corteVigencia) return false;
+    }
+    if (statusFilter === "sin_fecha") {
+      if (i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c) return false;
+    }
     if (fiduciariaFilter !== "all" && getFiduciariaName(i) !== fiduciariaFilter) return false;
     if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
     if (anioDesde !== "all" || anioHasta !== "all") {
@@ -348,16 +375,17 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard title="Total Inmuebles" value={total} subtitle="En Duppla" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => { setStatusFilter("all"); setSelectedId(null); }} active={statusFilter === "all"} />
-              <KpiCard title="Prediales Pagados" value={pagadosCount} subtitle="Registrados" icon={CheckCircle2} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" onClick={() => { const next = statusFilter === "pagado" ? "all" : "pagado"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "pagado"} />
-              <KpiCard title="Pendientes" value={pendientes} subtitle="Sin registro" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" onClick={() => { const next = statusFilter === "pendiente" ? "all" : "pendiente"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "pendiente"} />
-              <KpiCard title="Monto Total Pagado" value={formatCurrency(montoRecaudado)} subtitle="Total pagado" icon={TrendingUp} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <KpiCard title="Total Inmuebles" value={total} subtitle="Operativos" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => { setStatusFilter("all"); setSelectedId(null); }} active={statusFilter === "all"} />
+              <KpiCard title="Prediales Pagados" value={pagadosCount} subtitle={`De ${inmVigencia.length} a pagar`} icon={CheckCircle2} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" onClick={() => { const next = statusFilter === "pagado" ? "all" : "pagado"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "pagado"} />
+              <KpiCard title="Pendientes" value={pendientesCount} subtitle={`De ${inmVigencia.length} a pagar`} icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" onClick={() => { const next = statusFilter === "pendiente" ? "all" : "pendiente"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "pendiente"} />
+              <KpiCard title={`Ingreso ${vigencia}`} value={inmAnioActual.length} subtitle={inmSinFechaEntrega.length > 0 ? `+ ${inmSinFechaEntrega.length} sin fecha` : "Predial ya cubierto"} icon={CalendarIcon} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => { const next = statusFilter === "anio_actual" ? "all" : "anio_actual"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "anio_actual"} />
+              <KpiCard title="Monto Pagado" value={formatCurrency(montoRecaudado)} subtitle={`Vigencia ${vigencia}`} icon={DollarSign} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
             </div>
             <div className="bg-card rounded-lg border px-4 py-2.5 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">{pctPagados}% completado — Vigencia {vigencia}</span>
-                <span className="text-muted-foreground">{pagadosCount} de {total}</span>
+                <span className="text-muted-foreground font-medium">{pctPagados}% completado — {inmVigencia.length} inmuebles vigencia {vigencia}</span>
+                <span className="text-muted-foreground">{pagadosCount} de {inmVigencia.length}</span>
               </div>
               <Progress value={pctPagados} className="h-2" />
             </div>
@@ -730,7 +758,7 @@ const Index = () => {
                           {showCtlDeposito(selected) && (
                             <div className="border-t border-border/40 pt-3 mt-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Bodega</h3>
+                                <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm"><FileText className="w-4 h-4 text-primary" /> CTL Depósito</h3>
                                 {((selected as any).tiene_ctl_bodega || tieneCtlSource('bodega')) ? (
                                   tieneCtlSource('bodega') ? (
                                     <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full", esCtlR2O('bodega') ? "text-primary bg-duppla-green-light" : "text-duppla-orange bg-duppla-orange/10")}>{esCtlR2O('bodega') ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />} {ctlLabel('bodega')}</span>
