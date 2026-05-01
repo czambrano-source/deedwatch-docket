@@ -1260,7 +1260,6 @@ export default function DataPage() {
         }
       }
 
-      // Si es deposito y escribieron numero, guardar en Supabase (SF aun no tiene el campo)
       // Si es CTL doble (Nombre + NIT), actualizar campo secundario + guardar tipo CTL
       if ((fixDiscrepancia as any).es_ctl_doble) {
         if ((fixDiscrepancia as any).campo_sf_secundario && fixValorSecundario) {
@@ -2606,7 +2605,7 @@ export default function DataPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{isNumeroDepositoField(fixDiscrepancia) ? "Corregir Depósito" : "Confirmar corrección en Salesforce"}</DialogTitle>
-            <DialogDescription>{isNumeroDepositoField(fixDiscrepancia) ? "Se actualizará Deposito__c en SF y el número en Supabase." : "Se actualizará el siguiente campo en Salesforce."}</DialogDescription>
+            <DialogDescription>Se actualizará el siguiente campo en Salesforce.</DialogDescription>
           </DialogHeader>
           {fixDiscrepancia && (
             <div className="space-y-4 py-2">
@@ -2734,7 +2733,7 @@ export default function DataPage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Numero de deposito (Supabase — campo SF pendiente)</label>
+                  <label className="text-xs text-muted-foreground">Número del depósito (numero_deposito__c)</label>
                   <Input
                     value={fixNumeroDeposito}
                     onChange={(e) => setFixNumeroDeposito(e.target.value)}
