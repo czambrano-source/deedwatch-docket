@@ -233,14 +233,15 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
       }
     }
 
-    // CTL con nombre incorrecto (a nombre de CMA, no de la fiducia)
+    // CTL con nombre incorrecto: solo CMA sin fiduciaria
     const CMA_NAME = "COMPRA MIENTRAS ALQUILAS";
+    const FIDUCIARIA = "FIDUCIARIA";
     const nombreCtlInm = ((i as any).nombre_ctl_inmueble__c || "").toUpperCase();
     const nombreCtlParq = ((i as any).nombre_ctl_parqueadero__c || "").toUpperCase();
     const nombreCtlBod = ((i as any).nombre_ctl_bodega__c || "").toUpperCase();
     const p2 = ensure(i);
 
-    if (nombreCtlInm.includes(CMA_NAME) && !p2.discrepancias.some(d => d.campo === "CTL Fiducia pendiente")) {
+    if (nombreCtlInm.includes(CMA_NAME) && !nombreCtlInm.includes(FIDUCIARIA) && !p2.discrepancias.some(d => d.campo === "CTL Fiducia pendiente")) {
       p2.discrepancias.push({
         tipo: "CTL",
         severidad: "alta",
@@ -248,7 +249,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         descripcion: `CTL a nombre de "${(i as any).nombre_ctl_inmueble__c}" — debe estar a nombre de la fiducia`,
       });
     }
-    if (nombreCtlParq.includes(CMA_NAME) && !p2.discrepancias.some(d => d.campo === "CTL Parqueadero pendiente")) {
+    if (nombreCtlParq.includes(CMA_NAME) && !nombreCtlParq.includes(FIDUCIARIA) && !p2.discrepancias.some(d => d.campo === "CTL Parqueadero pendiente")) {
       p2.discrepancias.push({
         tipo: "CTL",
         severidad: "alta",
@@ -256,7 +257,7 @@ function buildProblemas(inmuebles: Inmueble[]): InmuebleProblema[] {
         descripcion: `CTL Parqueadero a nombre de "${(i as any).nombre_ctl_parqueadero__c}" — debe estar a nombre de la fiducia`,
       });
     }
-    if (nombreCtlBod.includes(CMA_NAME) && !p2.discrepancias.some(d => d.campo === "CTL Bodega pendiente")) {
+    if (nombreCtlBod.includes(CMA_NAME) && !nombreCtlBod.includes(FIDUCIARIA) && !p2.discrepancias.some(d => d.campo === "CTL Bodega pendiente")) {
       p2.discrepancias.push({
         tipo: "CTL",
         severidad: "alta",
