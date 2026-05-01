@@ -472,7 +472,7 @@ export default function DataPage() {
     });
     // CTL Faltante: inmuebles con campos CTL vacíos en SF
     const isCtlEmpty = (v: any) => !v || String(v).trim() === "";
-    const ctlFaltante = rawInmuebles.filter(r => isCtlEmpty((r as any).nombre_ctl_inmueble__c) && isCtlEmpty((r as any).nit_ctl_inmueble__c)).length;
+    const ctlFaltante = rawInmuebles.filter(r => isCtlEmpty((r as any).nombre_ctl_inmueble__c) || isCtlEmpty((r as any).nit_ctl_inmueble__c)).length;
     return { total: rawInmuebles.length, conProblemas: inmuebles.length, ctlFaltante, escritura, media, baja, ctlPendiente, ctlProximo };
   }, [inmuebles, rawInmuebles]);
 
@@ -634,7 +634,7 @@ export default function DataPage() {
       } else if (severidadFilter === "ctl_faltante") {
         const empty = (v: any) => !v || String(v).trim() === "";
         result = result.filter((i) =>
-          empty((i.raw as any).nombre_ctl_inmueble__c) && empty((i.raw as any).nit_ctl_inmueble__c)
+          empty((i.raw as any).nombre_ctl_inmueble__c) || empty((i.raw as any).nit_ctl_inmueble__c)
         );
       } else if (severidadFilter === "escritura") {
         result = result.filter((i) =>
