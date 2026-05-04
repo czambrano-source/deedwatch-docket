@@ -17,7 +17,7 @@ import { KpiCard } from "@/components/predial/KpiCard";
 import { cn } from "@/lib/utils";
 import type { Inmueble } from "@/types/inmueble";
 
-const PROCESOS_SALIENTE = ["En proceso de venta"];
+const PROCESOS_SALIENTE = ["En Proceso de Venta"];
 
 const TIPO_META: Record<TipoServicio, { label: string; icon: any; color: string; refField: string }> = {
   gas: { label: "Gas", icon: Flame, color: "text-orange-600", refField: "Referencia_de_Pago_del_Servicio_de_Gas_N__c" },
