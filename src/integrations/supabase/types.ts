@@ -443,6 +443,7 @@ export type Database = {
           error_msg: string | null
           id: string
           resultado: Json | null
+          retry_count: number
           status: string
           updated_at: string | null
         }
@@ -452,6 +453,7 @@ export type Database = {
           error_msg?: string | null
           id?: string
           resultado?: Json | null
+          retry_count?: number
           status?: string
           updated_at?: string | null
         }
@@ -461,8 +463,33 @@ export type Database = {
           error_msg?: string | null
           id?: string
           resultado?: Json | null
+          retry_count?: number
           status?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      app_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
         }
         Relationships: []
       }
@@ -496,6 +523,153 @@ export type Database = {
         }
         Relationships: []
       }
+      asset_market_sale: {
+        Row: {
+          asset_id: string
+          comentario: string | null
+          comprador_documento: string | null
+          comprador_nombre: string | null
+          created_at: string
+          dias_en_mercado: number | null
+          fecha_firma_pcv: string | null
+          fecha_inicio_preparacion: string | null
+          fecha_inicio_venta_mercado: string | null
+          handoff_child_asset_id: string | null
+          handoff_completed_at: string | null
+          impacto_tir: number | null
+          inmueble_code: string
+          leads_detalle: string | null
+          ofertas_recibidas: string | null
+          portafolio_confirmado: string | null
+          precio_minimo_venta: number | null
+          precio_r2o: number | null
+          precio_venta: number | null
+          precio_venta_final: number | null
+          tipo_salida: string | null
+          updated_at: string
+          valor_mercado: number | null
+        }
+        Insert: {
+          asset_id: string
+          comentario?: string | null
+          comprador_documento?: string | null
+          comprador_nombre?: string | null
+          created_at?: string
+          dias_en_mercado?: number | null
+          fecha_firma_pcv?: string | null
+          fecha_inicio_preparacion?: string | null
+          fecha_inicio_venta_mercado?: string | null
+          handoff_child_asset_id?: string | null
+          handoff_completed_at?: string | null
+          impacto_tir?: number | null
+          inmueble_code: string
+          leads_detalle?: string | null
+          ofertas_recibidas?: string | null
+          portafolio_confirmado?: string | null
+          precio_minimo_venta?: number | null
+          precio_r2o?: number | null
+          precio_venta?: number | null
+          precio_venta_final?: number | null
+          tipo_salida?: string | null
+          updated_at?: string
+          valor_mercado?: number | null
+        }
+        Update: {
+          asset_id?: string
+          comentario?: string | null
+          comprador_documento?: string | null
+          comprador_nombre?: string | null
+          created_at?: string
+          dias_en_mercado?: number | null
+          fecha_firma_pcv?: string | null
+          fecha_inicio_preparacion?: string | null
+          fecha_inicio_venta_mercado?: string | null
+          handoff_child_asset_id?: string | null
+          handoff_completed_at?: string | null
+          impacto_tir?: number | null
+          inmueble_code?: string
+          leads_detalle?: string | null
+          ofertas_recibidas?: string | null
+          portafolio_confirmado?: string | null
+          precio_minimo_venta?: number | null
+          precio_r2o?: number | null
+          precio_venta?: number | null
+          precio_venta_final?: number | null
+          tipo_salida?: string | null
+          updated_at?: string
+          valor_mercado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_market_sale_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: true
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_market_sale_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: true
+            referencedRelation: "v_asset_lineage"
+            referencedColumns: ["current_asset_id"]
+          },
+        ]
+      }
+      asset_price_history: {
+        Row: {
+          asset_id: string
+          campo: string
+          changed_at: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          inmueble_code: string
+          process_type: string | null
+          valor_anterior: number | null
+          valor_nuevo: number
+        }
+        Insert: {
+          asset_id: string
+          campo: string
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          inmueble_code: string
+          process_type?: string | null
+          valor_anterior?: number | null
+          valor_nuevo: number
+        }
+        Update: {
+          asset_id?: string
+          campo?: string
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          inmueble_code?: string
+          process_type?: string | null
+          valor_anterior?: number | null
+          valor_nuevo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_price_history_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_price_history_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_asset_lineage"
+            referencedColumns: ["current_asset_id"]
+          },
+        ]
+      }
       assets: {
         Row: {
           client_name: string
@@ -507,7 +681,9 @@ export type Database = {
           inmueble_code: string | null
           is_watchlist: boolean | null
           metadata: Json | null
+          origin_process_type: string | null
           overall_progress: number | null
+          parent_asset_id: string | null
           status: string | null
           updated_at: string | null
           watchlist_category: string | null
@@ -523,7 +699,9 @@ export type Database = {
           inmueble_code?: string | null
           is_watchlist?: boolean | null
           metadata?: Json | null
+          origin_process_type?: string | null
           overall_progress?: number | null
+          parent_asset_id?: string | null
           status?: string | null
           updated_at?: string | null
           watchlist_category?: string | null
@@ -539,11 +717,52 @@ export type Database = {
           inmueble_code?: string | null
           is_watchlist?: boolean | null
           metadata?: Json | null
+          origin_process_type?: string | null
           overall_progress?: number | null
+          parent_asset_id?: string | null
           status?: string | null
           updated_at?: string | null
           watchlist_category?: string | null
           watchlist_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_parent_asset_id_fkey"
+            columns: ["parent_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_parent_asset_id_fkey"
+            columns: ["parent_asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_asset_lineage"
+            referencedColumns: ["current_asset_id"]
+          },
+        ]
+      }
+      bot_redirecciones: {
+        Row: {
+          cedula: string
+          created_at: string
+          id: string
+          motivo: string
+          telefono: string
+        }
+        Insert: {
+          cedula: string
+          created_at?: string
+          id?: string
+          motivo: string
+          telefono: string
+        }
+        Update: {
+          cedula?: string
+          created_at?: string
+          id?: string
+          motivo?: string
+          telefono?: string
         }
         Relationships: []
       }
@@ -655,6 +874,84 @@ export type Database = {
         }
         Relationships: []
       }
+      call_log: {
+        Row: {
+          agent_email: string | null
+          agent_name: string | null
+          call_date: string | null
+          created_at: string | null
+          has_objections: boolean | null
+          id: string
+          meeting_id: string | null
+          opportunity_id: string
+        }
+        Insert: {
+          agent_email?: string | null
+          agent_name?: string | null
+          call_date?: string | null
+          created_at?: string | null
+          has_objections?: boolean | null
+          id?: string
+          meeting_id?: string | null
+          opportunity_id: string
+        }
+        Update: {
+          agent_email?: string | null
+          agent_name?: string | null
+          call_date?: string | null
+          created_at?: string | null
+          has_objections?: boolean | null
+          id?: string
+          meeting_id?: string | null
+          opportunity_id?: string
+        }
+        Relationships: []
+      }
+      call_objections: {
+        Row: {
+          agent_email: string | null
+          agent_name: string | null
+          agent_response: string | null
+          call_date: string | null
+          category: string
+          created_at: string | null
+          id: string
+          meeting_id: string
+          objection_text: string
+          opportunity_id: string | null
+          resolved: boolean | null
+          subcategory: string | null
+        }
+        Insert: {
+          agent_email?: string | null
+          agent_name?: string | null
+          agent_response?: string | null
+          call_date?: string | null
+          category: string
+          created_at?: string | null
+          id?: string
+          meeting_id: string
+          objection_text: string
+          opportunity_id?: string | null
+          resolved?: boolean | null
+          subcategory?: string | null
+        }
+        Update: {
+          agent_email?: string | null
+          agent_name?: string | null
+          agent_response?: string | null
+          call_date?: string | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          meeting_id?: string
+          objection_text?: string
+          opportunity_id?: string | null
+          resolved?: boolean | null
+          subcategory?: string | null
+        }
+        Relationships: []
+      }
       campaign_name_mapping: {
         Row: {
           campaign_group: string | null
@@ -688,6 +985,335 @@ export type Database = {
           meta_campaign_name?: string | null
           sf_campaign_id?: string | null
           sf_campaign_name?: string | null
+        }
+        Relationships: []
+      }
+      candidatos: {
+        Row: {
+          cargo_aplicado: string | null
+          cedula: string | null
+          created_at: string | null
+          email: string
+          id: string
+          nombre: string
+          telefono: string | null
+        }
+        Insert: {
+          cargo_aplicado?: string | null
+          cedula?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          nombre: string
+          telefono?: string | null
+        }
+        Update: {
+          cargo_aplicado?: string | null
+          cedula?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          nombre?: string
+          telefono?: string | null
+        }
+        Relationships: []
+      }
+      cartera_gestiones: {
+        Row: {
+          agente: string | null
+          clasificacion: string | null
+          cliente_id: string
+          compromisos: Json | null
+          created_at: string
+          duracion_segundos: number | null
+          fuente: string | null
+          id: string
+          notas: string | null
+          proxima_accion_fecha: string | null
+          proxima_accion_hora: string | null
+          tipificacion_label: string | null
+        }
+        Insert: {
+          agente?: string | null
+          clasificacion?: string | null
+          cliente_id: string
+          compromisos?: Json | null
+          created_at?: string
+          duracion_segundos?: number | null
+          fuente?: string | null
+          id?: string
+          notas?: string | null
+          proxima_accion_fecha?: string | null
+          proxima_accion_hora?: string | null
+          tipificacion_label?: string | null
+        }
+        Update: {
+          agente?: string | null
+          clasificacion?: string | null
+          cliente_id?: string
+          compromisos?: Json | null
+          created_at?: string
+          duracion_segundos?: number | null
+          fuente?: string | null
+          id?: string
+          notas?: string | null
+          proxima_accion_fecha?: string | null
+          proxima_accion_hora?: string | null
+          tipificacion_label?: string | null
+        }
+        Relationships: []
+      }
+      case_category_mapping: {
+        Row: {
+          afectacion_directa: string
+          area_encargada: string
+          categoria: string
+          created_at: string | null
+          id: number
+          proceso: string
+          subtipo_requerimiento: string
+          tipo: string
+          updated_at: string | null
+          usuario_slack_encargado: string | null
+        }
+        Insert: {
+          afectacion_directa: string
+          area_encargada: string
+          categoria: string
+          created_at?: string | null
+          id?: number
+          proceso: string
+          subtipo_requerimiento: string
+          tipo: string
+          updated_at?: string | null
+          usuario_slack_encargado?: string | null
+        }
+        Update: {
+          afectacion_directa?: string
+          area_encargada?: string
+          categoria?: string
+          created_at?: string | null
+          id?: number
+          proceso?: string
+          subtipo_requerimiento?: string
+          tipo?: string
+          updated_at?: string | null
+          usuario_slack_encargado?: string | null
+        }
+        Relationships: []
+      }
+      categorias: {
+        Row: {
+          created_at: string | null
+          id: string
+          id_prueba: string
+          nombre: string
+          num_preguntas: number
+          orden: number
+          tiempo_minutos: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          id_prueba: string
+          nombre: string
+          num_preguntas: number
+          orden?: number
+          tiempo_minutos: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          id_prueba?: string
+          nombre?: string
+          num_preguntas?: number
+          orden?: number
+          tiempo_minutos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_id_prueba_fkey"
+            columns: ["id_prueba"]
+            isOneToOne: false
+            referencedRelation: "pruebas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Comerciales_Ropofy: {
+        Row: {
+          activo: boolean | null
+          correo: string
+          created_at: string | null
+          id: string
+          nombre: string
+          ropofy_id: string
+          telefono: string
+        }
+        Insert: {
+          activo?: boolean | null
+          correo: string
+          created_at?: string | null
+          id?: string
+          nombre: string
+          ropofy_id: string
+          telefono: string
+        }
+        Update: {
+          activo?: boolean | null
+          correo?: string
+          created_at?: string | null
+          id?: string
+          nombre?: string
+          ropofy_id?: string
+          telefono?: string
+        }
+        Relationships: []
+      }
+      comisiones: {
+        Row: {
+          cliente_nombre: string | null
+          comercial: string
+          comision_rate: number
+          comision_total: number
+          created_at: string | null
+          id: string
+          inmueble_id: string | null
+          inmueble_name: string | null
+          mes_origen: string | null
+          notas: string | null
+          opportunity_id: string
+          opportunity_name: string | null
+          owner_sf_id: string | null
+          source: string | null
+          source_ref: string | null
+          t1_fecha_pago: string | null
+          t1_fecha_trigger: string | null
+          t1_monto: number | null
+          t1_status: string | null
+          t2_fecha_pago: string | null
+          t2_fecha_trigger: string | null
+          t2_monto: number | null
+          t2_status: string | null
+          t3_fecha_pago: string | null
+          t3_fecha_trigger: string | null
+          t3_monto: number | null
+          t3_status: string | null
+          tipo_inmueble: string | null
+          updated_at: string | null
+          valor_desembolso: number | null
+        }
+        Insert: {
+          cliente_nombre?: string | null
+          comercial: string
+          comision_rate?: number
+          comision_total?: number
+          created_at?: string | null
+          id?: string
+          inmueble_id?: string | null
+          inmueble_name?: string | null
+          mes_origen?: string | null
+          notas?: string | null
+          opportunity_id: string
+          opportunity_name?: string | null
+          owner_sf_id?: string | null
+          source?: string | null
+          source_ref?: string | null
+          t1_fecha_pago?: string | null
+          t1_fecha_trigger?: string | null
+          t1_monto?: number | null
+          t1_status?: string | null
+          t2_fecha_pago?: string | null
+          t2_fecha_trigger?: string | null
+          t2_monto?: number | null
+          t2_status?: string | null
+          t3_fecha_pago?: string | null
+          t3_fecha_trigger?: string | null
+          t3_monto?: number | null
+          t3_status?: string | null
+          tipo_inmueble?: string | null
+          updated_at?: string | null
+          valor_desembolso?: number | null
+        }
+        Update: {
+          cliente_nombre?: string | null
+          comercial?: string
+          comision_rate?: number
+          comision_total?: number
+          created_at?: string | null
+          id?: string
+          inmueble_id?: string | null
+          inmueble_name?: string | null
+          mes_origen?: string | null
+          notas?: string | null
+          opportunity_id?: string
+          opportunity_name?: string | null
+          owner_sf_id?: string | null
+          source?: string | null
+          source_ref?: string | null
+          t1_fecha_pago?: string | null
+          t1_fecha_trigger?: string | null
+          t1_monto?: number | null
+          t1_status?: string | null
+          t2_fecha_pago?: string | null
+          t2_fecha_trigger?: string | null
+          t2_monto?: number | null
+          t2_status?: string | null
+          t3_fecha_pago?: string | null
+          t3_fecha_trigger?: string | null
+          t3_monto?: number | null
+          t3_status?: string | null
+          tipo_inmueble?: string | null
+          updated_at?: string | null
+          valor_desembolso?: number | null
+        }
+        Relationships: []
+      }
+      comisiones_profiles: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email: string
+          role: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          email: string
+          role: string
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          email?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      comisiones_tramos: {
+        Row: {
+          created_at: string | null
+          id: number
+          rate: number
+          umbral_min: number
+          vigente_desde: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          rate: number
+          umbral_min: number
+          vigente_desde: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          rate?: number
+          umbral_min?: number
+          vigente_desde?: string
+          vigente_hasta?: string | null
         }
         Relationships: []
       }
@@ -855,16 +1481,19 @@ export type Database = {
           avanzo: boolean | null
           comercial: string
           created_at: string | null
+          cumplido: boolean | null
           etapa_cierre: string | null
           etapa_inicio: string
           fecha: string
           id: number
+          inmuebles_cargados: number | null
           numbered_text: string | null
           oportunidad_id: string
           oportunidad_nombre: string
           prioridad: string | null
           score: number | null
           slack_user_id: string
+          tipo_accion: string | null
         }
         Insert: {
           accion?: string | null
@@ -872,16 +1501,19 @@ export type Database = {
           avanzo?: boolean | null
           comercial: string
           created_at?: string | null
+          cumplido?: boolean | null
           etapa_cierre?: string | null
           etapa_inicio: string
           fecha: string
           id?: never
+          inmuebles_cargados?: number | null
           numbered_text?: string | null
           oportunidad_id: string
           oportunidad_nombre: string
           prioridad?: string | null
           score?: number | null
           slack_user_id: string
+          tipo_accion?: string | null
         }
         Update: {
           accion?: string | null
@@ -889,16 +1521,19 @@ export type Database = {
           avanzo?: boolean | null
           comercial?: string
           created_at?: string | null
+          cumplido?: boolean | null
           etapa_cierre?: string | null
           etapa_inicio?: string
           fecha?: string
           id?: never
+          inmuebles_cargados?: number | null
           numbered_text?: string | null
           oportunidad_id?: string
           oportunidad_nombre?: string
           prioridad?: string | null
           score?: number | null
           slack_user_id?: string
+          tipo_accion?: string | null
         }
         Relationships: []
       }
@@ -907,6 +1542,8 @@ export type Database = {
           Campana_ads: string | null
           created_at: string | null
           email: string | null
+          escalado: boolean | null
+          escalado_at: string | null
           id: string
           is_internal: boolean | null
           name: string | null
@@ -916,6 +1553,8 @@ export type Database = {
           Campana_ads?: string | null
           created_at?: string | null
           email?: string | null
+          escalado?: boolean | null
+          escalado_at?: string | null
           id?: string
           is_internal?: boolean | null
           name?: string | null
@@ -925,6 +1564,8 @@ export type Database = {
           Campana_ads?: string | null
           created_at?: string | null
           email?: string | null
+          escalado?: boolean | null
+          escalado_at?: string | null
           id?: string
           is_internal?: boolean | null
           name?: string | null
@@ -1071,6 +1712,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      correcciones_copilot_legal: {
+        Row: {
+          correccion: string
+          created_at: string | null
+          id: string
+          pregunta_original: string
+          respuesta_incorrecta: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seccion_documento: string | null
+          status: string | null
+          usuario: string | null
+        }
+        Insert: {
+          correccion: string
+          created_at?: string | null
+          id?: string
+          pregunta_original: string
+          respuesta_incorrecta?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seccion_documento?: string | null
+          status?: string | null
+          usuario?: string | null
+        }
+        Update: {
+          correccion?: string
+          created_at?: string | null
+          id?: string
+          pregunta_original?: string
+          respuesta_incorrecta?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seccion_documento?: string | null
+          status?: string | null
+          usuario?: string | null
+        }
+        Relationships: []
       }
       ctl_source: {
         Row: {
@@ -1481,6 +2161,45 @@ export type Database = {
           internal_contact_name?: string
           total_conversaciones?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      encuesta_beneficios: {
+        Row: {
+          afiliaria_familiar: string
+          beneficio_prepagada: string
+          created_at: string | null
+          edad_persona_afiliar: string | null
+          entidad_prepagada: string | null
+          id: string
+          kit_bienvenida: string
+          nombre: string
+          preferencia_entidad: string | null
+          tiene_prepagada: string
+        }
+        Insert: {
+          afiliaria_familiar: string
+          beneficio_prepagada: string
+          created_at?: string | null
+          edad_persona_afiliar?: string | null
+          entidad_prepagada?: string | null
+          id?: string
+          kit_bienvenida: string
+          nombre: string
+          preferencia_entidad?: string | null
+          tiene_prepagada: string
+        }
+        Update: {
+          afiliaria_familiar?: string
+          beneficio_prepagada?: string
+          created_at?: string | null
+          edad_persona_afiliar?: string | null
+          entidad_prepagada?: string | null
+          id?: string
+          kit_bienvenida?: string
+          nombre?: string
+          preferencia_entidad?: string | null
+          tiene_prepagada?: string
         }
         Relationships: []
       }
@@ -2128,7 +2847,9 @@ export type Database = {
       }
       entrevista_informacion_solicitante_extranjero: {
         Row: {
+          ciudad_residencia: string | null
           created_at: string | null
+          estado_residencia: string | null
           explicacion_status_migratorio: string | null
           fecha_migracion: string | null
           id_cuenta: string
@@ -2138,7 +2859,9 @@ export type Database = {
           trabajo_extranjero: string | null
         }
         Insert: {
+          ciudad_residencia?: string | null
           created_at?: string | null
+          estado_residencia?: string | null
           explicacion_status_migratorio?: string | null
           fecha_migracion?: string | null
           id_cuenta: string
@@ -2148,7 +2871,9 @@ export type Database = {
           trabajo_extranjero?: string | null
         }
         Update: {
+          ciudad_residencia?: string | null
           created_at?: string | null
+          estado_residencia?: string | null
           explicacion_status_migratorio?: string | null
           fecha_migracion?: string | null
           id_cuenta?: string
@@ -2330,8 +3055,10 @@ export type Database = {
           actividad_economica: string | null
           cabeza_de_hogar: boolean | null
           calidad: string | null
+          ciudad_residencia: string | null
           created_at: string | null
           estado_civil: string | null
+          estado_residencia: string | null
           fecha_nacimiento: string | null
           genero: string | null
           id_cuenta: string
@@ -2339,6 +3066,7 @@ export type Database = {
           nivel_educativo: string | null
           nombre: string | null
           num_id: string | null
+          pais_residencia: string | null
           parentezco: string | null
           tipo_id: string | null
           vive_en_extranjero: boolean | null
@@ -2347,8 +3075,10 @@ export type Database = {
           actividad_economica?: string | null
           cabeza_de_hogar?: boolean | null
           calidad?: string | null
+          ciudad_residencia?: string | null
           created_at?: string | null
           estado_civil?: string | null
+          estado_residencia?: string | null
           fecha_nacimiento?: string | null
           genero?: string | null
           id_cuenta: string
@@ -2356,6 +3086,7 @@ export type Database = {
           nivel_educativo?: string | null
           nombre?: string | null
           num_id?: string | null
+          pais_residencia?: string | null
           parentezco?: string | null
           tipo_id?: string | null
           vive_en_extranjero?: boolean | null
@@ -2364,8 +3095,10 @@ export type Database = {
           actividad_economica?: string | null
           cabeza_de_hogar?: boolean | null
           calidad?: string | null
+          ciudad_residencia?: string | null
           created_at?: string | null
           estado_civil?: string | null
+          estado_residencia?: string | null
           fecha_nacimiento?: string | null
           genero?: string | null
           id_cuenta?: string
@@ -2373,6 +3106,7 @@ export type Database = {
           nivel_educativo?: string | null
           nombre?: string | null
           num_id?: string | null
+          pais_residencia?: string | null
           parentezco?: string | null
           tipo_id?: string | null
           vive_en_extranjero?: boolean | null
@@ -2410,6 +3144,114 @@ export type Database = {
           team?: string
         }
         Relationships: []
+      }
+      etapas: {
+        Row: {
+          docs_requeridos: string[] | null
+          estado: string
+          fecha_completada: string | null
+          fecha_inicio: string | null
+          fecha_limite: string | null
+          id: string
+          nombre: string
+          orden: number
+          responsable_id: string | null
+          sub_etapa_actual: string | null
+          tramite_id: string
+        }
+        Insert: {
+          docs_requeridos?: string[] | null
+          estado?: string
+          fecha_completada?: string | null
+          fecha_inicio?: string | null
+          fecha_limite?: string | null
+          id?: string
+          nombre: string
+          orden: number
+          responsable_id?: string | null
+          sub_etapa_actual?: string | null
+          tramite_id: string
+        }
+        Update: {
+          docs_requeridos?: string[] | null
+          estado?: string
+          fecha_completada?: string | null
+          fecha_inicio?: string | null
+          fecha_limite?: string | null
+          id?: string
+          nombre?: string
+          orden?: number
+          responsable_id?: string | null
+          sub_etapa_actual?: string | null
+          tramite_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapas_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etapas_tramite_id_fkey"
+            columns: ["tramite_id"]
+            isOneToOne: false
+            referencedRelation: "tramites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examenes: {
+        Row: {
+          created_at: string | null
+          estado: string
+          fecha_fin: string | null
+          fecha_inicio: string | null
+          id: string
+          id_candidato: string
+          id_prueba: string
+          puntaje_por_categoria: Json | null
+          puntaje_total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          estado?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          id_candidato: string
+          id_prueba: string
+          puntaje_por_categoria?: Json | null
+          puntaje_total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          estado?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          id_candidato?: string
+          id_prueba?: string
+          puntaje_por_categoria?: Json | null
+          puntaje_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examenes_id_candidato_fkey"
+            columns: ["id_candidato"]
+            isOneToOne: false
+            referencedRelation: "candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examenes_id_prueba_fkey"
+            columns: ["id_prueba"]
+            isOneToOne: false
+            referencedRelation: "pruebas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fixes_log: {
         Row: {
@@ -3204,6 +4046,12 @@ export type Database = {
           ingresos_totales: number | null
           lead_recontactado: boolean | null
           lead_recuperado: boolean | null
+          mkt_comercial_asignado: string | null
+          mkt_comercial_asignado_at: string | null
+          mkt_fecha_ultimo_contacto: string | null
+          mkt_intentos_llamada: number
+          mkt_notas: string | null
+          mkt_ya_contactado: boolean
           nivel_academico: string | null
           nombre_campana: string | null
           nombre_lead: string | null
@@ -3224,6 +4072,8 @@ export type Database = {
           prioridad_llamada: number | null
           proceso_con_inmueble: string | null
           profesion: string | null
+          rango_exceso_cuota_inicial_vs_cuota_inicial_minima: string | null
+          "rango_exceso_suma ingresos vs ingresos min": string | null
           razon_calidad: string | null
           razon_descalificado: string | null
           recomedacion_mora_suma_ingresos: string | null
@@ -3295,6 +4145,12 @@ export type Database = {
           ingresos_totales?: number | null
           lead_recontactado?: boolean | null
           lead_recuperado?: boolean | null
+          mkt_comercial_asignado?: string | null
+          mkt_comercial_asignado_at?: string | null
+          mkt_fecha_ultimo_contacto?: string | null
+          mkt_intentos_llamada?: number
+          mkt_notas?: string | null
+          mkt_ya_contactado?: boolean
           nivel_academico?: string | null
           nombre_campana?: string | null
           nombre_lead?: string | null
@@ -3315,6 +4171,8 @@ export type Database = {
           prioridad_llamada?: number | null
           proceso_con_inmueble?: string | null
           profesion?: string | null
+          rango_exceso_cuota_inicial_vs_cuota_inicial_minima?: string | null
+          "rango_exceso_suma ingresos vs ingresos min"?: string | null
           razon_calidad?: string | null
           razon_descalificado?: string | null
           recomedacion_mora_suma_ingresos?: string | null
@@ -3386,6 +4244,12 @@ export type Database = {
           ingresos_totales?: number | null
           lead_recontactado?: boolean | null
           lead_recuperado?: boolean | null
+          mkt_comercial_asignado?: string | null
+          mkt_comercial_asignado_at?: string | null
+          mkt_fecha_ultimo_contacto?: string | null
+          mkt_intentos_llamada?: number
+          mkt_notas?: string | null
+          mkt_ya_contactado?: boolean
           nivel_academico?: string | null
           nombre_campana?: string | null
           nombre_lead?: string | null
@@ -3406,6 +4270,8 @@ export type Database = {
           prioridad_llamada?: number | null
           proceso_con_inmueble?: string | null
           profesion?: string | null
+          rango_exceso_cuota_inicial_vs_cuota_inicial_minima?: string | null
+          "rango_exceso_suma ingresos vs ingresos min"?: string | null
           razon_calidad?: string | null
           razon_descalificado?: string | null
           recomedacion_mora_suma_ingresos?: string | null
@@ -3429,6 +4295,27 @@ export type Database = {
           ultima_fecha_transferencia?: string | null
           valor_max_inmueble_ci?: number | null
           valor_max_inmueble_in?: number | null
+        }
+        Relationships: []
+      }
+      legal_documents: {
+        Row: {
+          content: string
+          embedding: string | null
+          id: number
+          metadata: Json | null
+        }
+        Insert: {
+          content: string
+          embedding?: string | null
+          id?: number
+          metadata?: Json | null
+        }
+        Update: {
+          content?: string
+          embedding?: string | null
+          id?: number
+          metadata?: Json | null
         }
         Relationships: []
       }
@@ -4192,6 +5079,27 @@ export type Database = {
         }
         Relationships: []
       }
+      notas_data_sf: {
+        Row: {
+          created_at: string | null
+          id: string
+          nota: string
+          salesforce_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nota: string
+          salesforce_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nota?: string
+          salesforce_id?: string
+        }
+        Relationships: []
+      }
       notas_predial: {
         Row: {
           created_at: string
@@ -4213,6 +5121,24 @@ export type Database = {
           nota?: string
           salesforce_id?: string
           tipo_predio?: string
+        }
+        Relationships: []
+      }
+      numero_deposito: {
+        Row: {
+          numero: string
+          salesforce_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          numero: string
+          salesforce_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          numero?: string
+          salesforce_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -5506,6 +6432,66 @@ export type Database = {
           },
         ]
       }
+      preguntas: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          enunciado: string
+          id: string
+          id_categoria: string
+          id_prueba: string
+          opcion_a: string
+          opcion_b: string
+          opcion_c: string
+          opcion_d: string
+          orden: number
+          respuesta_correcta: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          enunciado: string
+          id?: string
+          id_categoria: string
+          id_prueba: string
+          opcion_a: string
+          opcion_b: string
+          opcion_c: string
+          opcion_d: string
+          orden?: number
+          respuesta_correcta: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          enunciado?: string
+          id?: string
+          id_categoria?: string
+          id_prueba?: string
+          opcion_a?: string
+          opcion_b?: string
+          opcion_c?: string
+          opcion_d?: string
+          orden?: number
+          respuesta_correcta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preguntas_id_categoria_fkey"
+            columns: ["id_categoria"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preguntas_id_prueba_fkey"
+            columns: ["id_prueba"]
+            isOneToOne: false
+            referencedRelation: "pruebas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_definitions: {
         Row: {
           created_at: string | null
@@ -5572,6 +6558,277 @@ export type Database = {
         }
         Relationships: []
       }
+      property_capture_whitelist: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name: string
+          phone: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: []
+      }
+      property_lead_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          message_type: string
+          property_lead_id: string
+          raw_payload: Json | null
+          sender: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          message_type?: string
+          property_lead_id: string
+          raw_payload?: Json | null
+          sender: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          message_type?: string
+          property_lead_id?: string
+          raw_payload?: Json | null
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_lead_messages_property_lead_id_fkey"
+            columns: ["property_lead_id"]
+            isOneToOne: false
+            referencedRelation: "property_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_lead_photos: {
+        Row: {
+          ai_description: string | null
+          created_at: string | null
+          id: string
+          photo_type: string | null
+          photo_url: string
+          property_lead_id: string
+        }
+        Insert: {
+          ai_description?: string | null
+          created_at?: string | null
+          id?: string
+          photo_type?: string | null
+          photo_url: string
+          property_lead_id: string
+        }
+        Update: {
+          ai_description?: string | null
+          created_at?: string | null
+          id?: string
+          photo_type?: string | null
+          photo_url?: string
+          property_lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_lead_photos_property_lead_id_fkey"
+            columns: ["property_lead_id"]
+            isOneToOne: false
+            referencedRelation: "property_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_leads: {
+        Row: {
+          ano_construccion: number | null
+          area_construida: number | null
+          area_privada: number | null
+          banco_hipoteca: string | null
+          banos: number | null
+          banos_con_ducha: number | null
+          banos_sin_ducha: number | null
+          barrio: string | null
+          captured_by_name: string | null
+          captured_by_phone: string
+          ciudad: string | null
+          conjunto_cerrado: boolean | null
+          conversation_summary: string | null
+          created_at: string | null
+          ctl_image_url: string | null
+          ctl_recibido: boolean | null
+          detalle_inquilinos: string | null
+          detalle_remodelacion: string | null
+          direccion: string | null
+          esta_arrendado: boolean | null
+          estrato: number | null
+          fotos_count: number | null
+          habitaciones: number | null
+          id: string
+          info_sector: string | null
+          last_message_at: string | null
+          letrero_image_url: string | null
+          letrero_raw_text: string | null
+          localidad: string | null
+          metros_cuadrados: number | null
+          nombre_conjunto: string | null
+          notas_agente: string | null
+          numero_inmueble: string | null
+          parqueadero: boolean | null
+          parqueadero_tipo: string | null
+          patrimonio_familia: boolean | null
+          piso: number | null
+          pisos_edificio: number | null
+          precio_pedido: number | null
+          propiedad_horizontal: boolean | null
+          remodelado: boolean | null
+          retry_count: number | null
+          saldo_hipoteca: number | null
+          seller_name: string | null
+          seller_phone: string | null
+          status: string
+          tiene_ascensor: boolean | null
+          tiene_deposito: boolean | null
+          tiene_hipoteca: boolean | null
+          tiene_porteria: boolean | null
+          tipo_inmueble: string | null
+          torre: string | null
+          updated_at: string | null
+          url_listado: string | null
+          vista: string | null
+        }
+        Insert: {
+          ano_construccion?: number | null
+          area_construida?: number | null
+          area_privada?: number | null
+          banco_hipoteca?: string | null
+          banos?: number | null
+          banos_con_ducha?: number | null
+          banos_sin_ducha?: number | null
+          barrio?: string | null
+          captured_by_name?: string | null
+          captured_by_phone: string
+          ciudad?: string | null
+          conjunto_cerrado?: boolean | null
+          conversation_summary?: string | null
+          created_at?: string | null
+          ctl_image_url?: string | null
+          ctl_recibido?: boolean | null
+          detalle_inquilinos?: string | null
+          detalle_remodelacion?: string | null
+          direccion?: string | null
+          esta_arrendado?: boolean | null
+          estrato?: number | null
+          fotos_count?: number | null
+          habitaciones?: number | null
+          id?: string
+          info_sector?: string | null
+          last_message_at?: string | null
+          letrero_image_url?: string | null
+          letrero_raw_text?: string | null
+          localidad?: string | null
+          metros_cuadrados?: number | null
+          nombre_conjunto?: string | null
+          notas_agente?: string | null
+          numero_inmueble?: string | null
+          parqueadero?: boolean | null
+          parqueadero_tipo?: string | null
+          patrimonio_familia?: boolean | null
+          piso?: number | null
+          pisos_edificio?: number | null
+          precio_pedido?: number | null
+          propiedad_horizontal?: boolean | null
+          remodelado?: boolean | null
+          retry_count?: number | null
+          saldo_hipoteca?: number | null
+          seller_name?: string | null
+          seller_phone?: string | null
+          status?: string
+          tiene_ascensor?: boolean | null
+          tiene_deposito?: boolean | null
+          tiene_hipoteca?: boolean | null
+          tiene_porteria?: boolean | null
+          tipo_inmueble?: string | null
+          torre?: string | null
+          updated_at?: string | null
+          url_listado?: string | null
+          vista?: string | null
+        }
+        Update: {
+          ano_construccion?: number | null
+          area_construida?: number | null
+          area_privada?: number | null
+          banco_hipoteca?: string | null
+          banos?: number | null
+          banos_con_ducha?: number | null
+          banos_sin_ducha?: number | null
+          barrio?: string | null
+          captured_by_name?: string | null
+          captured_by_phone?: string
+          ciudad?: string | null
+          conjunto_cerrado?: boolean | null
+          conversation_summary?: string | null
+          created_at?: string | null
+          ctl_image_url?: string | null
+          ctl_recibido?: boolean | null
+          detalle_inquilinos?: string | null
+          detalle_remodelacion?: string | null
+          direccion?: string | null
+          esta_arrendado?: boolean | null
+          estrato?: number | null
+          fotos_count?: number | null
+          habitaciones?: number | null
+          id?: string
+          info_sector?: string | null
+          last_message_at?: string | null
+          letrero_image_url?: string | null
+          letrero_raw_text?: string | null
+          localidad?: string | null
+          metros_cuadrados?: number | null
+          nombre_conjunto?: string | null
+          notas_agente?: string | null
+          numero_inmueble?: string | null
+          parqueadero?: boolean | null
+          parqueadero_tipo?: string | null
+          patrimonio_familia?: boolean | null
+          piso?: number | null
+          pisos_edificio?: number | null
+          precio_pedido?: number | null
+          propiedad_horizontal?: boolean | null
+          remodelado?: boolean | null
+          retry_count?: number | null
+          saldo_hipoteca?: number | null
+          seller_name?: string | null
+          seller_phone?: string | null
+          status?: string
+          tiene_ascensor?: boolean | null
+          tiene_deposito?: boolean | null
+          tiene_hipoteca?: boolean | null
+          tiene_porteria?: boolean | null
+          tipo_inmueble?: string | null
+          torre?: string | null
+          updated_at?: string | null
+          url_listado?: string | null
+          vista?: string | null
+        }
+        Relationships: []
+      }
       proyecciones_comerciales: {
         Row: {
           id: number
@@ -5593,6 +6850,33 @@ export type Database = {
           meta_comercial?: number
           porcentaje_brokers?: number
           porcentaje_marketing?: number
+        }
+        Relationships: []
+      }
+      pruebas: {
+        Row: {
+          activa: boolean | null
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+          tiempo_limite_minutos: number | null
+        }
+        Insert: {
+          activa?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre: string
+          tiempo_limite_minutos?: number | null
+        }
+        Update: {
+          activa?: boolean | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          tiempo_limite_minutos?: number | null
         }
         Relationships: []
       }
@@ -5808,6 +7092,157 @@ export type Database = {
         }
         Relationships: []
       }
+      report_approvals: {
+        Row: {
+          approved_at: string | null
+          id: string
+          report_id: string
+          responsible: string
+          section_id: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          id?: string
+          report_id: string
+          responsible: string
+          section_id: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          id?: string
+          report_id?: string
+          responsible?: string
+          section_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_approvals_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_auto_fill_snapshots: {
+        Row: {
+          fetched_at: string | null
+          id: string
+          report_id: string
+          response_data: Json
+          source_endpoint: string
+        }
+        Insert: {
+          fetched_at?: string | null
+          id?: string
+          report_id: string
+          response_data: Json
+          source_endpoint: string
+        }
+        Update: {
+          fetched_at?: string | null
+          id?: string
+          report_id?: string
+          response_data?: Json
+          source_endpoint?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_auto_fill_snapshots_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_sections: {
+        Row: {
+          data: Json
+          id: string
+          report_id: string
+          section_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          data?: Json
+          id?: string
+          report_id: string
+          section_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          data?: Json
+          id?: string
+          report_id?: string
+          section_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_sections_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      respuestas: {
+        Row: {
+          created_at: string | null
+          es_correcta: boolean | null
+          id: string
+          id_examen: string
+          id_pregunta: string
+          respuesta_seleccionada: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          es_correcta?: boolean | null
+          id?: string
+          id_examen: string
+          id_pregunta: string
+          respuesta_seleccionada?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          es_correcta?: boolean | null
+          id?: string
+          id_examen?: string
+          id_pregunta?: string
+          respuesta_seleccionada?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "respuestas_id_examen_fkey"
+            columns: ["id_examen"]
+            isOneToOne: false
+            referencedRelation: "examenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "respuestas_id_examen_fkey"
+            columns: ["id_examen"]
+            isOneToOne: false
+            referencedRelation: "vista_resultados"
+            referencedColumns: ["id_examen"]
+          },
+          {
+            foreignKeyName: "respuestas_id_pregunta_fkey"
+            columns: ["id_pregunta"]
+            isOneToOne: false
+            referencedRelation: "preguntas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resumen_inmuebles_mensual: {
         Row: {
           anio: number
@@ -5844,36 +7279,547 @@ export type Database = {
         }
         Relationships: []
       }
+      revision_360_jobs: {
+        Row: {
+          codigo_inmueble: string | null
+          created_at: string | null
+          error: string | null
+          id: string
+          id_inmueble: string | null
+          id_oportunidad: string | null
+          resultado: Json | null
+          retry_count: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          codigo_inmueble?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          id_inmueble?: string | null
+          id_oportunidad?: string | null
+          resultado?: Json | null
+          retry_count?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          codigo_inmueble?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          id_inmueble?: string | null
+          id_oportunidad?: string | null
+          resultado?: Json | null
+          retry_count?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      risk_shadow_log: {
+        Row: {
+          alternativa_si_ajuste: string | null
+          comentario_sugerido_sf: string | null
+          condiciones: string | null
+          condiciones_sugeridas: Json | null
+          confianza: number | null
+          created_at: string
+          datos_buro: Json | null
+          datos_financieros: Json | null
+          decision_humana_final: string | null
+          decision_humana_match: boolean | null
+          error_message: string | null
+          evaluacion_cliente_id: string | null
+          id: string
+          llm_model: string | null
+          llm_raw_response: Json | null
+          motivo: string | null
+          opportunity_id: string
+          opportunity_name: string | null
+          racional_principal: Json | null
+          recomendacion: string
+          red_flags: Json | null
+          resumen_1_linea: string | null
+          slack_channel: string | null
+          slack_fallback_used: boolean | null
+          slack_message_ts: string | null
+          stage: string | null
+          workitem_id: string | null
+        }
+        Insert: {
+          alternativa_si_ajuste?: string | null
+          comentario_sugerido_sf?: string | null
+          condiciones?: string | null
+          condiciones_sugeridas?: Json | null
+          confianza?: number | null
+          created_at?: string
+          datos_buro?: Json | null
+          datos_financieros?: Json | null
+          decision_humana_final?: string | null
+          decision_humana_match?: boolean | null
+          error_message?: string | null
+          evaluacion_cliente_id?: string | null
+          id?: string
+          llm_model?: string | null
+          llm_raw_response?: Json | null
+          motivo?: string | null
+          opportunity_id: string
+          opportunity_name?: string | null
+          racional_principal?: Json | null
+          recomendacion: string
+          red_flags?: Json | null
+          resumen_1_linea?: string | null
+          slack_channel?: string | null
+          slack_fallback_used?: boolean | null
+          slack_message_ts?: string | null
+          stage?: string | null
+          workitem_id?: string | null
+        }
+        Update: {
+          alternativa_si_ajuste?: string | null
+          comentario_sugerido_sf?: string | null
+          condiciones?: string | null
+          condiciones_sugeridas?: Json | null
+          confianza?: number | null
+          created_at?: string
+          datos_buro?: Json | null
+          datos_financieros?: Json | null
+          decision_humana_final?: string | null
+          decision_humana_match?: boolean | null
+          error_message?: string | null
+          evaluacion_cliente_id?: string | null
+          id?: string
+          llm_model?: string | null
+          llm_raw_response?: Json | null
+          motivo?: string | null
+          opportunity_id?: string
+          opportunity_name?: string | null
+          racional_principal?: Json | null
+          recomendacion?: string
+          red_flags?: Json | null
+          resumen_1_linea?: string | null
+          slack_channel?: string | null
+          slack_fallback_used?: boolean | null
+          slack_message_ts?: string | null
+          stage?: string | null
+          workitem_id?: string | null
+        }
+        Relationships: []
+      }
+      ruleta_ratings: {
+        Row: {
+          comentario: string | null
+          id: number
+          rater_email: string | null
+          rater_nombre: string | null
+          scores: Json | null
+          session_id: string | null
+          submitted_at: string | null
+        }
+        Insert: {
+          comentario?: string | null
+          id?: number
+          rater_email?: string | null
+          rater_nombre?: string | null
+          scores?: Json | null
+          session_id?: string | null
+          submitted_at?: string | null
+        }
+        Update: {
+          comentario?: string | null
+          id?: number
+          rater_email?: string | null
+          rater_nombre?: string | null
+          scores?: Json | null
+          session_id?: string | null
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ruleta_ratings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ruleta_sessions"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      ruleta_sessions: {
+        Row: {
+          call_duration: number | null
+          call_happened_at: string | null
+          call_id: string | null
+          call_name: string | null
+          call_url: string | null
+          closed_at: string | null
+          comercial_email: string | null
+          comercial_nombre: string | null
+          created_at: string | null
+          score_global: number | null
+          session_id: string
+          summary_text: string | null
+        }
+        Insert: {
+          call_duration?: number | null
+          call_happened_at?: string | null
+          call_id?: string | null
+          call_name?: string | null
+          call_url?: string | null
+          closed_at?: string | null
+          comercial_email?: string | null
+          comercial_nombre?: string | null
+          created_at?: string | null
+          score_global?: number | null
+          session_id: string
+          summary_text?: string | null
+        }
+        Update: {
+          call_duration?: number | null
+          call_happened_at?: string | null
+          call_id?: string | null
+          call_name?: string | null
+          call_url?: string | null
+          closed_at?: string | null
+          comercial_email?: string | null
+          comercial_nombre?: string | null
+          created_at?: string | null
+          score_global?: number | null
+          session_id?: string
+          summary_text?: string | null
+        }
+        Relationships: []
+      }
       seguimiento_acuerdos: {
         Row: {
+          acuerdo_pago_id: number | null
           cedula: string | null
           enviado_at: string | null
           factura: string | null
           id: string
-          id_acuerdo: string
+          id_acuerdo: string | null
+          mensaje: string | null
           nivel: string
           nombre_cliente: string | null
           telefono: string | null
         }
         Insert: {
+          acuerdo_pago_id?: number | null
           cedula?: string | null
           enviado_at?: string | null
           factura?: string | null
           id?: string
-          id_acuerdo: string
+          id_acuerdo?: string | null
+          mensaje?: string | null
           nivel: string
           nombre_cliente?: string | null
           telefono?: string | null
         }
         Update: {
+          acuerdo_pago_id?: number | null
           cedula?: string | null
           enviado_at?: string | null
           factura?: string | null
           id?: string
-          id_acuerdo?: string
+          id_acuerdo?: string | null
+          mensaje?: string | null
           nivel?: string
           nombre_cliente?: string | null
           telefono?: string | null
+        }
+        Relationships: []
+      }
+      signo_bienes_inmuebles: {
+        Row: {
+          created_at: string | null
+          direcciones: string[] | null
+          escritura_id: number | null
+          escritura_ref: string | null
+          id: number
+          modelo_descripcion: string | null
+          radicado: string
+          raw_data: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          direcciones?: string[] | null
+          escritura_id?: number | null
+          escritura_ref?: string | null
+          id?: number
+          modelo_descripcion?: string | null
+          radicado: string
+          raw_data?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          direcciones?: string[] | null
+          escritura_id?: number | null
+          escritura_ref?: string | null
+          id?: number
+          modelo_descripcion?: string | null
+          radicado?: string
+          raw_data?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signo_bienes_inmuebles_escritura_id_fkey"
+            columns: ["escritura_id"]
+            isOneToOne: false
+            referencedRelation: "signo_escrituras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signo_escritura_actos: {
+        Row: {
+          created_at: string | null
+          cuantia: number | null
+          descripcion: string | null
+          escritura_id: number | null
+          id: number
+          modelo: string
+        }
+        Insert: {
+          created_at?: string | null
+          cuantia?: number | null
+          descripcion?: string | null
+          escritura_id?: number | null
+          id?: number
+          modelo: string
+        }
+        Update: {
+          created_at?: string | null
+          cuantia?: number | null
+          descripcion?: string | null
+          escritura_id?: number | null
+          id?: number
+          modelo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signo_escritura_actos_escritura_id_fkey"
+            columns: ["escritura_id"]
+            isOneToOne: false
+            referencedRelation: "signo_escrituras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signo_escritura_partes: {
+        Row: {
+          created_at: string | null
+          escritura_id: number | null
+          id: number
+          nombre: string
+          numero_documento: string
+          rol: string
+          tipo_documento: string
+        }
+        Insert: {
+          created_at?: string | null
+          escritura_id?: number | null
+          id?: number
+          nombre: string
+          numero_documento: string
+          rol: string
+          tipo_documento: string
+        }
+        Update: {
+          created_at?: string | null
+          escritura_id?: number | null
+          id?: number
+          nombre?: string
+          numero_documento?: string
+          rol?: string
+          tipo_documento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signo_escritura_partes_escritura_id_fkey"
+            columns: ["escritura_id"]
+            isOneToOne: false
+            referencedRelation: "signo_escrituras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signo_escrituras: {
+        Row: {
+          created_at: string | null
+          estado: string
+          facturas: string[] | null
+          fecha: string
+          id: number
+          modelo_descripcion: string | null
+          numero_escritura: number
+          radicado: string
+          raw_data: Json | null
+          sub_estado: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          estado: string
+          facturas?: string[] | null
+          fecha: string
+          id?: number
+          modelo_descripcion?: string | null
+          numero_escritura: number
+          radicado: string
+          raw_data?: Json | null
+          sub_estado?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          estado?: string
+          facturas?: string[] | null
+          fecha?: string
+          id?: number
+          modelo_descripcion?: string | null
+          numero_escritura?: number
+          radicado?: string
+          raw_data?: Json | null
+          sub_estado?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      signo_radicados: {
+        Row: {
+          created_at: string | null
+          escritura_id: number | null
+          escritura_ref: string | null
+          estado: string | null
+          fecha_firma: string | null
+          fecha_solicitud: string | null
+          id: number
+          modelo_descripcion: string | null
+          radicado: string
+          raw_data: Json | null
+          sub_estado: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          escritura_id?: number | null
+          escritura_ref?: string | null
+          estado?: string | null
+          fecha_firma?: string | null
+          fecha_solicitud?: string | null
+          id?: number
+          modelo_descripcion?: string | null
+          radicado: string
+          raw_data?: Json | null
+          sub_estado?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          escritura_id?: number | null
+          escritura_ref?: string | null
+          estado?: string | null
+          fecha_firma?: string | null
+          fecha_solicitud?: string | null
+          id?: number
+          modelo_descripcion?: string | null
+          radicado?: string
+          raw_data?: Json | null
+          sub_estado?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signo_radicados_escritura_id_fkey"
+            columns: ["escritura_id"]
+            isOneToOne: false
+            referencedRelation: "signo_escrituras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signo_sync_log: {
+        Row: {
+          bienes_actualizados: number | null
+          bienes_nuevos: number | null
+          duration_seconds: number | null
+          errors: Json | null
+          escrituras_actualizadas: number | null
+          escrituras_nuevas: number | null
+          finished_at: string | null
+          id: number
+          radicados_actualizados: number | null
+          radicados_nuevos: number | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          bienes_actualizados?: number | null
+          bienes_nuevos?: number | null
+          duration_seconds?: number | null
+          errors?: Json | null
+          escrituras_actualizadas?: number | null
+          escrituras_nuevas?: number | null
+          finished_at?: string | null
+          id?: number
+          radicados_actualizados?: number | null
+          radicados_nuevos?: number | null
+          started_at?: string | null
+          status: string
+        }
+        Update: {
+          bienes_actualizados?: number | null
+          bienes_nuevos?: number | null
+          duration_seconds?: number | null
+          errors?: Json | null
+          escrituras_actualizadas?: number | null
+          escrituras_nuevas?: number | null
+          finished_at?: string | null
+          id?: number
+          radicados_actualizados?: number | null
+          radicados_nuevos?: number | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      Stages_SF_Ropofy: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          position: number | null
+          ropofy_pipeline_id: string
+          ropofy_stage_id: string
+          ropofy_stage_name: string
+          sf_stage_name: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          position?: number | null
+          ropofy_pipeline_id: string
+          ropofy_stage_id: string
+          ropofy_stage_name: string
+          sf_stage_name: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          position?: number | null
+          ropofy_pipeline_id?: string
+          ropofy_stage_id?: string
+          ropofy_stage_name?: string
+          sf_stage_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -6010,6 +7956,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "step_states_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_asset_lineage"
+            referencedColumns: ["current_asset_id"]
           },
         ]
       }
@@ -6229,6 +8182,144 @@ export type Database = {
         }
         Relationships: []
       }
+      tramite_matriculas: {
+        Row: {
+          id: string
+          matricula: string
+          tipo: string
+          tramite_id: string
+        }
+        Insert: {
+          id?: string
+          matricula: string
+          tipo: string
+          tramite_id: string
+        }
+        Update: {
+          id?: string
+          matricula?: string
+          tipo?: string
+          tramite_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tramite_matriculas_tramite_id_fkey"
+            columns: ["tramite_id"]
+            isOneToOne: false
+            referencedRelation: "tramites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tramite_tipos: {
+        Row: {
+          descripcion: string | null
+          etapas_default: Json
+          id: string
+          nombre: string
+        }
+        Insert: {
+          descripcion?: string | null
+          etapas_default: Json
+          id?: string
+          nombre: string
+        }
+        Update: {
+          descripcion?: string | null
+          etapas_default?: Json
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      tramites: {
+        Row: {
+          acto_principal: string | null
+          cancelaciones: string[] | null
+          cliente_duppla: string | null
+          comentarios_juridicos: string | null
+          created_at: string | null
+          estado: string
+          etapa_actual_id: string | null
+          fecha_inicio: string | null
+          fecha_limite: string | null
+          fiduciaria: string | null
+          id: string
+          notaria: string | null
+          notas: string | null
+          numero_radicado: string | null
+          prioridad: number | null
+          responsable_id: string | null
+          tipo_id: string
+          updated_at: string | null
+          vendedor: string | null
+        }
+        Insert: {
+          acto_principal?: string | null
+          cancelaciones?: string[] | null
+          cliente_duppla?: string | null
+          comentarios_juridicos?: string | null
+          created_at?: string | null
+          estado?: string
+          etapa_actual_id?: string | null
+          fecha_inicio?: string | null
+          fecha_limite?: string | null
+          fiduciaria?: string | null
+          id?: string
+          notaria?: string | null
+          notas?: string | null
+          numero_radicado?: string | null
+          prioridad?: number | null
+          responsable_id?: string | null
+          tipo_id: string
+          updated_at?: string | null
+          vendedor?: string | null
+        }
+        Update: {
+          acto_principal?: string | null
+          cancelaciones?: string[] | null
+          cliente_duppla?: string | null
+          comentarios_juridicos?: string | null
+          created_at?: string | null
+          estado?: string
+          etapa_actual_id?: string | null
+          fecha_inicio?: string | null
+          fecha_limite?: string | null
+          fiduciaria?: string | null
+          id?: string
+          notaria?: string | null
+          notas?: string | null
+          numero_radicado?: string | null
+          prioridad?: number | null
+          responsable_id?: string | null
+          tipo_id?: string
+          updated_at?: string | null
+          vendedor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_etapa_actual"
+            columns: ["etapa_actual_id"]
+            isOneToOne: false
+            referencedRelation: "etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tramites_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tramites_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "tramite_tipos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tramites_operaciones_comerciales: {
         Row: {
           celular_cliente: string | null
@@ -6375,6 +8466,27 @@ export type Database = {
         }
         Relationships: []
       }
+      usuarios: {
+        Row: {
+          email: string
+          id: string
+          nombre: string
+          rol: string
+        }
+        Insert: {
+          email: string
+          id: string
+          nombre: string
+          rol: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          nombre?: string
+          rol?: string
+        }
+        Relationships: []
+      }
       verificacion_certificacion_bancaria: {
         Row: {
           banco_certificacion: string | null
@@ -6444,6 +8556,189 @@ export type Database = {
         }
         Relationships: []
       }
+      visit_request_rejections: {
+        Row: {
+          id: string
+          rejected_at: string
+          rejected_by_org: string
+          rejected_by_user: string
+          visit_request_id: string
+        }
+        Insert: {
+          id?: string
+          rejected_at?: string
+          rejected_by_org: string
+          rejected_by_user: string
+          visit_request_id: string
+        }
+        Update: {
+          id?: string
+          rejected_at?: string
+          rejected_by_org?: string
+          rejected_by_user?: string
+          visit_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_request_rejections_rejected_by_org_fkey"
+            columns: ["rejected_by_org"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_request_rejections_visit_request_id_fkey"
+            columns: ["visit_request_id"]
+            isOneToOne: false
+            referencedRelation: "visit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visit_requests: {
+        Row: {
+          assigned_visitor_name: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          confirmed_slot: string | null
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          created_by: string
+          created_by_org: string
+          id: string
+          notas_gestor: string | null
+          notes: string | null
+          ocupacion: Database["public"]["Enums"]["visit_request_ocupacion"]
+          proposed_slot_1: string
+          proposed_slot_2: string | null
+          proposed_slot_3: string | null
+          report_alejandria_uuid: string | null
+          report_documento_id: number | null
+          report_uploaded_at: string | null
+          sf_opportunity_id: string
+          status: Database["public"]["Enums"]["visit_request_status"]
+          taken_at: string | null
+          taken_by_org: string | null
+          taken_by_user: string | null
+          tipo_cliente: Database["public"]["Enums"]["visit_request_tipo_cliente"]
+          updated_at: string
+        }
+        Insert: {
+          assigned_visitor_name?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          confirmed_slot?: string | null
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          created_by: string
+          created_by_org: string
+          id?: string
+          notas_gestor?: string | null
+          notes?: string | null
+          ocupacion: Database["public"]["Enums"]["visit_request_ocupacion"]
+          proposed_slot_1: string
+          proposed_slot_2?: string | null
+          proposed_slot_3?: string | null
+          report_alejandria_uuid?: string | null
+          report_documento_id?: number | null
+          report_uploaded_at?: string | null
+          sf_opportunity_id: string
+          status?: Database["public"]["Enums"]["visit_request_status"]
+          taken_at?: string | null
+          taken_by_org?: string | null
+          taken_by_user?: string | null
+          tipo_cliente: Database["public"]["Enums"]["visit_request_tipo_cliente"]
+          updated_at?: string
+        }
+        Update: {
+          assigned_visitor_name?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          confirmed_slot?: string | null
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          created_by?: string
+          created_by_org?: string
+          id?: string
+          notas_gestor?: string | null
+          notes?: string | null
+          ocupacion?: Database["public"]["Enums"]["visit_request_ocupacion"]
+          proposed_slot_1?: string
+          proposed_slot_2?: string | null
+          proposed_slot_3?: string | null
+          report_alejandria_uuid?: string | null
+          report_documento_id?: number | null
+          report_uploaded_at?: string | null
+          sf_opportunity_id?: string
+          status?: Database["public"]["Enums"]["visit_request_status"]
+          taken_at?: string | null
+          taken_by_org?: string | null
+          taken_by_user?: string | null
+          tipo_cliente?: Database["public"]["Enums"]["visit_request_tipo_cliente"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_requests_created_by_org_fkey"
+            columns: ["created_by_org"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_requests_taken_by_org_fkey"
+            columns: ["taken_by_org"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_reports: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          fecha: string
+          id: string
+          published_at: string | null
+          share_token: string | null
+          status: string
+          updated_at: string | null
+          week_number: number
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          fecha: string
+          id?: string
+          published_at?: string | null
+          share_token?: string | null
+          status?: string
+          updated_at?: string | null
+          week_number: number
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          fecha?: string
+          id?: string
+          published_at?: string | null
+          share_token?: string | null
+          status?: string
+          updated_at?: string | null
+          week_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       pyg_activos_materialized: {
@@ -6478,6 +8773,92 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string | null
+        }
+        Relationships: []
+      }
+      v_agent_objection_performance: {
+        Row: {
+          agent_email: string | null
+          agent_name: string | null
+          avg_objections_per_call: number | null
+          resolution_rate: number | null
+          resolved: number | null
+          total_calls: number | null
+          total_objections: number | null
+          unresolved: number | null
+        }
+        Relationships: []
+      }
+      v_asset_lineage: {
+        Row: {
+          current_asset_id: string | null
+          current_process_type: string | null
+          inmueble_code: string | null
+          origin_process_type: string | null
+          parent_asset_id: string | null
+          parent_process_type: string | null
+          parent_status: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_parent_asset_id_fkey"
+            columns: ["parent_asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_parent_asset_id_fkey"
+            columns: ["parent_asset_id"]
+            isOneToOne: false
+            referencedRelation: "v_asset_lineage"
+            referencedColumns: ["current_asset_id"]
+          },
+        ]
+      }
+      v_leads_engaged_fds_perdidos: {
+        Row: {
+          conv_id: string | null
+          inicio_chat: string | null
+          msgs: number | null
+          name: string | null
+          phone: string | null
+        }
+        Relationships: []
+      }
+      v_marketing_comerciales_activos: {
+        Row: {
+          nombre: string | null
+        }
+        Relationships: []
+      }
+      v_weekly_objections: {
+        Row: {
+          category: string | null
+          delta: number | null
+          last_week: number | null
+          resolution_pct: number | null
+          resolved_count: number | null
+          this_week: number | null
+        }
+        Relationships: []
+      }
+      vista_resultados: {
+        Row: {
+          candidato: string | null
+          categoria: string | null
+          cedula: string | null
+          correctas: number | null
+          email: string | null
+          estado: string | null
+          fecha_fin: string | null
+          fecha_inicio: string | null
+          id_examen: string | null
+          porcentaje_categoria: number | null
+          prueba: string | null
+          puntaje_total: number | null
+          total_respondidas: number | null
         }
         Relationships: []
       }
@@ -6566,7 +8947,29 @@ export type Database = {
           last_message_time: string
         }[]
       }
+      cancel_visit_request: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: Json
+      }
       cleanup_users_and_profiles: { Args: never; Returns: undefined }
+      complete_visit_request:
+        | {
+            Args: {
+              p_alejandria_uuid: string
+              p_documento_id?: number
+              p_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_alejandria_uuid: string
+              p_documento_id?: number
+              p_id: string
+              p_notas_gestor?: string
+            }
+            Returns: Json
+          }
       conteo_conversaciones_rango: {
         Args: { fecha_fin: string; fecha_inicio: string }
         Returns: number
@@ -6578,6 +8981,15 @@ export type Database = {
       }
       execute_custom_query: { Args: { sql_text: string }; Returns: undefined }
       execute_custom_query2: { Args: { sql_text: string }; Returns: Json }
+      finalizar_examen: { Args: { p_examen_id: string }; Returns: undefined }
+      get_contacts_by_first_message: {
+        Args: { p_date_from: string; p_date_to: string; p_message: string }
+        Returns: {
+          has_reunion: boolean
+          name: string
+          phone: string
+        }[]
+      }
       get_conversation_filter_options: {
         Args: { p_inbox_id?: string }
         Returns: Json
@@ -6602,9 +9014,12 @@ export type Database = {
           filter_estado_quien_responde?: boolean
           filter_humano_necesario?: boolean
           filter_nego_cedula?: boolean
+          filter_no_avanzo?: boolean
           filter_phone?: string
           filter_pidio_cedula?: boolean
+          filter_primer_mensaje?: string
           filter_responde_primera_pregunta?: boolean
+          filter_tiene_reunion?: boolean
           message_pattern: string
           page_limit?: number
         }
@@ -6649,8 +9064,11 @@ export type Database = {
           filter_estado_quien_responde?: boolean
           filter_humano_necesario?: boolean
           filter_nego_cedula?: boolean
+          filter_no_avanzo?: boolean
           filter_pidio_cedula?: boolean
+          filter_primer_mensaje?: string
           filter_responde_primera_pregunta?: boolean
+          filter_tiene_reunion?: boolean
           page_limit?: number
           search_term: string
         }
@@ -6695,9 +9113,12 @@ export type Database = {
           filter_estado_quien_responde?: boolean
           filter_humano_necesario?: boolean
           filter_nego_cedula?: boolean
+          filter_no_avanzo?: boolean
           filter_phone?: string
           filter_pidio_cedula?: boolean
+          filter_primer_mensaje?: string
           filter_responde_primera_pregunta?: boolean
+          filter_tiene_reunion?: boolean
           page_limit?: number
         }
         Returns: {
@@ -6742,9 +9163,12 @@ export type Database = {
           filter_estado_quien_responde?: boolean
           filter_humano_necesario?: boolean
           filter_nego_cedula?: boolean
+          filter_no_avanzo?: boolean
           filter_phone?: string
           filter_pidio_cedula?: boolean
+          filter_primer_mensaje?: string
           filter_responde_primera_pregunta?: boolean
+          filter_tiene_reunion?: boolean
           inbox_id: string
           page_limit?: number
         }
@@ -6949,6 +9373,15 @@ export type Database = {
           total_ingreso_adicional: number
         }[]
       }
+      get_message_template_stats: {
+        Args: { p_date_from: string; p_date_to: string }
+        Returns: {
+          conteo_clientes: number
+          message: string
+          oportunidades_generadas: number
+          reuniones_agendadas: number
+        }[]
+      }
       get_messages_with_contacts: {
         Args: { p_conversation_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -6965,6 +9398,7 @@ export type Database = {
           sender_contact_phone: string
         }[]
       }
+      get_my_rol: { Args: never; Returns: string }
       get_org_users_with_email: {
         Args: { org_id_param: string }
         Returns: {
@@ -6972,6 +9406,21 @@ export type Database = {
           email: string
           last_sign_in_at: string
           user_id: string
+        }[]
+      }
+      get_preguntas_examen: {
+        Args: { p_categoria_id: string; p_examen_id: string }
+        Returns: {
+          codigo: string
+          enunciado: string
+          id: string
+          id_categoria: string
+          id_prueba: string
+          opcion_a: string
+          opcion_b: string
+          opcion_c: string
+          opcion_d: string
+          orden: number
         }[]
       }
       get_resolutions_with_agent: {
@@ -7064,6 +9513,7 @@ export type Database = {
         Returns: undefined
       }
       is_duppla_email: { Args: never; Returns: boolean }
+      is_duppla_member: { Args: never; Returns: boolean }
       list_conversations: {
         Args: {
           p_agent_ids: string[]
@@ -7102,6 +9552,15 @@ export type Database = {
           total_count: number
         }[]
       }
+      match_legal_documents: {
+        Args: { filter?: Json; match_count?: number; query_embedding: string }
+        Returns: {
+          content: string
+          id: number
+          metadata: Json
+          similarity: number
+        }[]
+      }
       normalize_phone: { Args: { p_num: string }; Returns: string }
       por_dia_inbox_funnel_conversaciones: {
         Args: {
@@ -7125,6 +9584,18 @@ export type Database = {
           total_conversaciones: number
         }[]
       }
+      registrar_candidato_examen: {
+        Args: {
+          p_cargo_aplicado?: string
+          p_cedula?: string
+          p_email: string
+          p_id_prueba: string
+          p_nombre: string
+          p_telefono?: string
+        }
+        Returns: string
+      }
+      reject_visit_request: { Args: { p_id: string }; Returns: Json }
       rpc_ads_spend_diario_por_campana: {
         Args: { p_from: string; p_to: string }
         Returns: {
@@ -7312,6 +9783,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      take_visit_request: {
+        Args: { p_id: string; p_slot: string; p_visitor_name?: string }
+        Returns: Json
+      }
       tu_funcion_inversiones: {
         Args: {
           p_account_id: string
@@ -7349,6 +9824,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_property_lead_field: {
+        Args: { field_name: string; field_value: string; lead_id: string }
+        Returns: string
+      }
+      update_visitor_name: {
+        Args: { p_id: string; p_name: string }
+        Returns: Json
+      }
       user_is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
@@ -7365,6 +9848,12 @@ export type Database = {
         | "renovacion"
         | "prepago_reinversion"
         | "referido"
+      visit_request_ocupacion:
+        | "ocupado_cliente"
+        | "ocupado_arrendatario"
+        | "vacio"
+      visit_request_status: "open" | "taken" | "completed" | "cancelled"
+      visit_request_tipo_cliente: "extranjero" | "leaseback" | "tipico"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -7507,6 +9996,13 @@ export const Constants = {
         "prepago_reinversion",
         "referido",
       ],
+      visit_request_ocupacion: [
+        "ocupado_cliente",
+        "ocupado_arrendatario",
+        "vacio",
+      ],
+      visit_request_status: ["open", "taken", "completed", "cancelled"],
+      visit_request_tipo_cliente: ["extranjero", "leaseback", "tipico"],
     },
   },
 } as const
