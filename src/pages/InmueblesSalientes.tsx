@@ -450,7 +450,7 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
 
               {/* Panel de acción — igual que prediales */}
               {!noTiene && (
-                <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 justify-start pt-0.5">
+                <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 self-start pt-0.5">
                   <p className="text-xs text-muted-foreground font-medium">Gestión pagos</p>
                   <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-xs" onClick={() => onAddFactura(tipo)}>
                     <Plus className="w-3 h-3 mr-1" /> Registrar mes
