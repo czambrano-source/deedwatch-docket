@@ -136,10 +136,10 @@ export default function InmueblesSalientes() {
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <KpiCard title="Inmuebles salientes" value={totalSalientes} icon={Building2} />
-        <KpiCard title="Obligación Duppla" value={conObligacion} icon={CheckCircle2} />
-        <KpiCard title="Facturas vencidas" value={facturasVencidas} icon={AlertTriangle} />
-        <KpiCard title="Próximas a vencer (5d)" value={facturasProximas} icon={Clock} />
+        <KpiCard title="Inmuebles salientes" value={totalSalientes} subtitle="En proceso de venta" icon={Building2} />
+        <KpiCard title="Obligación Duppla" value={conObligacion} subtitle="Duppla paga servicios" icon={CheckCircle2} />
+        <KpiCard title="Facturas vencidas" value={facturasVencidas} subtitle="Sin pagar" icon={AlertTriangle} />
+        <KpiCard title="Próximas a vencer" value={facturasProximas} subtitle="En 5 días" icon={Clock} />
       </div>
 
       {salientes.length === 0 && !isLoading && (
