@@ -3253,6 +3253,54 @@ export type Database = {
           },
         ]
       }
+      facturas_servicios: {
+        Row: {
+          alerta_enviada: boolean
+          created_at: string
+          fecha_pago: string | null
+          fecha_vencimiento: string | null
+          id: string
+          notas: string | null
+          pagado: boolean
+          referencia_pago: string | null
+          salesforce_id: string
+          tipo_servicio: Database["public"]["Enums"]["tipo_servicio_publico"]
+          updated_at: string
+          url_soporte: string | null
+          valor: number | null
+        }
+        Insert: {
+          alerta_enviada?: boolean
+          created_at?: string
+          fecha_pago?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          notas?: string | null
+          pagado?: boolean
+          referencia_pago?: string | null
+          salesforce_id: string
+          tipo_servicio: Database["public"]["Enums"]["tipo_servicio_publico"]
+          updated_at?: string
+          url_soporte?: string | null
+          valor?: number | null
+        }
+        Update: {
+          alerta_enviada?: boolean
+          created_at?: string
+          fecha_pago?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          notas?: string | null
+          pagado?: boolean
+          referencia_pago?: string | null
+          salesforce_id?: string
+          tipo_servicio?: Database["public"]["Enums"]["tipo_servicio_publico"]
+          updated_at?: string
+          url_soporte?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       fixes_log: {
         Row: {
           chart_target: string | null
@@ -7530,6 +7578,33 @@ export type Database = {
         }
         Relationships: []
       }
+      servicios_publicos_inmueble: {
+        Row: {
+          created_at: string
+          id: string
+          notas: string | null
+          obligacion_duppla: boolean
+          salesforce_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notas?: string | null
+          obligacion_duppla?: boolean
+          salesforce_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notas?: string | null
+          obligacion_duppla?: boolean
+          salesforce_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       signo_bienes_inmuebles: {
         Row: {
           created_at: string | null
@@ -9843,6 +9918,7 @@ export type Database = {
         | "proceso_legal"
         | "sin_informacion"
       liquidation_status: "calculada" | "aprobada" | "pagada" | "rechazada"
+      tipo_servicio_publico: "gas" | "agua" | "energia"
       transaction_type:
         | "nueva"
         | "renovacion"
@@ -9990,6 +10066,7 @@ export const Constants = {
         "sin_informacion",
       ],
       liquidation_status: ["calculada", "aprobada", "pagada", "rechazada"],
+      tipo_servicio_publico: ["gas", "agua", "energia"],
       transaction_type: [
         "nueva",
         "renovacion",
