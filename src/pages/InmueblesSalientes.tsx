@@ -366,98 +366,91 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
 
         return (
           <div key={tipo} className={cn("bg-card rounded-xl border p-4", noTiene && "opacity-60")}>
-            <div className="flex items-center gap-2 mb-3">
-              <Icon className={cn("w-5 h-5", meta.color)} />
-              <h3 className="font-semibold">{meta.label}</h3>
-              {noTiene
-                ? <Badge variant="outline" className="text-xs text-muted-foreground">Sin servicio</Badge>
-                : refSF
-                  ? <Badge variant="outline" className="text-xs">Ref SF: {refSF}</Badge>
-                  : <Badge variant="outline" className="text-xs text-destructive border-destructive/40">No Registra</Badge>
-              }
-            </div>
-            <div className="flex gap-4 items-start">
-              <div className="flex-1 min-w-0">
-                {noTiene ? (
-                  <p className="text-xs text-muted-foreground">Este inmueble no cuenta con servicio de {meta.label.toLowerCase()}.</p>
-                ) : lista.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Sin registros</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-xs text-muted-foreground border-b">
-                          <th className="text-left pb-2 font-medium">Mes</th>
-                          <th className="text-left pb-2 font-medium">Valor</th>
-                          <th className="text-left pb-2 font-medium">Vencimiento</th>
-                          <th className="text-left pb-2 font-medium">Fecha pago</th>
-                          <th className="text-left pb-2 font-medium">Estado</th>
-                          <th className="pb-2" />
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {lista.map((f) => {
-                          const vencida = !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today;
-                          return (
-                            <tr key={f.id} className="text-sm">
-                              <td className="py-2 pr-3 font-medium whitespace-nowrap">
-                                {f.mes_pago ? fmtMes(f.mes_pago) : "—"}
-                              </td>
-                              <td className="py-2 pr-3 whitespace-nowrap">
-                                {f.valor ? `$${Number(f.valor).toLocaleString("es-CO")}` : "—"}
-                              </td>
-                              <td className="py-2 pr-3 text-xs text-muted-foreground whitespace-nowrap">
-                                {f.fecha_vencimiento ?? "—"}
-                              </td>
-                              <td className="py-2 pr-3 text-xs text-muted-foreground whitespace-nowrap">
-                                {f.fecha_pago ?? "—"}
-                              </td>
-                              <td className="py-2 pr-3">
-                                {f.pagado ? (
-                                  <Badge className="bg-duppla-green text-white text-[10px]"><CheckCircle2 className="w-3 h-3 mr-1" />Pagado</Badge>
-                                ) : vencida ? (
-                                  <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="w-3 h-3 mr-1" />Vencido</Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-[10px]"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>
-                                )}
-                              </td>
-                              <td className="py-2">
-                                <div className="flex items-center gap-1">
-                                  {f.url_soporte === "alejandria" && (
-                                    <span title="Soporte en Alejandría" className="text-primary"><Paperclip className="w-3.5 h-3.5" /></span>
-                                  )}
-                                  {f.url_soporte && f.url_soporte !== "alejandria" && (
-                                    <a href={f.url_soporte} target="_blank" rel="noreferrer" className="text-primary"><ExternalLink className="w-3.5 h-3.5" /></a>
-                                  )}
-                                  {!f.pagado && (
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onMarcarPagada(f)} title="Marcar pagado">
-                                      <Check className="w-3.5 h-3.5" />
-                                    </Button>
-                                  )}
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onEliminar(f.id)} title="Eliminar">
-                                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Icon className={cn("w-5 h-5", meta.color)} />
+                <h3 className="font-semibold">{meta.label}</h3>
+                {noTiene
+                  ? <Badge variant="outline" className="text-xs text-muted-foreground">Sin servicio</Badge>
+                  : refSF
+                    ? <Badge variant="outline" className="text-xs">Ref SF: {refSF}</Badge>
+                    : <Badge variant="outline" className="text-xs text-destructive border-destructive/40">No Registra</Badge>
+                }
               </div>
-
-              {/* Panel de acción — igual que prediales */}
               {!noTiene && (
-                <div className="w-[140px] flex-shrink-0 border-l pl-4 flex flex-col gap-2 self-start pt-0.5">
-                  <p className="text-xs text-muted-foreground font-medium">Gestión pagos</p>
-                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-xs" onClick={() => onAddFactura(tipo)}>
-                    <Plus className="w-3 h-3 mr-1" /> Registrar mes
-                  </Button>
-                </div>
+                <Button size="sm" variant="outline" onClick={() => onAddFactura(tipo)}>
+                  <Plus className="w-3 h-3 mr-1" /> Registrar mes
+                </Button>
               )}
             </div>
+            {noTiene ? (
+              <p className="text-xs text-muted-foreground">Este inmueble no cuenta con servicio de {meta.label.toLowerCase()}.</p>
+            ) : lista.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Sin registros</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground border-b">
+                      <th className="text-left pb-2 font-medium">Mes</th>
+                      <th className="text-left pb-2 font-medium">Valor</th>
+                      <th className="text-left pb-2 font-medium">Vencimiento</th>
+                      <th className="text-left pb-2 font-medium">Fecha pago</th>
+                      <th className="text-left pb-2 font-medium">Estado</th>
+                      <th className="pb-2" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {lista.map((f) => {
+                      const vencida = !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today;
+                      return (
+                        <tr key={f.id} className="text-sm">
+                          <td className="py-2 pr-3 font-medium whitespace-nowrap">
+                            {f.mes_pago ? fmtMes(f.mes_pago) : "—"}
+                          </td>
+                          <td className="py-2 pr-3 whitespace-nowrap">
+                            {f.valor ? `$${Number(f.valor).toLocaleString("es-CO")}` : "—"}
+                          </td>
+                          <td className="py-2 pr-3 text-xs text-muted-foreground whitespace-nowrap">
+                            {f.fecha_vencimiento ?? "—"}
+                          </td>
+                          <td className="py-2 pr-3 text-xs text-muted-foreground whitespace-nowrap">
+                            {f.fecha_pago ?? "—"}
+                          </td>
+                          <td className="py-2 pr-3">
+                            {f.pagado ? (
+                              <Badge className="bg-duppla-green text-white text-[10px]"><CheckCircle2 className="w-3 h-3 mr-1" />Pagado</Badge>
+                            ) : vencida ? (
+                              <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="w-3 h-3 mr-1" />Vencido</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px]"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>
+                            )}
+                          </td>
+                          <td className="py-2">
+                            <div className="flex items-center gap-1">
+                              {f.url_soporte === "alejandria" && (
+                                <span title="Soporte en Alejandría" className="text-primary"><Paperclip className="w-3.5 h-3.5" /></span>
+                              )}
+                              {f.url_soporte && f.url_soporte !== "alejandria" && (
+                                <a href={f.url_soporte} target="_blank" rel="noreferrer" className="text-primary"><ExternalLink className="w-3.5 h-3.5" /></a>
+                              )}
+                              {!f.pagado && (
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onMarcarPagada(f)} title="Marcar pagado">
+                                  <Check className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onEliminar(f.id)} title="Eliminar">
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         );
       })}
