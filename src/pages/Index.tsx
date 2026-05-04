@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, X, Upload, Receipt, Eye, MessageSquare, ChevronDown } from "lucide-react";
+import { Building2, Loader2, Search, CheckCircle2, Clock, TrendingUp, Hash, FileText, MapPin, DollarSign, ExternalLink, Calendar as CalendarIcon, Layers, Car, Package, AlertTriangle, X, Upload, Receipt, Wallet, Eye, MessageSquare, ChevronDown } from "lucide-react";
 import { useInmuebles, usePagos, useRecibos, useNotas } from "@/hooks/useInmuebles";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -31,13 +31,15 @@ type TipoPredio = "inmueble" | "parqueadero" | "deposito";
 
 
 const Index = () => {
-  const { data: inmuebles = [], isLoading: loadingInmuebles } = useInmuebles();
+  const { data: inmueblesRaw = [], isLoading: loadingInmuebles } = useInmuebles();
+  // Excluir inmuebles de prueba
+  const inmuebles = inmueblesRaw.filter(i => !i.Name?.toUpperCase().startsWith("PRUEBA"));
   const { data: pagos = [], isLoading: loadingPagos } = usePagos();
   const { data: recibos = [] } = useRecibos();
   const { data: notas = [] } = useNotas();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente" | "anio_actual" | "sin_fecha">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pagado" | "pendiente" | "sin_fecha">("all");
   const [fiduciariaFilter, setFiduciariaFilter] = useState<string>("all");
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
   const [anioDesde, setAnioDesde] = useState<string>("all");
@@ -76,19 +78,33 @@ const Index = () => {
   const tieneCtlSource = (bloque: string) => !!ctlSources[bloque];
 
   const isLoading = loadingInmuebles || loadingPagos;
-  const total = inmuebles.length;
+  // Inmuebles entregados durante o antes del año de vigencia = deben pagar predial de esa vigencia
+  const corteVigencia = `${vigencia + 1}-01-01`;
+  // Base universe scoped to global filters (ciudad, fiduciaria, año escritura, recibo)
+  // KPIs derive from this base so counts always match the visible list when statusFilter is applied.
+  const matchesGlobalFilters = (i: Inmueble) => {
+    if (fiduciariaFilter !== "all" && getFiduciariaName(i) !== fiduciariaFilter) return false;
+    if (ciudadFilter !== "all" && i.Municipio_del__c !== ciudadFilter) return false;
+    if (anioDesde !== "all" || anioHasta !== "all") {
+      const fechaStr = i.Legales__r?.records?.[0]?.Fecha_firma_escritura__c;
+      if (!fechaStr) {
+        if (!incluirSinFecha) return false;
+      } else {
+        const year = new Date(fechaStr).getFullYear();
+        if (anioDesde !== "all" && year < Number(anioDesde)) return false;
+        if (anioHasta !== "all" && year > Number(anioHasta)) return false;
+      }
+    }
+    if (conReciboFilter && !recibos.some((r) => r.salesforce_id === i.Id && r.anio_vigencia === vigencia)) return false;
+    return true;
+  };
+  const inmBase = inmuebles.filter(matchesGlobalFilters);
+  const total = inmBase.length;
 
-  // Inmuebles con entrega antes del 1 de enero del año de vigencia = deben pagar predial
-  const corteVigencia = `${vigencia}-01-01`;
-  const inmVigencia = inmuebles.filter(i => {
+  const inmVigencia = inmBase.filter(i => {
     const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
     return fecha && fecha < corteVigencia;
   });
-  const inmAnioActual = inmuebles.filter(i => {
-    const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
-    return fecha && fecha >= corteVigencia;
-  });
-  const inmSinFechaEntrega = inmuebles.filter(i => !i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c);
 
   // Filter pagos by selected vigencia year
   const pagosVigencia = pagos.filter((p) => p.anio_vigencia === vigencia);
@@ -195,10 +211,6 @@ const Index = () => {
       const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
       if (!fecha || fecha >= corteVigencia) return false;
       if (getOverallStatus(i) === "completo") return false;
-    }
-    if (statusFilter === "anio_actual") {
-      const fecha = i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c;
-      if (!fecha || fecha < corteVigencia) return false;
     }
     if (statusFilter === "sin_fecha") {
       if (i.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c) return false;
@@ -375,12 +387,11 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard title="Total Inmuebles" value={total} subtitle="Operativos" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => { setStatusFilter("all"); setSelectedId(null); }} active={statusFilter === "all"} />
               <KpiCard title="Prediales Pagados" value={pagadosCount} subtitle={`De ${inmVigencia.length} a pagar`} icon={CheckCircle2} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" onClick={() => { const next = statusFilter === "pagado" ? "all" : "pagado"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "pagado"} />
               <KpiCard title="Pendientes" value={pendientesCount} subtitle={`De ${inmVigencia.length} a pagar`} icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" onClick={() => { const next = statusFilter === "pendiente" ? "all" : "pendiente"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "pendiente"} />
-              <KpiCard title={`Ingreso ${vigencia}`} value={inmAnioActual.length} subtitle={inmSinFechaEntrega.length > 0 ? `+ ${inmSinFechaEntrega.length} sin fecha` : "Predial ya cubierto"} icon={CalendarIcon} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" onClick={() => { const next = statusFilter === "anio_actual" ? "all" : "anio_actual"; setStatusFilter(next); setSelectedId(null); }} active={statusFilter === "anio_actual"} />
-              <KpiCard title="Monto Pagado" value={formatCurrency(montoRecaudado)} subtitle={`Vigencia ${vigencia}`} icon={DollarSign} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
+              <KpiCard title="Monto Pagado" value={formatCurrency(montoRecaudado)} subtitle={`Vigencia ${vigencia}`} />
             </div>
             <div className="bg-card rounded-lg border px-4 py-2.5 space-y-1.5">
               <div className="flex items-center justify-between text-xs">

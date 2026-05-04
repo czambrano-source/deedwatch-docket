@@ -4,9 +4,9 @@ interface KpiCardProps {
   title: string;
   value: number | string;
   subtitle: string;
-  icon: LucideIcon;
-  iconBg: string;
-  iconColor: string;
+  icon?: LucideIcon;
+  iconBg?: string;
+  iconColor?: string;
   onClick?: () => void;
   active?: boolean;
 }
@@ -22,9 +22,11 @@ export function KpiCard({ title, value, subtitle, icon: Icon, iconBg, iconColor,
         <p className="text-3xl font-bold mt-1 text-foreground">{value}</p>
         <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
       </div>
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
-        <Icon className={`w-6 h-6 ${iconColor}`} />
-      </div>
+      {Icon && (
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg ?? ""}`}>
+          <Icon className={`w-6 h-6 ${iconColor ?? ""}`} />
+        </div>
+      )}
     </div>
   );
 }
