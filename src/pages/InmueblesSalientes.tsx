@@ -29,6 +29,10 @@ const hasParqueadero = (i: Inmueble) => {
   return false;
 };
 
+const SIN_SERVICIO_VALUES = ["no_tiene", "no tiene", "n/a", "sin_servicio", "no aplica", "no", "0"];
+const sinServicio = (refSF: string | undefined | null) =>
+  !!refSF && SIN_SERVICIO_VALUES.includes(refSF.trim().toLowerCase());
+
 const hasDeposito = (i: Inmueble) => {
   if (i.Deposito__c && !["No", "0", "N/A", "No tiene", "SIN_MATRICULA"].includes(i.Deposito__c)) return true;
   if (i.No_Matricula_Inmo_Deposito__c && !["N/A", "No tiene", "SIN_MATRICULA"].includes(i.No_Matricula_Inmo_Deposito__c)) return true;
@@ -355,25 +359,31 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
         const meta = TIPO_META[tipo];
         const Icon = meta.icon;
         const refSF = (inmueble as any)[meta.refField];
+        const noTiene = sinServicio(refSF);
         const lista = facturas
           .filter((f) => f.tipo_servicio === tipo)
           .sort((a, b) => (b.mes_pago ?? b.created_at ?? "").localeCompare(a.mes_pago ?? a.created_at ?? ""));
 
         return (
-          <div key={tipo} className="bg-card rounded-xl border p-4">
+          <div key={tipo} className={cn("bg-card rounded-xl border p-4", noTiene && "opacity-60")}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Icon className={cn("w-5 h-5", meta.color)} />
                 <h3 className="font-semibold">{meta.label}</h3>
-                {refSF
-                  ? <Badge variant="outline" className="text-xs">Ref SF: {refSF}</Badge>
-                  : <Badge variant="outline" className="text-xs text-destructive border-destructive/40">No Registra</Badge>
+                {noTiene
+                  ? <Badge variant="outline" className="text-xs text-muted-foreground">Sin servicio</Badge>
+                  : refSF
+                    ? <Badge variant="outline" className="text-xs">Ref SF: {refSF}</Badge>
+                    : <Badge variant="outline" className="text-xs text-destructive border-destructive/40">No Registra</Badge>
                 }
               </div>
-              <Button size="sm" variant="outline" onClick={() => onAddFactura(tipo)}>
+              <Button size="sm" variant="outline" onClick={() => onAddFactura(tipo)} disabled={noTiene}>
                 <Plus className="w-3 h-3 mr-1" /> Registrar mes
               </Button>
             </div>
+            {noTiene && (
+              <p className="text-xs text-muted-foreground">Este inmueble no cuenta con servicio de {meta.label.toLowerCase()}.</p>
+            )}
 
             {lista.length === 0 ? (
               <p className="text-xs text-muted-foreground">Sin registros</p>
