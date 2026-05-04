@@ -364,7 +364,10 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
               <div className="flex items-center gap-2">
                 <Icon className={cn("w-5 h-5", meta.color)} />
                 <h3 className="font-semibold">{meta.label}</h3>
-                {refSF && <Badge variant="outline" className="text-xs">Ref SF: {refSF}</Badge>}
+                {refSF
+                  ? <Badge variant="outline" className="text-xs">Ref SF: {refSF}</Badge>
+                  : <Badge variant="outline" className="text-xs text-destructive border-destructive/40">No Registra</Badge>
+                }
               </div>
               <Button size="sm" variant="outline" onClick={() => onAddFactura(tipo)}>
                 <Plus className="w-3 h-3 mr-1" /> Registrar mes
