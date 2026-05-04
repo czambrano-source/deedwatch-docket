@@ -344,7 +344,9 @@ function buildAlertMap(discrepancias: Discrepancia[]): Map<string, { severidad: 
 export default function DataPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: rawInmuebles = [], isLoading, isFetching } = useInmuebles();
+  const { data: rawInmueblesAll = [], isLoading, isFetching } = useInmuebles();
+  // Excluir inmuebles de prueba
+  const rawInmuebles = useMemo(() => rawInmueblesAll.filter((i: any) => !i.Name?.toUpperCase().startsWith("PRUEBA")), [rawInmueblesAll]);
 
   const [view, setView] = useState<"general" | "historial">("general");
 
