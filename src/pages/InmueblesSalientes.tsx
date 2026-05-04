@@ -376,7 +376,7 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
                   : <Badge variant="outline" className="text-xs text-destructive border-destructive/40">No Registra</Badge>
               }
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-start">
               <div className="flex-1 min-w-0">
                 {noTiene ? (
                   <p className="text-xs text-muted-foreground">Este inmueble no cuenta con servicio de {meta.label.toLowerCase()}.</p>
