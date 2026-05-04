@@ -16,6 +16,7 @@ export interface FacturaServicio {
   id: string;
   salesforce_id: string;
   tipo_servicio: TipoServicio;
+  mes_pago?: string | null;
   referencia_pago?: string | null;
   valor?: number | null;
   fecha_vencimiento?: string | null;

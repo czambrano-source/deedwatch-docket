@@ -17,10 +17,10 @@ import type { Inmueble } from "@/types/inmueble";
 
 const PROCESOS_SALIENTE = ["En Proceso de Venta"];
 
-const TIPO_META: Record<TipoServicio, { label: string; icon: any; color: string; refField: string }> = {
-  gas: { label: "Gas", icon: Flame, color: "text-orange-600", refField: "Referencia_de_Pago_del_Servicio_de_Gas_N__c" },
-  agua: { label: "Acueducto", icon: Droplets, color: "text-blue-600", refField: "Referencia_de_Pago_del_Servicio_de_Acued__c" },
-  energia: { label: "Energía", icon: Zap, color: "text-yellow-600", refField: "Referencia_de_Pago_Energia__c" },
+const TIPO_META: Record<TipoServicio, { label: string; icon: any; color: string; bg: string; refField: string }> = {
+  gas:     { label: "Gas",       icon: Flame,    color: "text-orange-600", bg: "bg-orange-50",  refField: "Referencia_de_Pago_del_Servicio_de_Gas_N__c" },
+  agua:    { label: "Acueducto", icon: Droplets,  color: "text-blue-600",   bg: "bg-blue-50",    refField: "Referencia_de_Pago_del_Servicio_de_Acued__c" },
+  energia: { label: "Energía",   icon: Zap,       color: "text-yellow-600", bg: "bg-yellow-50",  refField: "Referencia_de_Pago_Energia__c" },
 };
 
 const hasParqueadero = (i: Inmueble) => {
@@ -34,6 +34,13 @@ const hasDeposito = (i: Inmueble) => {
   if (i.No_Matricula_Inmo_Deposito__c && !["N/A", "No tiene", "SIN_MATRICULA"].includes(i.No_Matricula_Inmo_Deposito__c)) return true;
   return false;
 };
+
+// Formatea "2026-05" → "May 26"
+function fmtMes(mes: string) {
+  const [y, m] = mes.split("-");
+  const names = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  return `${names[parseInt(m) - 1]} ${y.slice(2)}`;
+}
 
 export default function InmueblesSalientes() {
   const qc = useQueryClient();
@@ -83,15 +90,15 @@ export default function InmueblesSalientes() {
       .update({ pagado: true, fecha_pago: today })
       .eq("id", factura.id);
     if (error) return toast.error("Error marcando pago");
-    toast.success("Factura marcada como pagada");
+    toast.success("Registro marcado como pagado");
     qc.invalidateQueries({ queryKey: ["facturas_servicios"] });
   };
 
   const eliminarFactura = async (id: string) => {
-    if (!confirm("¿Eliminar esta factura?")) return;
+    if (!confirm("¿Eliminar este registro?")) return;
     const { error } = await supabase.from("facturas_servicios").delete().eq("id", id);
     if (error) return toast.error("Error eliminando");
-    toast.success("Factura eliminada");
+    toast.success("Registro eliminado");
     qc.invalidateQueries({ queryKey: ["facturas_servicios"] });
   };
 
@@ -112,30 +119,9 @@ export default function InmueblesSalientes() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <KpiCard
-                title="Inmuebles salientes"
-                value={totalSalientes}
-                subtitle="En proceso de venta"
-                icon={Building2}
-                iconBg="bg-duppla-blue-light"
-                iconColor="text-duppla-blue"
-              />
-              <KpiCard
-                title="Facturas vencidas"
-                value={facturasVencidas}
-                subtitle="Sin pagar"
-                icon={AlertTriangle}
-                iconBg="bg-duppla-red-light"
-                iconColor="text-destructive"
-              />
-              <KpiCard
-                title="Próximas a vencer"
-                value={facturasProximas}
-                subtitle="En los próximos 5 días"
-                icon={Clock}
-                iconBg="bg-duppla-orange-light"
-                iconColor="text-duppla-orange"
-              />
+              <KpiCard title="Inmuebles salientes" value={totalSalientes} subtitle="En proceso de venta" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" />
+              <KpiCard title="Facturas vencidas" value={facturasVencidas} subtitle="Sin pagar" icon={AlertTriangle} iconBg="bg-duppla-red-light" iconColor="text-destructive" />
+              <KpiCard title="Próximas a vencer" value={facturasProximas} subtitle="En los próximos 5 días" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" />
             </div>
 
             {salientes.length === 0 && !isLoading && (
@@ -149,12 +135,7 @@ export default function InmueblesSalientes() {
             <div className="bg-card rounded-lg border p-4">
               <div className="relative max-w-md">
                 <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  className="pl-8 h-9 text-sm"
-                  placeholder="Buscar por nombre, dirección u oportunidad..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+                <Input className="pl-8 h-9 text-sm" placeholder="Buscar por nombre, dirección u oportunidad..." value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
             </div>
 
@@ -163,20 +144,17 @@ export default function InmueblesSalientes() {
               <div className="col-span-12 lg:col-span-4">
                 <div className="bg-card rounded-lg border">
                   <div className="px-4 py-3 border-b">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      {filtered.length} inmueble{filtered.length !== 1 ? "s" : ""}
-                    </h3>
+                    <h3 className="text-sm font-semibold">{filtered.length} inmueble{filtered.length !== 1 ? "s" : ""}</h3>
                   </div>
                   <div className="divide-y max-h-[calc(100vh-440px)] overflow-y-auto">
                     {filtered.map((i) => {
                       const facturasInm = facturasPorInmueble.get(i.Id) ?? [];
-                      const vencidas = facturasInm.filter((f) => !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today).length;
                       const isSel = selectedId === i.Id;
                       return (
                         <button
                           key={i.Id}
                           onClick={() => setSelectedId(i.Id)}
-                          className={`w-full text-left p-4 border-b transition-colors hover:bg-muted/50 ${isSel ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"}`}
+                          className={`w-full text-left p-4 transition-colors hover:bg-muted/50 ${isSel ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"}`}
                         >
                           <div className="flex items-start gap-3">
                             <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -184,20 +162,14 @@ export default function InmueblesSalientes() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-sm text-foreground truncate">{i.Name}</p>
-                              <p className="text-xs text-muted-foreground truncate">{i.Opportunity__r?.Name ?? "—"}</p>
-                              {vencidas > 0 && (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-full mt-1">
-                                  <AlertTriangle className="w-3 h-3" /> {vencidas} vencida{vencidas !== 1 ? "s" : ""}
-                                </span>
-                              )}
+                              <p className="text-xs text-muted-foreground truncate mb-1.5">{i.Opportunity__r?.Name ?? "—"}</p>
+                              <ResumenGlobo facturas={facturasInm} today={today} />
                             </div>
                           </div>
                         </button>
                       );
                     })}
-                    {filtered.length === 0 && (
-                      <div className="p-8 text-center text-sm text-muted-foreground">Sin resultados</div>
-                    )}
+                    {filtered.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">Sin resultados</div>}
                   </div>
                 </div>
               </div>
@@ -215,6 +187,7 @@ export default function InmueblesSalientes() {
                   <DetalleInmueble
                     inmueble={selected}
                     facturas={facturasPorInmueble.get(selected.Id) ?? []}
+                    today={today}
                     onAddFactura={(tipo) => setShowFacturaModal({ tipo })}
                     onMarcarPagada={marcarPagada}
                     onEliminar={eliminarFactura}
@@ -238,15 +211,54 @@ export default function InmueblesSalientes() {
   );
 }
 
-function DetalleInmueble({ inmueble, facturas, onAddFactura, onMarcarPagada, onEliminar }: {
+// Resumen compacto en el globo: por cada servicio, último mes registrado
+function ResumenGlobo({ facturas, today }: { facturas: FacturaServicio[]; today: string }) {
+  if (facturas.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      {(["gas", "agua", "energia"] as TipoServicio[]).map((tipo) => {
+        const lista = facturas
+          .filter((f) => f.tipo_servicio === tipo && f.mes_pago)
+          .sort((a, b) => (b.mes_pago ?? "").localeCompare(a.mes_pago ?? ""));
+        if (lista.length === 0) return null;
+        const meta = TIPO_META[tipo];
+        const Icon = meta.icon;
+        return (
+          <div key={tipo} className="flex items-center gap-2 flex-wrap">
+            <Icon className={cn("w-3 h-3 flex-shrink-0", meta.color)} />
+            <div className="flex items-center gap-1 flex-wrap">
+              {lista.slice(0, 3).map((f) => {
+                const vencida = !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today;
+                return (
+                  <span key={f.id} className={cn(
+                    "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                    f.pagado ? "bg-duppla-green-light text-duppla-green" :
+                    vencida ? "bg-destructive/10 text-destructive" :
+                    "bg-muted text-muted-foreground"
+                  )}>
+                    {f.mes_pago ? fmtMes(f.mes_pago) : "—"}
+                    {f.valor ? ` $${(Number(f.valor) / 1000).toFixed(0)}k` : ""}
+                  </span>
+                );
+              })}
+              {lista.length > 3 && <span className="text-[10px] text-muted-foreground">+{lista.length - 3}</span>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPagada, onEliminar }: {
   inmueble: Inmueble;
   facturas: FacturaServicio[];
+  today: string;
   onAddFactura: (t: TipoServicio) => void;
   onMarcarPagada: (f: FacturaServicio) => void;
   onEliminar: (id: string) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -323,65 +335,84 @@ function DetalleInmueble({ inmueble, facturas, onAddFactura, onMarcarPagada, onE
         const meta = TIPO_META[tipo];
         const Icon = meta.icon;
         const refSF = (inmueble as any)[meta.refField];
-        const facturasTipo = facturas.filter((f) => f.tipo_servicio === tipo);
+        const lista = facturas
+          .filter((f) => f.tipo_servicio === tipo)
+          .sort((a, b) => (b.mes_pago ?? b.created_at ?? "").localeCompare(a.mes_pago ?? a.created_at ?? ""));
+
         return (
           <div key={tipo} className="bg-card rounded-xl border p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Icon className={cn("w-5 h-5", meta.color)} />
                 <h3 className="font-semibold">{meta.label}</h3>
-                {refSF ? (
-                  <Badge variant="outline" className="text-xs">Ref SF: {refSF}</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-xs text-muted-foreground">Sin ref. en SF</Badge>
-                )}
+                {refSF && <Badge variant="outline" className="text-xs">Ref SF: {refSF}</Badge>}
               </div>
               <Button size="sm" variant="outline" onClick={() => onAddFactura(tipo)}>
-                <Plus className="w-3 h-3 mr-1" /> Factura
+                <Plus className="w-3 h-3 mr-1" /> Registrar mes
               </Button>
             </div>
-            {facturasTipo.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sin facturas registradas</p>
+
+            {lista.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Sin registros</p>
             ) : (
-              <div className="space-y-2">
-                {facturasTipo.map((f) => {
-                  const vencida = !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today;
-                  return (
-                    <div key={f.id} className={cn(
-                      "flex items-center gap-3 p-2 rounded border text-sm",
-                      f.pagado ? "bg-duppla-green-light/30 border-duppla-green/30" : vencida ? "bg-destructive/5 border-destructive/30" : "bg-card"
-                    )}>
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {f.valor ? `$${Number(f.valor).toLocaleString("es-CO")}` : "Sin valor"}
-                          {f.referencia_pago && <span className="text-xs text-muted-foreground ml-2">Ref: {f.referencia_pago}</span>}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Vence: {f.fecha_vencimiento ?? "—"}
-                          {f.pagado && f.fecha_pago && ` • Pagada el ${f.fecha_pago}`}
-                        </div>
-                      </div>
-                      {f.pagado ? (
-                        <Badge className="bg-duppla-green text-white"><CheckCircle2 className="w-3 h-3 mr-1" />Pagada</Badge>
-                      ) : vencida ? (
-                        <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />Vencida</Badge>
-                      ) : (
-                        <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>
-                      )}
-                      {f.url_soporte && (
-                        <a href={f.url_soporte} target="_blank" rel="noreferrer" className="text-primary"><ExternalLink className="w-4 h-4" /></a>
-                      )}
-                      {!f.pagado && (
-                        <Button size="sm" variant="ghost" onClick={() => onMarcarPagada(f)} title="Marcar pagada">
-                          <Check className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <Button size="sm" variant="ghost" onClick={() => onEliminar(f.id)} title="Eliminar">
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  );
-                })}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground border-b">
+                      <th className="text-left pb-2 font-medium">Mes</th>
+                      <th className="text-left pb-2 font-medium">Valor</th>
+                      <th className="text-left pb-2 font-medium">Vencimiento</th>
+                      <th className="text-left pb-2 font-medium">Fecha pago</th>
+                      <th className="text-left pb-2 font-medium">Estado</th>
+                      <th className="pb-2" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {lista.map((f) => {
+                      const vencida = !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today;
+                      return (
+                        <tr key={f.id} className="text-sm">
+                          <td className="py-2 pr-3 font-medium whitespace-nowrap">
+                            {f.mes_pago ? fmtMes(f.mes_pago) : "—"}
+                          </td>
+                          <td className="py-2 pr-3 whitespace-nowrap">
+                            {f.valor ? `$${Number(f.valor).toLocaleString("es-CO")}` : "—"}
+                          </td>
+                          <td className="py-2 pr-3 text-xs text-muted-foreground whitespace-nowrap">
+                            {f.fecha_vencimiento ?? "—"}
+                          </td>
+                          <td className="py-2 pr-3 text-xs text-muted-foreground whitespace-nowrap">
+                            {f.fecha_pago ?? "—"}
+                          </td>
+                          <td className="py-2 pr-3">
+                            {f.pagado ? (
+                              <Badge className="bg-duppla-green text-white text-[10px]"><CheckCircle2 className="w-3 h-3 mr-1" />Pagado</Badge>
+                            ) : vencida ? (
+                              <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="w-3 h-3 mr-1" />Vencido</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px]"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>
+                            )}
+                          </td>
+                          <td className="py-2">
+                            <div className="flex items-center gap-1">
+                              {f.url_soporte && (
+                                <a href={f.url_soporte} target="_blank" rel="noreferrer" className="text-primary"><ExternalLink className="w-3.5 h-3.5" /></a>
+                              )}
+                              {!f.pagado && (
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onMarcarPagada(f)} title="Marcar pagado">
+                                  <Check className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onEliminar(f.id)} title="Eliminar">
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -397,51 +428,67 @@ function FacturaModal({ tipo, salesforceId, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [referencia, setReferencia] = useState("");
+  const today = new Date().toISOString().slice(0, 10);
+  const currentMonth = today.slice(0, 7);
+  const [mesPago, setMesPago] = useState(currentMonth);
   const [valor, setValor] = useState("");
   const [fechaVenc, setFechaVenc] = useState("");
-  const [notas, setNotas] = useState("");
+  const [fechaPago, setFechaPago] = useState("");
+  const [referencia, setReferencia] = useState("");
   const [saving, setSaving] = useState(false);
 
   const guardar = async () => {
-    if (!fechaVenc) return toast.error("Fecha de vencimiento requerida");
+    if (!mesPago) return toast.error("Mes de pago requerido");
     setSaving(true);
     const { error } = await supabase.from("facturas_servicios").insert({
       salesforce_id: salesforceId,
       tipo_servicio: tipo,
-      referencia_pago: referencia || null,
+      mes_pago: mesPago,
       valor: valor ? Number(valor) : null,
-      fecha_vencimiento: fechaVenc,
-      notas: notas || null,
+      fecha_vencimiento: fechaVenc || null,
+      pagado: !!fechaPago,
+      fecha_pago: fechaPago || null,
+      referencia_pago: referencia || null,
     });
     setSaving(false);
     if (error) return toast.error("Error: " + error.message);
-    toast.success("Factura registrada");
+    toast.success("Registro guardado");
     onSaved();
   };
+
+  const meta = TIPO_META[tipo];
+  const Icon = meta.icon;
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nueva factura — {TIPO_META[tipo].label}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Icon className={cn("w-4 h-4", meta.color)} /> Registrar pago — {meta.label}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
+            <Label>Mes de pago *</Label>
+            <Input type="month" value={mesPago} onChange={(e) => setMesPago(e.target.value)} />
+          </div>
+          <div>
+            <Label>Valor pagado (COP)</Label>
+            <Input type="number" placeholder="Ej: 85000" value={valor} onChange={(e) => setValor(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Fecha de vencimiento</Label>
+              <Input type="date" value={fechaVenc} onChange={(e) => setFechaVenc(e.target.value)} />
+            </div>
+            <div>
+              <Label>Fecha de pago</Label>
+              <Input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} placeholder="Si ya se pagó" />
+            </div>
+          </div>
+          <div>
             <Label>Referencia de pago</Label>
             <Input value={referencia} onChange={(e) => setReferencia(e.target.value)} />
-          </div>
-          <div>
-            <Label>Valor (COP)</Label>
-            <Input type="number" value={valor} onChange={(e) => setValor(e.target.value)} />
-          </div>
-          <div>
-            <Label>Fecha de vencimiento *</Label>
-            <Input type="date" value={fechaVenc} onChange={(e) => setFechaVenc(e.target.value)} />
-          </div>
-          <div>
-            <Label>Notas</Label>
-            <Input value={notas} onChange={(e) => setNotas(e.target.value)} />
           </div>
         </div>
         <DialogFooter>
