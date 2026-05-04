@@ -286,14 +286,18 @@ function DetalleInmueble({ inmueble, facturas, onAddFactura, onMarcarPagada, onE
           <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
             <Car className="w-4 h-4 text-primary" /> Parqueadero
           </h3>
-          <DItem label="Cantidad" value={inmueble.Parqueadero__c != null ? String(inmueble.Parqueadero__c) : undefined} icon={Car} />
-          <DItem label="Número" value={inmueble.numero_del_parqueadero__c} icon={Hash} />
-          {inmueble.numero_de_parqueadero_adicional__c && (
-            <DItem label="Número adicional" value={inmueble.numero_de_parqueadero_adicional__c} icon={Hash} />
-          )}
-          <div className="grid grid-cols-2 gap-x-4">
-            <DItem label="Matrícula" value={inmueble.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
-            <DItem label="Chip" value={inmueble.chip_parqueadero__c} icon={Hash} />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div className="space-y-2">
+              <DItem label="Cantidad" value={inmueble.Parqueadero__c != null ? String(inmueble.Parqueadero__c) : undefined} icon={Car} />
+              <DItem label="Número" value={inmueble.numero_del_parqueadero__c} icon={Hash} />
+              {inmueble.numero_de_parqueadero_adicional__c && (
+                <DItem label="Número adicional" value={inmueble.numero_de_parqueadero_adicional__c} icon={Hash} />
+              )}
+            </div>
+            <div className="space-y-2">
+              <DItem label="Matrícula" value={inmueble.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
+              <DItem label="Chip" value={inmueble.chip_parqueadero__c} icon={Hash} />
+            </div>
           </div>
         </div>
       )}
@@ -304,10 +308,12 @@ function DetalleInmueble({ inmueble, facturas, onAddFactura, onMarcarPagada, onE
           <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
             <Package className="w-4 h-4 text-primary" /> Depósito
           </h3>
-          <DItem label="Número" value={inmueble.numero_deposito__c} icon={Hash} />
           <div className="grid grid-cols-2 gap-x-4">
-            <DItem label="Matrícula" value={inmueble.No_Matricula_Inmo_Deposito__c} icon={FileText} />
-            <DItem label="Chip" value={inmueble.chip_deposito__c} icon={Hash} />
+            <DItem label="Número" value={inmueble.numero_deposito__c} icon={Hash} />
+            <div className="space-y-2">
+              <DItem label="Matrícula" value={inmueble.No_Matricula_Inmo_Deposito__c} icon={FileText} />
+              <DItem label="Chip" value={inmueble.chip_deposito__c} icon={Hash} />
+            </div>
           </div>
         </div>
       )}
