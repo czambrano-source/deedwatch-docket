@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut, FileText, Hash, Layers, Car, Package, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut, FileText, Hash, Layers, Car, Package, ChevronDown, ChevronRight, Upload, Paperclip } from "lucide-react";
 import { useInmuebles } from "@/hooks/useInmuebles";
 import { useFacturasServicios, type TipoServicio, type FacturaServicio } from "@/hooks/useServiciosPublicos";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,6 +203,7 @@ export default function InmueblesSalientes() {
         <FacturaModal
           tipo={showFacturaModal.tipo}
           salesforceId={selected.Id}
+          inmuebleName={selected.Name}
           onClose={() => setShowFacturaModal(null)}
           onSaved={() => { setShowFacturaModal(null); qc.invalidateQueries({ queryKey: ["facturas_servicios"] }); }}
         />
@@ -417,7 +418,10 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
                           </td>
                           <td className="py-2">
                             <div className="flex items-center gap-1">
-                              {f.url_soporte && (
+                              {f.url_soporte === "alejandria" && (
+                                <span title="Soporte en Alejandría" className="text-primary"><Paperclip className="w-3.5 h-3.5" /></span>
+                              )}
+                              {f.url_soporte && f.url_soporte !== "alejandria" && (
                                 <a href={f.url_soporte} target="_blank" rel="noreferrer" className="text-primary"><ExternalLink className="w-3.5 h-3.5" /></a>
                               )}
                               {!f.pagado && (
@@ -444,9 +448,10 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
   );
 }
 
-function FacturaModal({ tipo, salesforceId, onClose, onSaved }: {
+function FacturaModal({ tipo, salesforceId, inmuebleName, onClose, onSaved }: {
   tipo: TipoServicio;
   salesforceId: string;
+  inmuebleName: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -457,25 +462,56 @@ function FacturaModal({ tipo, salesforceId, onClose, onSaved }: {
   const [fechaVenc, setFechaVenc] = useState("");
   const [fechaPago, setFechaPago] = useState("");
   const [referencia, setReferencia] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   const guardar = async () => {
     if (!mesPago) return toast.error("Mes de pago requerido");
     setSaving(true);
-    const { error } = await supabase.from("facturas_servicios").insert({
-      salesforce_id: salesforceId,
-      tipo_servicio: tipo,
-      mes_pago: mesPago,
-      valor: valor ? Number(valor) : null,
-      fecha_vencimiento: fechaVenc || null,
-      pagado: !!fechaPago,
-      fecha_pago: fechaPago || null,
-      referencia_pago: referencia || null,
-    });
-    setSaving(false);
-    if (error) return toast.error("Error: " + error.message);
-    toast.success("Registro guardado");
-    onSaved();
+    try {
+      // 1. Subir soporte a Alejandría si hay archivo
+      let urlSoporte: string | null = null;
+      if (file) {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(",")[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const { error: uploadError } = await supabase.functions.invoke("upload-predial-alejandria", {
+          body: {
+            file_base64: base64,
+            file_name: file.name,
+            id_inmueble: salesforceId,
+            tipo_doc: "factura_de_servicios_publicos_r2o",
+            nombre_inmueble: inmuebleName,
+          },
+        });
+        if (uploadError) throw new Error("Error subiendo soporte a Alejandría");
+        urlSoporte = "alejandria";
+      }
+
+      // 2. Guardar registro en Supabase
+      const { error } = await supabase.from("facturas_servicios").insert({
+        salesforce_id: salesforceId,
+        tipo_servicio: tipo,
+        mes_pago: mesPago,
+        valor: valor ? Number(valor) : null,
+        fecha_vencimiento: fechaVenc || null,
+        pagado: !!fechaPago,
+        fecha_pago: fechaPago || null,
+        referencia_pago: referencia || null,
+        url_soporte: urlSoporte,
+      });
+      if (error) throw new Error(error.message);
+
+      toast.success(file ? "Registro guardado y soporte subido a Alejandría" : "Registro guardado");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e.message ?? "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const meta = TIPO_META[tipo];
@@ -505,12 +541,37 @@ function FacturaModal({ tipo, salesforceId, onClose, onSaved }: {
             </div>
             <div>
               <Label>Fecha de pago</Label>
-              <Input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} placeholder="Si ya se pagó" />
+              <Input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} />
             </div>
           </div>
           <div>
             <Label>Referencia de pago</Label>
             <Input value={referencia} onChange={(e) => setReferencia(e.target.value)} />
+          </div>
+          <div>
+            <Label>Soporte de pago (PDF o imagen)</Label>
+            <div
+              className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors mt-1"
+              onClick={() => document.getElementById("soporte-file")?.click()}
+            >
+              {file ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-foreground">
+                  <Paperclip className="w-4 h-4 text-primary" /> {file.name}
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
+                  <p className="text-xs text-muted-foreground">Clic para adjuntar archivo — se sube a Alejandría</p>
+                </>
+              )}
+            </div>
+            <input
+              id="soporte-file"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              className="hidden"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
           </div>
         </div>
         <DialogFooter>
