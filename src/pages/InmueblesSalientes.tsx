@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, Send, LogOut } from "lucide-react";
+import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut } from "lucide-react";
 import { useInmuebles } from "@/hooks/useInmuebles";
 import { useServiciosPublicos, useFacturasServicios, type TipoServicio, type FacturaServicio } from "@/hooks/useServiciosPublicos";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +33,6 @@ export default function InmueblesSalientes() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showFacturaModal, setShowFacturaModal] = useState<{ tipo: TipoServicio } | null>(null);
-  const [enviandoAlerta, setEnviandoAlerta] = useState(false);
 
   // Filtrar inmuebles salientes
   const salientes = useMemo(() => {
@@ -90,20 +89,6 @@ export default function InmueblesSalientes() {
     qc.invalidateQueries({ queryKey: ["servicios_publicos_inmueble"] });
   };
 
-  const enviarAlertaManual = async () => {
-    setEnviandoAlerta(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("alerta-servicios-vencimiento");
-      if (error) throw error;
-      toast.success(`Alerta enviada a Slack (${data?.sent ?? 0} facturas)`);
-      qc.invalidateQueries({ queryKey: ["facturas_servicios"] });
-    } catch (e: any) {
-      toast.error("Error enviando alerta: " + (e.message ?? e));
-    } finally {
-      setEnviandoAlerta(false);
-    }
-  };
-
   const marcarPagada = async (factura: FacturaServicio) => {
     const { error } = await supabase
       .from("facturas_servicios")
@@ -139,10 +124,6 @@ export default function InmueblesSalientes() {
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1">Seguimiento de servicios públicos en inmuebles en proceso de venta</p>
               </div>
-              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={enviarAlertaManual} disabled={enviandoAlerta}>
-                {enviandoAlerta ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                Enviar alerta a Slack
-              </Button>
             </div>
 
             {/* KPI Cards */}
