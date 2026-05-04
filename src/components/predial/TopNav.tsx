@@ -1,4 +1,4 @@
-import { Building2, BarChart3, Database } from "lucide-react";
+import { Building2, BarChart3, Database, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 export function TopNav() {
@@ -8,6 +8,7 @@ export function TopNav() {
   const tabs = [
     { path: "/", label: "Prediales", icon: BarChart3, match: (p: string) => p === "/" },
     { path: "/data", label: "Data SF", icon: Database, match: (p: string) => p === "/data" },
+    { path: "/inmuebles-salientes", label: "Inmuebles salientes", icon: LogOut, match: (p: string) => p === "/inmuebles-salientes" },
   ];
 
   return (

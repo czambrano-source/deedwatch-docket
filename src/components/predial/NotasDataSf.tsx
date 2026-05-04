@@ -31,7 +31,7 @@ export function NotasDataSfBlock({ salesforceId }: { salesforceId: string }) {
         .eq("salesforce_id", salesforceId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Nota[];
+      return (data ?? []) as unknown as Nota[];
     },
     enabled: expanded,
   });
