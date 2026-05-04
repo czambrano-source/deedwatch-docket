@@ -123,98 +123,156 @@ export default function InmueblesSalientes() {
   };
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Inmuebles salientes</h1>
-          <p className="text-sm text-muted-foreground">Seguimiento de servicios públicos de inmuebles en proceso de venta</p>
+    <div className="min-h-screen bg-background flex flex-col">
+      {isLoading && inmueblesRaw.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-        <Button onClick={enviarAlertaManual} disabled={enviandoAlerta} variant="outline">
-          {enviandoAlerta ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-          Enviar alerta a Slack
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <KpiCard title="Inmuebles salientes" value={totalSalientes} subtitle="En proceso de venta" icon={Building2} />
-        <KpiCard title="Obligación Duppla" value={conObligacion} subtitle="Duppla paga servicios" icon={CheckCircle2} />
-        <KpiCard title="Facturas vencidas" value={facturasVencidas} subtitle="Sin pagar" icon={AlertTriangle} />
-        <KpiCard title="Próximas a vencer" value={facturasProximas} subtitle="En 5 días" icon={Clock} />
-      </div>
-
-      {salientes.length === 0 && !isLoading && (
-        <Card className="mb-4 border-amber-300 bg-amber-50">
-          <CardContent className="p-4 text-sm">
-            <strong className="text-amber-800">Sin datos:</strong> No se encontraron inmuebles con <code>Proceso_entrega_inmueble__c = "En proceso de venta"</code>. Verifica que el webhook de n8n esté incluyendo ese campo en la respuesta.
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-12 gap-4">
-        {/* Lista */}
-        <div className="col-span-5">
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Buscar inmueble..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          {isLoading ? (
-            <div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin" /></div>
-          ) : (
-            <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto">
-              {filtered.map((i) => {
-                const cfg = servicioMap.get(i.Id);
-                const obligacion = cfg?.obligacion_duppla ?? true;
-                const facturasInm = facturasPorInmueble.get(i.Id) ?? [];
-                const vencidas = facturasInm.filter((f) => !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today).length;
-                return (
-                  <button
-                    key={i.Id}
-                    onClick={() => setSelectedId(i.Id)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg border transition-colors",
-                      selectedId === i.Id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium text-sm truncate">{i.Name}</div>
-                      {obligacion ? (
-                        <Badge className="bg-duppla-green text-white text-[10px]"><Check className="w-3 h-3 mr-1" />Duppla paga</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[10px]">Cliente paga</Badge>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                      <MapPin className="w-3 h-3" /> {i.Direccion__c ?? "—"}, {i.Ciudad_Inmueble__c}
-                    </div>
-                    {vencidas > 0 && (
-                      <div className="text-xs text-destructive mt-1 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> {vencidas} factura(s) vencida(s)
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 max-w-7xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <LogOut className="w-6 h-6 text-primary" /> Inmuebles salientes
+                </h1>
+                <p className="text-muted-foreground text-sm mt-1">Seguimiento de servicios públicos en inmuebles en proceso de venta</p>
+              </div>
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={enviarAlertaManual} disabled={enviandoAlerta}>
+                {enviandoAlerta ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                Enviar alerta a Slack
+              </Button>
             </div>
-          )}
-        </div>
 
-        {/* Detalle */}
-        <div className="col-span-7">
-          {!selected ? (
-            <Card><CardContent className="p-12 text-center text-muted-foreground">Selecciona un inmueble para gestionar sus servicios públicos</CardContent></Card>
-          ) : (
-            <DetalleInmueble
-              inmueble={selected}
-              servicio={servicioMap.get(selected.Id)}
-              facturas={facturasPorInmueble.get(selected.Id) ?? []}
-              onToggleObligacion={() => toggleObligacion(selected.Id, servicioMap.get(selected.Id)?.obligacion_duppla ?? true)}
-              onAddFactura={(tipo) => setShowFacturaModal({ tipo })}
-              onMarcarPagada={marcarPagada}
-              onEliminar={eliminarFactura}
-            />
-          )}
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard
+                title="Inmuebles salientes"
+                value={totalSalientes}
+                subtitle="En proceso de venta"
+                icon={Building2}
+                iconBg="bg-duppla-blue-light"
+                iconColor="text-duppla-blue"
+              />
+              <KpiCard
+                title="Obligación Duppla"
+                value={conObligacion}
+                subtitle="Duppla paga servicios"
+                icon={CheckCircle2}
+                iconBg="bg-duppla-green-light"
+                iconColor="text-duppla-green"
+              />
+              <KpiCard
+                title="Facturas vencidas"
+                value={facturasVencidas}
+                subtitle="Sin pagar"
+                icon={AlertTriangle}
+                iconBg="bg-duppla-red-light"
+                iconColor="text-destructive"
+              />
+              <KpiCard
+                title="Próximas a vencer"
+                value={facturasProximas}
+                subtitle="En los próximos 5 días"
+                icon={Clock}
+                iconBg="bg-duppla-orange-light"
+                iconColor="text-duppla-orange"
+              />
+            </div>
+
+            {salientes.length === 0 && !isLoading && (
+              <Card className="border-amber-300 bg-amber-50">
+                <CardContent className="p-4 text-sm text-amber-900">
+                  <strong>Sin datos:</strong> No se encontraron inmuebles con <code className="bg-amber-100 px-1 rounded">Proceso_entrega_inmueble__c = "En proceso de venta"</code>. Verifica que el webhook de n8n esté incluyendo ese campo.
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Filtro búsqueda */}
+            <div className="bg-card rounded-lg border p-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  className="pl-8 h-9 text-sm"
+                  placeholder="Buscar por nombre, dirección u oportunidad..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Lista + Detalle */}
+            <div className="grid grid-cols-12 gap-4">
+              <div className="col-span-12 lg:col-span-5">
+                <div className="bg-card rounded-lg border">
+                  <div className="px-4 py-3 border-b">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {filtered.length} inmueble{filtered.length !== 1 ? "s" : ""}
+                    </h3>
+                  </div>
+                  <div className="divide-y max-h-[calc(100vh-440px)] overflow-y-auto">
+                    {filtered.map((i) => {
+                      const cfg = servicioMap.get(i.Id);
+                      const obligacion = cfg?.obligacion_duppla ?? true;
+                      const facturasInm = facturasPorInmueble.get(i.Id) ?? [];
+                      const vencidas = facturasInm.filter((f) => !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today).length;
+                      return (
+                        <button
+                          key={i.Id}
+                          onClick={() => setSelectedId(i.Id)}
+                          className={cn(
+                            "w-full text-left px-4 py-3 transition-colors",
+                            selectedId === i.Id ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/40 border-l-2 border-l-transparent"
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <div className="font-medium text-sm truncate text-foreground">{i.Name}</div>
+                            {obligacion ? (
+                              <Badge className="bg-duppla-green text-white text-[10px] gap-1 hover:bg-duppla-green"><Check className="w-3 h-3" />Duppla paga</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px]">Cliente paga</Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MapPin className="w-3 h-3" /> {i.Direccion__c ?? "—"}, {i.Ciudad_Inmueble__c}
+                          </div>
+                          {vencidas > 0 && (
+                            <div className="text-xs text-destructive mt-1 flex items-center gap-1 font-medium">
+                              <AlertTriangle className="w-3 h-3" /> {vencidas} factura(s) vencida(s)
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {filtered.length === 0 && (
+                      <div className="p-8 text-center text-sm text-muted-foreground">Sin resultados</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-span-12 lg:col-span-7">
+                {!selected ? (
+                  <div className="bg-card rounded-lg border p-12 text-center text-sm text-muted-foreground">
+                    Selecciona un inmueble para gestionar sus servicios públicos
+                  </div>
+                ) : (
+                  <DetalleInmueble
+                    inmueble={selected}
+                    servicio={servicioMap.get(selected.Id)}
+                    facturas={facturasPorInmueble.get(selected.Id) ?? []}
+                    onToggleObligacion={() => toggleObligacion(selected.Id, servicioMap.get(selected.Id)?.obligacion_duppla ?? true)}
+                    onAddFactura={(tipo) => setShowFacturaModal({ tipo })}
+                    onMarcarPagada={marcarPagada}
+                    onEliminar={eliminarFactura}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {showFacturaModal && selected && (
         <FacturaModal
