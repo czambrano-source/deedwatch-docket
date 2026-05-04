@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut, FileText, Hash, Layers, Car, Package } from "lucide-react";
+import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut, FileText, Hash, Layers, Car, Package, ChevronDown, ChevronRight } from "lucide-react";
 import { useInmuebles } from "@/hooks/useInmuebles";
 import { useFacturasServicios, type TipoServicio, type FacturaServicio } from "@/hooks/useServiciosPublicos";
 import { supabase } from "@/integrations/supabase/client";
@@ -259,6 +259,10 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
   onMarcarPagada: (f: FacturaServicio) => void;
   onEliminar: (id: string) => void;
 }) {
+  const [openInfo, setOpenInfo] = useState(false);
+  const [openParq, setOpenParq] = useState(false);
+  const [openDep, setOpenDep] = useState(false);
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -273,60 +277,75 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
       </div>
 
       {/* Información del inmueble */}
-      <div className="bg-card rounded-xl border p-4 space-y-3">
-        <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
-          <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
-        </h3>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-          <DItem label="Fiduciaria" value={(inmueble as any).Fiduciaria__r?.Name ?? inmueble.Fiduciaria__c} icon={Building2} />
-          <DItem label="Tipo de inmueble" value={inmueble.Tipo_de_inmueble__c} icon={Building2} />
-          <DItem label="Municipio" value={(inmueble as any).Municipio_del__c} icon={MapPin} />
-          <DItem label="Número de apartamento" value={inmueble.Numero_de_apartamento__c} icon={Building2} />
-          <DItem label="Departamento" value={inmueble.Departamento__c} icon={MapPin} />
-          <DItem label="Torre" value={inmueble.Torre__c} icon={Layers} />
-          <DItem label="Ciudad" value={inmueble.Ciudad_Inmueble__c} icon={MapPin} />
-          <DItem label="No. Matrícula Apto" value={inmueble.Numero_matricula_inmobiliaria__c} icon={FileText} />
-          <DItem label="Dirección" value={inmueble.Direccion__c} icon={MapPin} />
-          <DItem label="Chip Apartamento" value={inmueble.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (inmueble.chip_apartamento__c || undefined)} icon={Hash} />
-          <DItem label="Edificio / Conjunto" value={inmueble.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
-        </div>
+      <div className="bg-card rounded-xl border">
+        <button onClick={() => setOpenInfo(!openInfo)} className="w-full flex items-center justify-between p-4 hover:bg-muted/30 rounded-xl transition-colors">
+          <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+            <FileText className="w-4 h-4 text-primary" /> Información del Inmueble
+          </h3>
+          {openInfo ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+        </button>
+        {openInfo && (
+          <div className="px-4 pb-4 grid grid-cols-2 gap-x-4 gap-y-2">
+            <DItem label="Fiduciaria" value={(inmueble as any).Fiduciaria__r?.Name ?? inmueble.Fiduciaria__c} icon={Building2} />
+            <DItem label="Tipo de inmueble" value={inmueble.Tipo_de_inmueble__c} icon={Building2} />
+            <DItem label="Municipio" value={(inmueble as any).Municipio_del__c} icon={MapPin} />
+            <DItem label="Número de apartamento" value={inmueble.Numero_de_apartamento__c} icon={Building2} />
+            <DItem label="Departamento" value={inmueble.Departamento__c} icon={MapPin} />
+            <DItem label="Torre" value={inmueble.Torre__c} icon={Layers} />
+            <DItem label="Ciudad" value={inmueble.Ciudad_Inmueble__c} icon={MapPin} />
+            <DItem label="No. Matrícula Apto" value={inmueble.Numero_matricula_inmobiliaria__c} icon={FileText} />
+            <DItem label="Dirección" value={inmueble.Direccion__c} icon={MapPin} />
+            <DItem label="Chip Apartamento" value={inmueble.chip_apartamento__c === "SIN_CHIP" ? "Sin asignar" : (inmueble.chip_apartamento__c || undefined)} icon={Hash} />
+            <DItem label="Edificio / Conjunto" value={inmueble.Nombre_de_edificio_o_conjunto__c} icon={Building2} />
+          </div>
+        )}
       </div>
 
       {/* Parqueadero */}
       {hasParqueadero(inmueble) && (
-        <div className="bg-card rounded-xl border p-4 space-y-2">
-          <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
-            <Car className="w-4 h-4 text-primary" /> Parqueadero
-          </h3>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <div className="space-y-2">
-              <DItem label="Cantidad" value={inmueble.Parqueadero__c != null ? String(inmueble.Parqueadero__c) : undefined} icon={Car} />
-              <DItem label="Número" value={inmueble.numero_del_parqueadero__c} icon={Hash} />
-              {inmueble.numero_de_parqueadero_adicional__c && (
-                <DItem label="Número adicional" value={inmueble.numero_de_parqueadero_adicional__c} icon={Hash} />
-              )}
+        <div className="bg-card rounded-xl border">
+          <button onClick={() => setOpenParq(!openParq)} className="w-full flex items-center justify-between p-4 hover:bg-muted/30 rounded-xl transition-colors">
+            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+              <Car className="w-4 h-4 text-primary" /> Parqueadero
+            </h3>
+            {openParq ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {openParq && (
+            <div className="px-4 pb-4 grid grid-cols-2 gap-x-4 gap-y-2">
+              <div className="space-y-2">
+                <DItem label="Cantidad" value={inmueble.Parqueadero__c != null ? String(inmueble.Parqueadero__c) : undefined} icon={Car} />
+                <DItem label="Número" value={inmueble.numero_del_parqueadero__c} icon={Hash} />
+                {inmueble.numero_de_parqueadero_adicional__c && (
+                  <DItem label="Número adicional" value={inmueble.numero_de_parqueadero_adicional__c} icon={Hash} />
+                )}
+              </div>
+              <div className="space-y-2">
+                <DItem label="Matrícula" value={inmueble.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
+                <DItem label="Chip" value={inmueble.chip_parqueadero__c} icon={Hash} />
+              </div>
             </div>
-            <div className="space-y-2">
-              <DItem label="Matrícula" value={inmueble.No_Matricula_Inmo_Parqueadero__c} icon={FileText} />
-              <DItem label="Chip" value={inmueble.chip_parqueadero__c} icon={Hash} />
-            </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* Depósito */}
       {hasDeposito(inmueble) && (
-        <div className="bg-card rounded-xl border p-4 space-y-2">
-          <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
-            <Package className="w-4 h-4 text-primary" /> Depósito
-          </h3>
-          <div className="grid grid-cols-2 gap-x-4">
-            <DItem label="Número" value={inmueble.numero_deposito__c} icon={Hash} />
-            <div className="space-y-2">
-              <DItem label="Matrícula" value={inmueble.No_Matricula_Inmo_Deposito__c} icon={FileText} />
-              <DItem label="Chip" value={inmueble.chip_deposito__c} icon={Hash} />
+        <div className="bg-card rounded-xl border">
+          <button onClick={() => setOpenDep(!openDep)} className="w-full flex items-center justify-between p-4 hover:bg-muted/30 rounded-xl transition-colors">
+            <h3 className="font-semibold text-foreground flex items-center gap-2 text-sm">
+              <Package className="w-4 h-4 text-primary" /> Depósito
+            </h3>
+            {openDep ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {openDep && (
+            <div className="px-4 pb-4 grid grid-cols-2 gap-x-4">
+              <DItem label="Número" value={inmueble.numero_deposito__c} icon={Hash} />
+              <div className="space-y-2">
+                <DItem label="Matrícula" value={inmueble.No_Matricula_Inmo_Deposito__c} icon={FileText} />
+                <DItem label="Chip" value={inmueble.chip_deposito__c} icon={Hash} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
