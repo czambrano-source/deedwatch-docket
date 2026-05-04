@@ -38,20 +38,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Filtrar solo las que son obligación de Duppla
-    const sfIds = [...new Set(facturas.map((f) => f.salesforce_id))];
-    const { data: configs } = await supabase
-      .from("servicios_publicos_inmueble")
-      .select("salesforce_id, obligacion_duppla")
-      .in("salesforce_id", sfIds);
-    const obligacionMap = new Map((configs ?? []).map((c) => [c.salesforce_id, c.obligacion_duppla]));
-    const aAlertar = facturas.filter((f) => obligacionMap.get(f.salesforce_id) ?? true);
-
-    if (aAlertar.length === 0) {
-      return new Response(JSON.stringify({ ok: true, sent: 0, skipped: facturas.length }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Todas las facturas registradas son de inmuebles "En Proceso de Venta" — obligación Duppla
+    const aAlertar = facturas;
 
     // Construir mensaje Slack
     const tipoEmoji: Record<string, string> = { gas: "🔥", agua: "💧", energia: "⚡" };
