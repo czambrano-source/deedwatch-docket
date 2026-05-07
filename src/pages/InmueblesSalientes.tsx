@@ -456,8 +456,10 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha oportuna de pago</p>
                   <input
-                    type="date"
-                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
+                    type="text"
+                    placeholder="DD/MM"
+                    maxLength={5}
+                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-24 focus:outline-none focus:ring-1 focus:ring-primary"
                     value={fechasPago.get(`${inmueble.Id}:${tipo}`)?.fecha_oportuna ?? ""}
                     onChange={(e) => onFechaPago(inmueble.Id, tipo, "fecha_oportuna", e.target.value)}
                   />
@@ -465,8 +467,10 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha límite de pago</p>
                   <input
-                    type="date"
-                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
+                    type="text"
+                    placeholder="DD/MM"
+                    maxLength={5}
+                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-24 focus:outline-none focus:ring-1 focus:ring-primary"
                     value={fechasPago.get(`${inmueble.Id}:${tipo}`)?.fecha_limite ?? ""}
                     onChange={(e) => onFechaPago(inmueble.Id, tipo, "fecha_limite", e.target.value)}
                   />
