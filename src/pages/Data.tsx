@@ -557,11 +557,11 @@ export default function DataPage() {
     if (ctlItems.length === 0) return;
 
     const headers = ["Fecha Entrega", "Inmueble", "Oportunidad", "Tipo CTL", "Chip", "Matrícula", "Días sin CTL", "Observación"];
-    const colWidths = [14, 14, 28, 14, 12, 18, 14, 34];
+    const colWidths = [16, 16, 30, 16, 13, 20, 15, 36];
     const dataRows = ctlItems.flatMap((i) => {
       const ctlDiscs = i.discrepancias.filter(isCtlPendiente);
       const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
-      const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "";
+      const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : 0;
       return ctlDiscs.map(d => {
         const tipoRaw = d.campo.replace(" pendiente", "").replace(" nombre CMA", "").replace("CTL ", "");
         const isParq = tipoRaw === "Parqueadero";
@@ -572,22 +572,59 @@ export default function DataPage() {
         const chip = isParq ? i.raw.chip_parqueadero__c : isDep ? i.raw.chip_deposito__c : i.raw.chip_apartamento__c;
         const mat = isParq ? i.raw.No_Matricula_Inmo_Parqueadero__c : isDep ? i.raw.No_Matricula_Inmo_Deposito__c : i.raw.Numero_matricula_inmobiliaria__c;
         const obs = d.campo.includes("nombre CMA") ? "Nombre incorrecto (a nombre de CMA)" : "Sin CTL en Alejandría";
-        return [fechaEnt || "", i.codigo, i.oportunidad || "", tipo, chip || "", mat || "", typeof dias === "number" ? dias : 0, obs];
+        return [fechaEnt || "", i.codigo, i.oportunidad || "", tipo, chip || "", mat || "", dias, obs];
       });
     });
 
+    const totalCtl = dataRows.length;
+    const now = new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+
     const wb = new ExcelJS.Workbook();
+    wb.creator = "Duppla";
     const ws = wb.addWorksheet("CTL Pendientes");
-    ws.columns = headers.map((h, i) => ({ header: h, key: h, width: colWidths[i] }));
-    ws.addTable({
-      name: "CTLPendientes",
-      ref: "A1",
-      headerRow: true,
-      totalsRow: false,
-      style: { theme: "TableStyleMedium2", showRowStripes: true },
-      columns: headers.map(h => ({ name: h, filterButton: true })),
-      rows: dataRows,
+    ws.columns = headers.map((h, i) => ({ key: String(i), width: colWidths[i] }));
+
+    // Fila 1: título
+    ws.addRow(["Reporte CTL Pendientes"]);
+    ws.mergeCells("A1:H1");
+    const titleCell = ws.getCell("A1");
+    titleCell.value = "Reporte CTL Pendientes";
+    titleCell.font = { name: "Helvetica", bold: true, size: 16 };
+    titleCell.alignment = { vertical: "middle" };
+    ws.getRow(1).height = 30;
+
+    // Fila 2: subtítulo
+    ws.addRow([`Generado: ${now} — ${ctlItems.length} inmueble(s), ${totalCtl} CTL pendientes`]);
+    ws.mergeCells("A2:H2");
+    const subtitleCell = ws.getCell("A2");
+    subtitleCell.font = { name: "Helvetica", size: 10, color: { argb: "FF646464" } };
+    subtitleCell.alignment = { vertical: "middle" };
+    ws.getRow(2).height = 20;
+
+    // Fila 3: encabezados (azul #2962FF, texto blanco)
+    const headerRow = ws.addRow(headers);
+    ws.getRow(3).height = 22;
+    headerRow.eachCell(cell => {
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2962FF" } };
+      cell.font = { name: "Helvetica", bold: true, color: { argb: "FFFFFFFF" }, size: 9 };
+      cell.alignment = { vertical: "middle", wrapText: false };
     });
+
+    // Filas de datos con color alterno
+    dataRows.forEach((row, idx) => {
+      const dataRow = ws.addRow(row);
+      ws.getRow(4 + idx).height = 18;
+      const bg = idx % 2 === 0 ? "FFFFFFFF" : "FFF5F7FA";
+      dataRow.eachCell({ includeEmpty: true }, cell => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+        cell.font = { name: "Helvetica", size: 8 };
+        cell.alignment = { vertical: "middle" };
+      });
+    });
+
+    // Autofilter sobre encabezados
+    ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3 + dataRows.length, column: headers.length } };
+
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
