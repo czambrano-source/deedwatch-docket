@@ -3260,6 +3260,8 @@ export type Database = {
           fecha_pago: string | null
           fecha_vencimiento: string | null
           id: string
+          inmueble_name: string | null
+          mes_pago: string | null
           notas: string | null
           pagado: boolean
           referencia_pago: string | null
@@ -3275,6 +3277,8 @@ export type Database = {
           fecha_pago?: string | null
           fecha_vencimiento?: string | null
           id?: string
+          inmueble_name?: string | null
+          mes_pago?: string | null
           notas?: string | null
           pagado?: boolean
           referencia_pago?: string | null
@@ -3290,6 +3294,8 @@ export type Database = {
           fecha_pago?: string | null
           fecha_vencimiento?: string | null
           id?: string
+          inmueble_name?: string | null
+          mes_pago?: string | null
           notas?: string | null
           pagado?: boolean
           referencia_pago?: string | null
@@ -3298,6 +3304,48 @@ export type Database = {
           updated_at?: string
           url_soporte?: string | null
           valor?: number | null
+        }
+        Relationships: []
+      }
+      salientes_fechas_pago: {
+        Row: {
+          fecha_limite: string | null
+          fecha_oportuna: string | null
+          id: string
+          salesforce_id: string
+          tipo_servicio: string
+          updated_at: string | null
+        }
+        Insert: {
+          fecha_limite?: string | null
+          fecha_oportuna?: string | null
+          id?: string
+          salesforce_id: string
+          tipo_servicio: string
+          updated_at?: string | null
+        }
+        Update: {
+          fecha_limite?: string | null
+          fecha_oportuna?: string | null
+          id?: string
+          salesforce_id?: string
+          tipo_servicio?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      salientes_paga_servicios: {
+        Row: {
+          id: string
+          salesforce_id: string
+        }
+        Insert: {
+          id?: string
+          salesforce_id: string
+        }
+        Update: {
+          id?: string
+          salesforce_id?: string
         }
         Relationships: []
       }
