@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut, FileText, Hash, Layers, Car, Package, ChevronDown, ChevronRight, Upload, Paperclip, ShieldCheck } from "lucide-react";
+import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut, FileText, Hash, Layers, Car, Package, ChevronDown, ChevronRight, Upload, Paperclip, ShieldCheck, Calendar } from "lucide-react";
 import { useInmuebles } from "@/hooks/useInmuebles";
 import { useFacturasServicios, type TipoServicio, type FacturaServicio } from "@/hooks/useServiciosPublicos";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,12 +54,34 @@ export default function InmueblesSalientes() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showFacturaModal, setShowFacturaModal] = useState<{ tipo: TipoServicio } | null>(null);
   const [pagaServicios, setPagaServicios] = useState<Set<string>>(new Set());
+  const [fechasPago, setFechasPago] = useState<Map<string, { fecha_oportuna: string; fecha_limite: string }>>(new Map());
 
   useEffect(() => {
     supabase.from("salientes_paga_servicios").select("salesforce_id").then(({ data }) => {
       if (data) setPagaServicios(new Set(data.map((r: any) => r.salesforce_id)));
     });
+    supabase.from("salientes_fechas_pago").select("salesforce_id,tipo_servicio,fecha_oportuna,fecha_limite").then(({ data }) => {
+      if (data) {
+        const m = new Map<string, { fecha_oportuna: string; fecha_limite: string }>();
+        data.forEach((r: any) => m.set(`${r.salesforce_id}:${r.tipo_servicio}`, { fecha_oportuna: r.fecha_oportuna ?? "", fecha_limite: r.fecha_limite ?? "" }));
+        setFechasPago(m);
+      }
+    });
   }, []);
+
+  const handleFechaPago = async (salesforceId: string, tipo: TipoServicio, field: "fecha_oportuna" | "fecha_limite", value: string) => {
+    const key = `${salesforceId}:${tipo}`;
+    const prev = fechasPago.get(key) ?? { fecha_oportuna: "", fecha_limite: "" };
+    const next = { ...prev, [field]: value };
+    setFechasPago(m => new Map(m).set(key, next));
+    await supabase.from("salientes_fechas_pago").upsert({
+      salesforce_id: salesforceId,
+      tipo_servicio: tipo,
+      fecha_oportuna: next.fecha_oportuna || null,
+      fecha_limite: next.fecha_limite || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "salesforce_id,tipo_servicio" });
+  };
 
   const togglePagaServicios = async (salesforceId: string) => {
     const arrendatariaPaga = pagaServicios.has(salesforceId);
@@ -223,6 +245,8 @@ export default function InmueblesSalientes() {
                     onEliminar={eliminarFactura}
                     dupplaPaga={!pagaServicios.has(selected.Id)}
                     onTogglePagaServicios={() => togglePagaServicios(selected.Id)}
+                    fechasPago={fechasPago}
+                    onFechaPago={handleFechaPago}
                   />
                 )}
               </div>
@@ -284,7 +308,7 @@ function ResumenGlobo({ facturas, today }: { facturas: FacturaServicio[]; today:
   );
 }
 
-function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPagada, onEliminar, dupplaPaga, onTogglePagaServicios }: {
+function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPagada, onEliminar, dupplaPaga, onTogglePagaServicios, fechasPago, onFechaPago }: {
   inmueble: Inmueble;
   facturas: FacturaServicio[];
   today: string;
@@ -293,6 +317,8 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
   onEliminar: (id: string) => void;
   dupplaPaga: boolean;
   onTogglePagaServicios: () => void;
+  fechasPago: Map<string, { fecha_oportuna: string; fecha_limite: string }>;
+  onFechaPago: (salesforceId: string, tipo: TipoServicio, field: "fecha_oportuna" | "fecha_limite", value: string) => void;
 }) {
   const [openInfo, setOpenInfo] = useState(false);
   const [openParq, setOpenParq] = useState(false);
@@ -425,6 +451,28 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
                 </Button>
               )}
             </div>
+            {!noTiene && (
+              <div className="flex flex-wrap gap-6 mb-3 pb-3 border-b border-border/40">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha oportuna de pago</p>
+                  <input
+                    type="date"
+                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
+                    value={fechasPago.get(`${inmueble.Id}:${tipo}`)?.fecha_oportuna ?? ""}
+                    onChange={(e) => onFechaPago(inmueble.Id, tipo, "fecha_oportuna", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha límite de pago</p>
+                  <input
+                    type="date"
+                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
+                    value={fechasPago.get(`${inmueble.Id}:${tipo}`)?.fecha_limite ?? ""}
+                    onChange={(e) => onFechaPago(inmueble.Id, tipo, "fecha_limite", e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
             {noTiene ? (
               <p className="text-xs text-muted-foreground">Este inmueble no cuenta con servicio de {meta.label.toLowerCase()}.</p>
             ) : lista.length === 0 ? (
