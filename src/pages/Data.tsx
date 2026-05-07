@@ -577,6 +577,7 @@ export default function DataPage() {
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
     ws["!cols"] = [14, 14, 28, 14, 12, 18, 14, 34].map(w => ({ wch: w }));
+    ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: dataRows.length, c: headers.length - 1 } }) };
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "CTL Pendientes");
     XLSX.writeFile(wb, `ctl_pendiente_${new Date().toISOString().slice(0, 10)}.xlsx`);
