@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -545,7 +545,7 @@ export default function DataPage() {
     doc.save(`ctl_pendiente_${new Date().toISOString().slice(0, 10)}.pdf`);
   }, [inmuebles]);
 
-  const generateCtlPendienteXLSX = useCallback(() => {
+  const generateCtlPendienteXLSX = useCallback(async () => {
     const isCtlPendiente = (d: Discrepancia) => d.campo.includes("pendiente") || d.campo.includes("nombre CMA");
     const ctlItems = inmuebles
       .filter((i) => i.discrepancias.some(isCtlPendiente))
@@ -557,6 +557,7 @@ export default function DataPage() {
     if (ctlItems.length === 0) return;
 
     const headers = ["Fecha Entrega", "Inmueble", "Oportunidad", "Tipo CTL", "Chip", "Matrícula", "Días sin CTL", "Observación"];
+    const colWidths = [14, 14, 28, 14, 12, 18, 14, 34];
     const dataRows = ctlItems.flatMap((i) => {
       const ctlDiscs = i.discrepancias.filter(isCtlPendiente);
       const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
@@ -571,16 +572,30 @@ export default function DataPage() {
         const chip = isParq ? i.raw.chip_parqueadero__c : isDep ? i.raw.chip_deposito__c : i.raw.chip_apartamento__c;
         const mat = isParq ? i.raw.No_Matricula_Inmo_Parqueadero__c : isDep ? i.raw.No_Matricula_Inmo_Deposito__c : i.raw.Numero_matricula_inmobiliaria__c;
         const obs = d.campo.includes("nombre CMA") ? "Nombre incorrecto (a nombre de CMA)" : "Sin CTL en Alejandría";
-        return [fechaEnt || "", i.codigo, i.oportunidad || "", tipo, chip || "", mat || "", typeof dias === "number" ? dias : "", obs];
+        return [fechaEnt || "", i.codigo, i.oportunidad || "", tipo, chip || "", mat || "", typeof dias === "number" ? dias : 0, obs];
       });
     });
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
-    ws["!cols"] = [14, 14, 28, 14, 12, 18, 14, 34].map(w => ({ wch: w }));
-    ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: dataRows.length, c: headers.length - 1 } }) };
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "CTL Pendientes");
-    XLSX.writeFile(wb, `ctl_pendiente_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("CTL Pendientes");
+    ws.columns = headers.map((h, i) => ({ header: h, key: h, width: colWidths[i] }));
+    ws.addTable({
+      name: "CTLPendientes",
+      ref: "A1",
+      headerRow: true,
+      totalsRow: false,
+      style: { theme: "TableStyleMedium2", showRowStripes: true },
+      columns: headers.map(h => ({ name: h, filterButton: true })),
+      rows: dataRows,
+    });
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ctl_pendiente_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   }, [inmuebles]);
 
   const generateCtlProximoPDF = useCallback(() => {
