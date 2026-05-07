@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut, FileText, Hash, Layers, Car, Package, ChevronDown, ChevronRight, Upload, Paperclip } from "lucide-react";
+import { Loader2, Search, MapPin, Building2, AlertTriangle, CheckCircle2, Clock, Flame, Droplets, Zap, Plus, Trash2, Check, ExternalLink, LogOut, FileText, Hash, Layers, Car, Package, ChevronDown, ChevronRight, Upload, Paperclip, ShieldCheck } from "lucide-react";
 import { useInmuebles } from "@/hooks/useInmuebles";
 import { useFacturasServicios, type TipoServicio, type FacturaServicio } from "@/hooks/useServiciosPublicos";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +53,26 @@ export default function InmueblesSalientes() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showFacturaModal, setShowFacturaModal] = useState<{ tipo: TipoServicio } | null>(null);
+  const [pagaServicios, setPagaServicios] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    supabase.from("salientes_paga_servicios").select("salesforce_id").then(({ data }) => {
+      if (data) setPagaServicios(new Set(data.map((r: any) => r.salesforce_id)));
+    });
+  }, []);
+
+  const togglePagaServicios = async (salesforceId: string) => {
+    const activo = pagaServicios.has(salesforceId);
+    if (activo) {
+      await supabase.from("salientes_paga_servicios").delete().eq("salesforce_id", salesforceId);
+      setPagaServicios(prev => { const s = new Set(prev); s.delete(salesforceId); return s; });
+      toast.success("Desmarcado — la arrendataria paga servicios");
+    } else {
+      await supabase.from("salientes_paga_servicios").insert({ salesforce_id: salesforceId });
+      setPagaServicios(prev => new Set(prev).add(salesforceId));
+      toast.success("Marcado — Duppla paga servicios");
+    }
+  };
 
   const salientes = useMemo(() => {
     return inmueblesRaw
@@ -75,6 +95,7 @@ export default function InmueblesSalientes() {
   const totalSalientes = salientes.length;
   const facturasVencidas = facturas.filter((f) => !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today).length;
   const facturasProximas = facturas.filter((f) => !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento >= today && f.fecha_vencimiento <= limite).length;
+  const totalDupplaPaga = pagaServicios.size;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -122,10 +143,11 @@ export default function InmueblesSalientes() {
               <p className="text-muted-foreground text-sm mt-1">Seguimiento de servicios públicos en inmuebles en proceso de venta</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <KpiCard title="Inmuebles salientes" value={totalSalientes} subtitle="En proceso de venta" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" />
               <KpiCard title="Facturas vencidas" value={facturasVencidas} subtitle="Sin pagar" icon={AlertTriangle} iconBg="bg-duppla-red-light" iconColor="text-destructive" />
               <KpiCard title="Próximas a vencer" value={facturasProximas} subtitle="En los próximos 5 días" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" />
+              <KpiCard title="Duppla paga servicios" value={totalDupplaPaga} subtitle="En proceso de venta" icon={ShieldCheck} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
             </div>
 
             {salientes.length === 0 && !isLoading && (
@@ -154,6 +176,7 @@ export default function InmueblesSalientes() {
                     {filtered.map((i) => {
                       const facturasInm = facturasPorInmueble.get(i.Id) ?? [];
                       const isSel = selectedId === i.Id;
+                      const dupplaPaga = pagaServicios.has(i.Id);
                       return (
                         <button
                           key={i.Id}
@@ -161,11 +184,14 @@ export default function InmueblesSalientes() {
                           className={`w-full text-left p-4 transition-colors hover:bg-muted/50 ${isSel ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"}`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", dupplaPaga ? "bg-duppla-green-light" : "bg-muted")}>
+                              <Building2 className={cn("w-4 h-4", dupplaPaga ? "text-duppla-green" : "text-muted-foreground")} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm text-foreground truncate">{i.Name}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-semibold text-sm text-foreground truncate">{i.Name}</p>
+                                {dupplaPaga && <ShieldCheck className="w-3.5 h-3.5 text-duppla-green flex-shrink-0" />}
+                              </div>
                               <p className="text-xs text-muted-foreground truncate mb-1.5">{i.Opportunity__r?.Name ?? "—"}</p>
                               <ResumenGlobo facturas={facturasInm} today={today} />
                             </div>
@@ -195,6 +221,8 @@ export default function InmueblesSalientes() {
                     onAddFactura={(tipo) => setShowFacturaModal({ tipo })}
                     onMarcarPagada={marcarPagada}
                     onEliminar={eliminarFactura}
+                    dupplaPaga={pagaServicios.has(selected.Id)}
+                    onTogglePagaServicios={() => togglePagaServicios(selected.Id)}
                   />
                 )}
               </div>
@@ -256,13 +284,15 @@ function ResumenGlobo({ facturas, today }: { facturas: FacturaServicio[]; today:
   );
 }
 
-function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPagada, onEliminar }: {
+function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPagada, onEliminar, dupplaPaga, onTogglePagaServicios }: {
   inmueble: Inmueble;
   facturas: FacturaServicio[];
   today: string;
   onAddFactura: (t: TipoServicio) => void;
   onMarcarPagada: (f: FacturaServicio) => void;
   onEliminar: (id: string) => void;
+  dupplaPaga: boolean;
+  onTogglePagaServicios: () => void;
 }) {
   const [openInfo, setOpenInfo] = useState(false);
   const [openParq, setOpenParq] = useState(false);
@@ -272,13 +302,25 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-          <Building2 className="w-6 h-6 text-muted-foreground" />
+        <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0", dupplaPaga ? "bg-duppla-green-light" : "bg-muted")}>
+          <Building2 className={cn("w-6 h-6", dupplaPaga ? "text-duppla-green" : "text-muted-foreground")} />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-foreground">{inmueble.Name}</h2>
           <p className="text-sm text-muted-foreground">{inmueble.Opportunity__r?.Name ?? "—"}</p>
         </div>
+        <button
+          onClick={onTogglePagaServicios}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+            dupplaPaga
+              ? "bg-duppla-green-light text-duppla-green border-duppla-green/30 hover:bg-duppla-green/10"
+              : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+          )}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          {dupplaPaga ? "Duppla paga servicios" : "Arrendataria paga servicios"}
+        </button>
       </div>
 
       {/* Información del inmueble */}
