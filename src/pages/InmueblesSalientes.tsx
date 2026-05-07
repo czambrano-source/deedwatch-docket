@@ -62,15 +62,15 @@ export default function InmueblesSalientes() {
   }, []);
 
   const togglePagaServicios = async (salesforceId: string) => {
-    const activo = pagaServicios.has(salesforceId);
-    if (activo) {
+    const arrendatariaPaga = pagaServicios.has(salesforceId);
+    if (arrendatariaPaga) {
       await supabase.from("salientes_paga_servicios").delete().eq("salesforce_id", salesforceId);
       setPagaServicios(prev => { const s = new Set(prev); s.delete(salesforceId); return s; });
-      toast.success("Desmarcado — la arrendataria paga servicios");
+      toast.success("Duppla vuelve a pagar servicios");
     } else {
       await supabase.from("salientes_paga_servicios").insert({ salesforce_id: salesforceId });
       setPagaServicios(prev => new Set(prev).add(salesforceId));
-      toast.success("Marcado — Duppla paga servicios");
+      toast.success("Marcado — arrendataria paga servicios");
     }
   };
 
@@ -95,7 +95,7 @@ export default function InmueblesSalientes() {
   const totalSalientes = salientes.length;
   const facturasVencidas = facturas.filter((f) => !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento < today).length;
   const facturasProximas = facturas.filter((f) => !f.pagado && f.fecha_vencimiento && f.fecha_vencimiento >= today && f.fecha_vencimiento <= limite).length;
-  const totalDupplaPaga = pagaServicios.size;
+  const totalArrendatariaPaga = pagaServicios.size;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -147,7 +147,7 @@ export default function InmueblesSalientes() {
               <KpiCard title="Inmuebles salientes" value={totalSalientes} subtitle="En proceso de venta" icon={Building2} iconBg="bg-duppla-blue-light" iconColor="text-duppla-blue" />
               <KpiCard title="Facturas vencidas" value={facturasVencidas} subtitle="Sin pagar" icon={AlertTriangle} iconBg="bg-duppla-red-light" iconColor="text-destructive" />
               <KpiCard title="Próximas a vencer" value={facturasProximas} subtitle="En los próximos 5 días" icon={Clock} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" />
-              <KpiCard title="Duppla paga servicios" value={totalDupplaPaga} subtitle="En proceso de venta" icon={ShieldCheck} iconBg="bg-duppla-green-light" iconColor="text-duppla-green" />
+              <KpiCard title="Arrendataria paga servicios" value={totalArrendatariaPaga} subtitle="Excepción — no paga Duppla" icon={ShieldCheck} iconBg="bg-duppla-orange-light" iconColor="text-duppla-orange" />
             </div>
 
             {salientes.length === 0 && !isLoading && (
@@ -176,7 +176,7 @@ export default function InmueblesSalientes() {
                     {filtered.map((i) => {
                       const facturasInm = facturasPorInmueble.get(i.Id) ?? [];
                       const isSel = selectedId === i.Id;
-                      const dupplaPaga = pagaServicios.has(i.Id);
+                      const arrendatariaPaga = pagaServicios.has(i.Id);
                       return (
                         <button
                           key={i.Id}
@@ -184,13 +184,13 @@ export default function InmueblesSalientes() {
                           className={`w-full text-left p-4 transition-colors hover:bg-muted/50 ${isSel ? "bg-duppla-green-light border-l-4 border-l-primary" : "border-l-4 border-l-transparent"}`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", dupplaPaga ? "bg-duppla-green-light" : "bg-muted")}>
-                              <Building2 className={cn("w-4 h-4", dupplaPaga ? "text-duppla-green" : "text-muted-foreground")} />
+                            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", arrendatariaPaga ? "bg-duppla-orange-light" : "bg-duppla-green-light")}>
+                              <Building2 className={cn("w-4 h-4", arrendatariaPaga ? "text-duppla-orange" : "text-duppla-green")} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <p className="font-semibold text-sm text-foreground truncate">{i.Name}</p>
-                                {dupplaPaga && <ShieldCheck className="w-3.5 h-3.5 text-duppla-green flex-shrink-0" />}
+                                {arrendatariaPaga && <ShieldCheck className="w-3.5 h-3.5 text-duppla-orange flex-shrink-0" />}
                               </div>
                               <p className="text-xs text-muted-foreground truncate mb-1.5">{i.Opportunity__r?.Name ?? "—"}</p>
                               <ResumenGlobo facturas={facturasInm} today={today} />
@@ -221,7 +221,7 @@ export default function InmueblesSalientes() {
                     onAddFactura={(tipo) => setShowFacturaModal({ tipo })}
                     onMarcarPagada={marcarPagada}
                     onEliminar={eliminarFactura}
-                    dupplaPaga={pagaServicios.has(selected.Id)}
+                    dupplaPaga={!pagaServicios.has(selected.Id)}
                     onTogglePagaServicios={() => togglePagaServicios(selected.Id)}
                   />
                 )}
@@ -302,8 +302,8 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start gap-4">
-        <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0", dupplaPaga ? "bg-duppla-green-light" : "bg-muted")}>
-          <Building2 className={cn("w-6 h-6", dupplaPaga ? "text-duppla-green" : "text-muted-foreground")} />
+        <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0", dupplaPaga ? "bg-duppla-green-light" : "bg-duppla-orange-light")}>
+          <Building2 className={cn("w-6 h-6", dupplaPaga ? "text-duppla-green" : "text-duppla-orange")} />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-foreground">{inmueble.Name}</h2>
@@ -315,7 +315,7 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
             "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
             dupplaPaga
               ? "bg-duppla-green-light text-duppla-green border-duppla-green/30 hover:bg-duppla-green/10"
-              : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+              : "bg-duppla-orange-light text-duppla-orange border-duppla-orange/30 hover:bg-duppla-orange/10"
           )}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
