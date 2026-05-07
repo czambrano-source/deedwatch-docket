@@ -54,7 +54,7 @@ export default function InmueblesSalientes() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showFacturaModal, setShowFacturaModal] = useState<{ tipo: TipoServicio } | null>(null);
   const [pagaServicios, setPagaServicios] = useState<Set<string>>(new Set());
-  const [fechasPago, setFechasPago] = useState<Map<string, { fecha_oportuna: number | null; fecha_limite: number | null }>>(new Map());
+  const [fechasPago, setFechasPago] = useState<Map<string, { fecha_oportuna: string; fecha_limite: string }>>(new Map());
 
   useEffect(() => {
     supabase.from("salientes_paga_servicios").select("salesforce_id").then(({ data }) => {
@@ -62,8 +62,8 @@ export default function InmueblesSalientes() {
     });
     supabase.from("salientes_fechas_pago").select("salesforce_id,tipo_servicio,fecha_oportuna,fecha_limite").then(({ data }) => {
       if (data) {
-        const m = new Map<string, { fecha_oportuna: number | null; fecha_limite: number | null }>();
-        data.forEach((r: any) => m.set(`${r.salesforce_id}:${r.tipo_servicio}`, { fecha_oportuna: r.fecha_oportuna ?? null, fecha_limite: r.fecha_limite ?? null }));
+        const m = new Map<string, { fecha_oportuna: string; fecha_limite: string }>();
+        data.forEach((r: any) => m.set(`${r.salesforce_id}:${r.tipo_servicio}`, { fecha_oportuna: r.fecha_oportuna ?? "", fecha_limite: r.fecha_limite ?? "" }));
         setFechasPago(m);
       }
     });
@@ -71,15 +71,14 @@ export default function InmueblesSalientes() {
 
   const handleFechaPago = async (salesforceId: string, tipo: TipoServicio, field: "fecha_oportuna" | "fecha_limite", value: string) => {
     const key = `${salesforceId}:${tipo}`;
-    const prev = fechasPago.get(key) ?? { fecha_oportuna: null, fecha_limite: null };
-    const num = value === "" ? null : Math.min(31, Math.max(1, parseInt(value, 10)));
-    const next = { ...prev, [field]: isNaN(num as any) ? null : num };
+    const prev = fechasPago.get(key) ?? { fecha_oportuna: "", fecha_limite: "" };
+    const next = { ...prev, [field]: value };
     setFechasPago(m => new Map(m).set(key, next));
     await supabase.from("salientes_fechas_pago").upsert({
       salesforce_id: salesforceId,
       tipo_servicio: tipo,
-      fecha_oportuna: next.fecha_oportuna,
-      fecha_limite: next.fecha_limite,
+      fecha_oportuna: next.fecha_oportuna || null,
+      fecha_limite: next.fecha_limite || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: "salesforce_id,tipo_servicio" });
   };
@@ -318,7 +317,7 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
   onEliminar: (id: string) => void;
   dupplaPaga: boolean;
   onTogglePagaServicios: () => void;
-  fechasPago: Map<string, { fecha_oportuna: number | null; fecha_limite: number | null }>;
+  fechasPago: Map<string, { fecha_oportuna: string; fecha_limite: string }>;
   onFechaPago: (salesforceId: string, tipo: TipoServicio, field: "fecha_oportuna" | "fecha_limite", value: string) => void;
 }) {
   const [openInfo, setOpenInfo] = useState(false);
@@ -455,25 +454,19 @@ function DetalleInmueble({ inmueble, facturas, today, onAddFactura, onMarcarPaga
             {!noTiene && (
               <div className="flex flex-wrap gap-6 mb-3 pb-3 border-b border-border/40">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Día oportuno de pago</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha oportuna de pago</p>
                   <input
-                    type="number"
-                    placeholder="Día"
-                    min={1}
-                    max={31}
-                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-20 focus:outline-none focus:ring-1 focus:ring-primary"
+                    type="date"
+                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
                     value={fechasPago.get(`${inmueble.Id}:${tipo}`)?.fecha_oportuna ?? ""}
                     onChange={(e) => onFechaPago(inmueble.Id, tipo, "fecha_oportuna", e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Día límite de pago</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha límite de pago</p>
                   <input
-                    type="number"
-                    placeholder="Día"
-                    min={1}
-                    max={31}
-                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-20 focus:outline-none focus:ring-1 focus:ring-primary"
+                    type="date"
+                    className="text-sm font-medium text-foreground bg-transparent border border-border/60 rounded px-2 py-0.5 w-40 focus:outline-none focus:ring-1 focus:ring-primary"
                     value={fechasPago.get(`${inmueble.Id}:${tipo}`)?.fecha_limite ?? ""}
                     onChange={(e) => onFechaPago(inmueble.Id, tipo, "fecha_limite", e.target.value)}
                   />
@@ -601,6 +594,7 @@ function FacturaModal({ tipo, salesforceId, inmuebleName, onClose, onSaved }: {
       // 2. Guardar registro en Supabase
       const { error } = await supabase.from("facturas_servicios").insert({
         salesforce_id: salesforceId,
+        inmueble_name: inmuebleName,
         tipo_servicio: tipo,
         mes_pago: mesPago,
         valor: valor ? Number(valor) : null,
