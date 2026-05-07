@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -542,6 +543,43 @@ export default function DataPage() {
     });
 
     doc.save(`ctl_pendiente_${new Date().toISOString().slice(0, 10)}.pdf`);
+  }, [inmuebles]);
+
+  const generateCtlPendienteXLSX = useCallback(() => {
+    const isCtlPendiente = (d: Discrepancia) => d.campo.includes("pendiente") || d.campo.includes("nombre CMA");
+    const ctlItems = inmuebles
+      .filter((i) => i.discrepancias.some(isCtlPendiente))
+      .sort((a, b) => {
+        const fa = a.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+        const fb = b.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+        return fa.localeCompare(fb);
+      });
+    if (ctlItems.length === 0) return;
+
+    const headers = ["Fecha Entrega", "Inmueble", "Oportunidad", "Tipo CTL", "Chip", "Matrícula", "Días sin CTL", "Observación"];
+    const dataRows = ctlItems.flatMap((i) => {
+      const ctlDiscs = i.discrepancias.filter(isCtlPendiente);
+      const fechaEnt = i.raw.Legales__r?.records?.[0]?.Fecha_entrega_inmueble__c || "";
+      const dias = fechaEnt ? Math.floor((new Date().getTime() - new Date(fechaEnt).getTime()) / (1000 * 60 * 60 * 24)) : "";
+      return ctlDiscs.map(d => {
+        const tipoRaw = d.campo.replace(" pendiente", "").replace(" nombre CMA", "").replace("CTL ", "");
+        const isParq = tipoRaw === "Parqueadero";
+        const isDep = tipoRaw === "Bodega" || tipoRaw === "Depósito";
+        let tipo = tipoRaw;
+        if (tipo === "Fiducia") tipo = "Inmueble";
+        if (tipo === "Bodega") tipo = "Depósito";
+        const chip = isParq ? i.raw.chip_parqueadero__c : isDep ? i.raw.chip_deposito__c : i.raw.chip_apartamento__c;
+        const mat = isParq ? i.raw.No_Matricula_Inmo_Parqueadero__c : isDep ? i.raw.No_Matricula_Inmo_Deposito__c : i.raw.Numero_matricula_inmobiliaria__c;
+        const obs = d.campo.includes("nombre CMA") ? "Nombre incorrecto (a nombre de CMA)" : "Sin CTL en Alejandría";
+        return [fechaEnt || "", i.codigo, i.oportunidad || "", tipo, chip || "", mat || "", typeof dias === "number" ? dias : "", obs];
+      });
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+    ws["!cols"] = [14, 14, 28, 14, 12, 18, 14, 34].map(w => ({ wch: w }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "CTL Pendientes");
+    XLSX.writeFile(wb, `ctl_pendiente_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }, [inmuebles]);
 
   const generateCtlProximoPDF = useCallback(() => {
@@ -2488,9 +2526,14 @@ export default function DataPage() {
                 <AlertTriangle className="w-5 h-5 text-duppla-orange" />
                 CTL Pendientes
               </DialogTitle>
-              <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={generateCtlPendientePDF}>
-                <Download className="w-3.5 h-3.5" /> Generar Reporte PDF
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={generateCtlPendienteXLSX}>
+                  <Download className="w-3.5 h-3.5" /> Descargar Excel
+                </Button>
+                <Button size="sm" variant="outline" className="text-xs gap-1.5" onClick={generateCtlPendientePDF}>
+                  <Download className="w-3.5 h-3.5" /> Generar Reporte PDF
+                </Button>
+              </div>
             </div>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
